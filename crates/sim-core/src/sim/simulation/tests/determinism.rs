@@ -17,8 +17,8 @@ use super::*;
 fn same_seed_produces_the_same_generated_world() {
     fn fingerprint(seed: u64) -> (Vec<String>, Vec<String>, u64, u64) {
         let sim = Simulation::new(seed);
-        let org_ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
-        let mut lineage_ids: Vec<String> = sim.organisms.iter().map(|o| o.lineage_id.clone()).collect();
+        let org_ids: Vec<String> = sim.organisms.iter().map(|o| o.id.to_string()).collect();
+        let mut lineage_ids: Vec<String> = sim.organisms.iter().map(|o| o.lineage_id.to_string()).collect();
         lineage_ids.sort();
         lineage_ids.dedup();
         let mut tiles: u64 = 0;

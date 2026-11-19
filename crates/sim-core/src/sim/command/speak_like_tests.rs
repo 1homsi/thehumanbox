@@ -32,7 +32,7 @@ fn newcomers_who_speak_like_a_nearby_people_take_their_words() {
         assert_eq!(person.vocabulary.words(), west_words);
     }
     // They are their own tribe, so their words drift on their own from here.
-    let west_lineage = living_near(&sim, 100.0, 100.0).lineage_id.clone();
+    let west_lineage = living_near(&sim, 100.0, 100.0).lineage_id;
     assert!(newcomers.iter().all(|p| p.lineage_id != west_lineage));
 }
 

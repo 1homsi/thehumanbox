@@ -12,7 +12,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let Some(si) = stranger else {
         return 0.0;
     };
-    let slid = ctx.sim.organisms[si].lineage_id.clone();
+    let slid = ctx.sim.organisms[si].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&slid, 0.12);
     ctx.think("forging a bond between our peoples through ceremony");
     ctx.discover(

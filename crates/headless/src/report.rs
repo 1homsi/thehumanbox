@@ -168,8 +168,8 @@ pub(super) fn print_coverage(sim: &Simulation) {
         let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
         let mut lineage_pop: HashMap<String, usize> = HashMap::new();
         for org in sim.organisms.iter().filter(|o| o.alive) {
-            *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
-            let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
+            *lineage_pop.entry(org.lineage_id.to_string()).or_insert(0) += 1;
+            let entry = lineage_discoveries.entry(org.lineage_id.to_string()).or_default();
             for d in &org.discoveries {
                 entry.insert(d.clone());
             }
@@ -179,9 +179,9 @@ pub(super) fn print_coverage(sim: &Simulation) {
             .iter()
             .filter_map(|(lid, era)| {
                 let next = era.advance()?;
-                let pop = *lineage_pop.get(lid).unwrap_or(&0);
+                let pop = *lineage_pop.get(lid.as_str()).unwrap_or(&0);
                 let required_pop = next.pop_threshold();
-                let known = lineage_discoveries.get(lid);
+                let known = lineage_discoveries.get(lid.as_str());
                 let missing: Vec<&str> = next
                     .required_discoveries()
                     .iter()
@@ -191,7 +191,13 @@ pub(super) fn print_coverage(sim: &Simulation) {
                 if missing.is_empty() && pop >= required_pop {
                     return None;
                 }
-                Some((lid.clone(), next.name().to_string(), pop, required_pop, missing))
+                Some((
+                    lid.to_string(),
+                    next.name().to_string(),
+                    pop,
+                    required_pop,
+                    missing,
+                ))
             })
             .collect();
         blockers.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.1.cmp(&b.1)));

@@ -14,7 +14,7 @@ impl Simulation {
         let spatial_buf = &mut *f.spatial_buf;
 
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-        let lineage = self.organisms[idx].lineage_id.clone();
+        let lineage = self.organisms[idx].lineage_id;
         let soc = self.organisms[idx].traits.social_tendency;
         // One query serves every neighbour scan below: the widest radius
         // reaches every candidate the narrower ones could, and each scan
@@ -114,7 +114,7 @@ impl Simulation {
         }
         for (i, att) in att_adjustments {
             if att >= 0.25 {
-                let lid = self.organisms[i].lineage_id.clone();
+                let lid = self.organisms[i].lineage_id;
                 self.organisms[idx].update_attitude(&lid, 0.001);
                 if self.rng.random::<f32>() < 0.04 {
                     let to_share: Vec<((i32, i32), f32)> = self.organisms[i]
@@ -139,7 +139,7 @@ impl Simulation {
         // mid-tick has no snapshot yet, so use its live members once.
         let (kin_sum, kin_count) = self
             .lineage_aggregates
-            .get(&lineage)
+            .get(lineage.as_str())
             .map(|stats| (stats.energy_sum, stats.population))
             .unwrap_or_else(|| {
                 living_lineage_members(&self.organisms, lineage_members, &lineage)
@@ -170,7 +170,7 @@ impl Simulation {
 
         let aligned_strategy = self
             .lineage_strategies
-            .get(&lineage)
+            .get(lineage.as_str())
             .filter(|(strategy, expiry)| {
                 action_succeeded
                     && !matches!(action, 287..=289 | 2704)
@@ -183,7 +183,7 @@ impl Simulation {
                     "explore" | "settle" => 0.006,
                     _ => 0.0,
                 };
-                (lineage.clone(), strategy.clone(), bonus)
+                (lineage, strategy.clone(), bonus)
             });
         if let Some((lineage_id, strategy, bonus)) = aligned_strategy {
             reward += bonus;
@@ -195,7 +195,7 @@ impl Simulation {
         f.comfort = comfort;
         f.kin_count_2 = kin_count;
         f.kin_sum = kin_sum;
-        f.lineage = lineage;
+        f.lineage = lineage.to_string();
         f.loneliness = loneliness;
         f.ox_2 = ox;
         f.oy_2 = oy;

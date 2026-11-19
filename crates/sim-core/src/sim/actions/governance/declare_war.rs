@@ -17,7 +17,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no enemy lineage to declare war on");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     let invalidated = {
         let sim = &mut *ctx.sim;
         declare_hostilities(

@@ -36,7 +36,7 @@ pub(in crate::sim::civ) fn tick_daily_summary(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id)
         .collect::<HashSet<_>>()
         .len() as u64;
 
@@ -61,7 +61,7 @@ pub(in crate::sim::civ) fn tick_dream_sharing(sim: &mut Simulation) {
     let mut by_id: HashMap<String, usize> = HashMap::default();
     for (i, o) in sim.organisms.iter().enumerate() {
         if o.alive {
-            by_id.insert(o.id.clone(), i);
+            by_id.insert(o.id.to_string(), i);
         }
     }
     for (i, o) in sim.organisms.iter().enumerate() {

@@ -216,13 +216,12 @@ impl Simulation {
             .collect();
         let ongoing: Vec<&crate::sim::warfare::Battle> =
             self.battles.iter().filter(|b| b.ended_tick.is_none()).collect();
-        let mut tribes_by_cell: crate::hashing::FxHashMap<(i32, i32), (&str, bool)> = Default::default();
+        let mut tribes_by_cell: crate::hashing::FxHashMap<(i32, i32), (crate::intern::Sym, bool)> =
+            Default::default();
         for o in self.organisms.iter().filter(|o| o.alive) {
             let cell = ((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10));
-            let entry = tribes_by_cell
-                .entry(cell)
-                .or_insert((o.lineage_id.as_str(), false));
-            if entry.0 != o.lineage_id.as_str() {
+            let entry = tribes_by_cell.entry(cell).or_insert((o.lineage_id, false));
+            if entry.0 != o.lineage_id {
                 entry.1 = true;
             }
         }
@@ -305,13 +304,13 @@ impl Simulation {
             return;
         }
         let names = lore_in_order();
-        let mut lore: FxHashMap<&str, u64> = FxHashMap::default();
+        let mut lore: FxHashMap<crate::intern::Sym, u64> = FxHashMap::default();
         let mut near: FxHashMap<(i32, i32), u64> = FxHashMap::default();
         let mut own: Vec<u64> = vec![0; self.organisms.len()];
         for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
             let known = lore_known(names, &o.discoveries);
             own[i] = known;
-            *lore.entry(o.lineage_id.as_str()).or_default() |= known;
+            *lore.entry(o.lineage_id).or_default() |= known;
             *near
                 .entry(((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10)))
                 .or_default() |= known;
@@ -320,23 +319,23 @@ impl Simulation {
         let bit = |name: &str| names.iter().position(|&n| n == name).map_or(0, |b| 1u64 << b);
         let (fire, medicine) = (bit("fire"), bit("medicine"));
         let mut founders: Vec<usize> = Vec::new();
-        let mut founded: crate::hashing::FxHashSet<&str> = Default::default();
+        let mut founded: crate::hashing::FxHashSet<crate::intern::Sym> = Default::default();
         let mut learn: Vec<(usize, u64)> = Vec::new();
         for (i, o) in self.organisms.iter().enumerate() {
             if !o.alive || awake.get(i).copied().unwrap_or(true) {
                 continue;
             }
-            let tribe = lore.get(o.lineage_id.as_str()).copied().unwrap_or(0);
+            let tribe = lore.get(&o.lineage_id).copied().unwrap_or(0);
             if tribe & medicine == 0
                 && own[i] & fire != 0
                 && o.discoveries.len() < LORE_ROOM
                 && lore_roll(b"found medicine", tick, i) % 10_000 < MEDICINE_FOUND_PER_10K
-                && founded.insert(o.lineage_id.as_str())
+                && founded.insert(o.lineage_id)
             {
                 founders.push(i);
             }
             let (cx, cy) = ((o.x as i32).div_euclid(10), (o.y as i32).div_euclid(10));
-            let mut known = lore.get(o.lineage_id.as_str()).copied().unwrap_or(0);
+            let mut known = lore.get(&o.lineage_id).copied().unwrap_or(0);
             for dy in -1..=1 {
                 for dx in -1..=1 {
                     known |= near.get(&(cx + dx, cy + dy)).copied().unwrap_or(0);
@@ -652,11 +651,11 @@ fn upkeep_roll(tick: u64, idx: usize) -> f32 {
 pub(super) struct OrgFrame<'a> {
     pub(super) idx: usize,
     pub(super) population_slots_used: usize,
-    pub(super) lineage_counts: &'a FxHashMap<String, usize>,
+    pub(super) lineage_counts: &'a FxHashMap<crate::intern::Sym, usize>,
     pub(super) spatial: &'a SpatialIndex,
     pub(super) animal_spatial: &'a SpatialIndex,
-    pub(super) org_idx_by_id: &'a FxHashMap<String, usize>,
-    pub(super) lineage_members: &'a mut FxHashMap<String, Vec<usize>>,
+    pub(super) org_idx_by_id: &'a FxHashMap<crate::intern::Sym, usize>,
+    pub(super) lineage_members: &'a mut FxHashMap<crate::intern::Sym, Vec<usize>>,
     pub(super) spatial_buf: &'a mut Vec<usize>,
     pub(super) perception_buf: &'a mut Vec<usize>,
     pub(super) action: usize,
@@ -708,12 +707,12 @@ pub(super) struct OrgFrame<'a> {
 fn new_frame<'a>(
     idx: usize,
     population_slots_used: usize,
-    lineage_counts: &'a FxHashMap<String, usize>,
+    lineage_counts: &'a FxHashMap<crate::intern::Sym, usize>,
     spatial: &'a SpatialIndex,
     animal_spatial: &'a SpatialIndex,
     buffers: &'a mut TickBuffers,
-    org_idx_by_id: &'a FxHashMap<String, usize>,
-    lineage_members: &'a mut FxHashMap<String, Vec<usize>>,
+    org_idx_by_id: &'a FxHashMap<crate::intern::Sym, usize>,
+    lineage_members: &'a mut FxHashMap<crate::intern::Sym, Vec<usize>>,
 ) -> OrgFrame<'a> {
     let TickBuffers {
         spatial: spatial_buf,
@@ -775,10 +774,10 @@ fn new_frame<'a>(
 
 /// The shared, read-only part of a tick that every person's turn looks at.
 pub(super) struct TurnContext<'a> {
-    pub(super) lineage_counts: &'a FxHashMap<String, usize>,
+    pub(super) lineage_counts: &'a FxHashMap<crate::intern::Sym, usize>,
     pub(super) spatial: &'a SpatialIndex,
     pub(super) animal_spatial: &'a SpatialIndex,
-    pub(super) org_idx_by_id: &'a FxHashMap<String, usize>,
+    pub(super) org_idx_by_id: &'a FxHashMap<crate::intern::Sym, usize>,
 }
 
 impl Simulation {
@@ -790,7 +789,7 @@ impl Simulation {
         population_slots_used: usize,
         cx: &TurnContext<'_>,
         buffers: &mut TickBuffers,
-        lineage_members: &mut FxHashMap<String, Vec<usize>>,
+        lineage_members: &mut FxHashMap<crate::intern::Sym, Vec<usize>>,
         perception: Option<String>,
     ) -> Sensed {
         let mut f = new_frame(
@@ -858,7 +857,7 @@ impl Simulation {
         population_slots_used: usize,
         cx: &TurnContext<'_>,
         buffers: &mut TickBuffers,
-        lineage_members: &mut FxHashMap<String, Vec<usize>>,
+        lineage_members: &mut FxHashMap<crate::intern::Sym, Vec<usize>>,
     ) {
         let mut f = new_frame(
             sensed.idx,
@@ -938,12 +937,12 @@ impl Simulation {
         &mut self,
         idx: usize,
         population_slots_used: usize,
-        lineage_counts: &FxHashMap<String, usize>,
+        lineage_counts: &FxHashMap<crate::intern::Sym, usize>,
         spatial: &SpatialIndex,
         animal_spatial: &SpatialIndex,
         buffers: &mut TickBuffers,
-        org_idx_by_id: &FxHashMap<String, usize>,
-        lineage_members: &mut FxHashMap<String, Vec<usize>>,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
+        lineage_members: &mut FxHashMap<crate::intern::Sym, Vec<usize>>,
     ) {
         let cx = TurnContext {
             lineage_counts,

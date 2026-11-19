@@ -8,7 +8,7 @@ impl Simulation {
     /// Hands the dead person's home to their heir (see module docs). Called
     /// once when a person dies.
     pub(super) fn pass_family_home(&mut self, dead: usize) {
-        let dead_id = self.organisms[dead].id.clone();
+        let dead_id = self.organisms[dead].id;
         let dead_name = self.organisms[dead].name.clone();
         let (home_x, home_y) = (self.organisms[dead].home_x, self.organisms[dead].home_y);
         if home_x == 0.0 && home_y == 0.0 {
@@ -42,7 +42,7 @@ impl Simulation {
             tick,
             "inheritance",
             format!("inherited the family home from {dead_name}"),
-            Some(dead_id),
+            Some(dead_id.to_string()),
             Some(dead_name.clone()),
         );
         push_event(
@@ -62,13 +62,13 @@ mod tests {
 
     fn person(id: &str, age: u32, home: (f32, f32)) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             id.into(),
             0.0,
             0.0,
             0,
             String::new(),
-            "lin".into(),
+            "lin",
             9000,
             Traits::default(),
         );

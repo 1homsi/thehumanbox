@@ -23,7 +23,7 @@ impl Simulation {
                 || org.health <= 0.0
                 || (org.max_age > 0 && org.age >= lifespan(org));
             if dying {
-                Some((org.x as i32, org.y as i32, org.lineage_id.clone()))
+                Some((org.x as i32, org.y as i32, org.lineage_id.to_string()))
             } else {
                 None
             }
@@ -98,7 +98,7 @@ impl Simulation {
                     "combat"
                 }
             };
-            noted = Some((org.lineage_id.clone(), cause));
+            noted = Some((org.lineage_id.to_string(), cause));
             org.death_cause = cause.to_string();
             org.log_life(
                 self.tick_count,
@@ -110,7 +110,7 @@ impl Simulation {
                 crate::sim::agents::age_stage::AgeStage::Adult
                     | crate::sim::agents::age_stage::AgeStage::Elder
             ) {
-                grave = Some((org.lineage_id.clone(), org.x, org.y));
+                grave = Some((org.lineage_id.to_string(), org.x, org.y));
             }
             // Migration-pressure signal: an organism dying far from
             // where it was born is the simulation's emergent answer
@@ -138,14 +138,14 @@ impl Simulation {
             org.alive = false;
             org.think("died of old age", self.tick_count);
             self.history.deaths_old_age += 1;
-            noted = Some((org.lineage_id.clone(), "old_age"));
+            noted = Some((org.lineage_id.to_string(), "old_age"));
             org.death_cause = "old age".to_string();
             org.log_life(
                 self.tick_count,
                 "death",
                 format!("died of old age at {}", org.age),
             );
-            grave = Some((org.lineage_id.clone(), org.x, org.y));
+            grave = Some((org.lineage_id.to_string(), org.x, org.y));
             let msg = format!("gen{} age {} - old age", org.generation, org.age);
             let name = org.name.clone();
             push_event(&mut self.events, self.tick_count, "died", &name, &msg);
@@ -158,8 +158,8 @@ impl Simulation {
         if let Some((lineage, cause)) = noted {
             self.note_death(&lineage, cause);
             self.history.record_death(self.tick_count);
-            let id = self.organisms[idx].id.clone();
-            self.fallen.push_back((id, self.tick_count));
+            let id = self.organisms[idx].id;
+            self.fallen.push_back((id.to_string(), self.tick_count));
             while self.fallen.len() > 96 {
                 self.fallen.pop_front();
             }
@@ -167,7 +167,7 @@ impl Simulation {
         if leader_lost {
             let (lineage, name, x, y) = {
                 let o = &self.organisms[idx];
-                (o.lineage_id.clone(), o.name.clone(), o.x, o.y)
+                (o.lineage_id, o.name.clone(), o.x, o.y)
             };
             let place = Some((x.round() as i32, y.round() as i32));
             self.chronicle(&lineage, "leader_died", None, Some(&name), place);
@@ -213,9 +213,9 @@ impl Simulation {
             let dead = &self.organisms[idx];
             let bequest = dead.wealth;
             if bequest > 0 {
-                let dead_id = dead.id.clone();
+                let dead_id = dead.id;
                 let dead_name = dead.name.clone();
-                let dead_lid = dead.lineage_id.clone();
+                let dead_lid = dead.lineage_id;
                 let partner_id = dead.partner_id.clone();
                 let heir_idx: Option<usize> = {
                     let mut found: Option<usize> = None;
@@ -281,7 +281,7 @@ impl Simulation {
         }
         if let Some((dx, dy, dlid)) = death_grief {
             let dead_name = self.organisms[idx].name.clone();
-            let dead_id_str = self.organisms[idx].id.clone();
+            let dead_id_str = self.organisms[idx].id;
             // Grievers: same-lineage tile-neighbours (original)
             //         + adult children regardless of distance (father_id / parent_id match)
             //         + named friends regardless of distance
@@ -296,7 +296,7 @@ impl Simulation {
                     o.lineage_id == dlid && (o.x as i32 - dx).abs() + (o.y as i32 - dy).abs() <= 12;
                 let child =
                     o.parent_id == dead_id_str || o.father_id.as_deref() == Some(dead_id_str.as_str());
-                let friend = o.friends.contains_key(&dead_id_str);
+                let friend = o.friends.contains_key(dead_id_str.as_str());
                 if near_kin || child || friend {
                     griever_set.insert(i);
                 }
@@ -321,7 +321,7 @@ impl Simulation {
                 .collect();
             let inherited_disc: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
 
-            let dead_id = self.organisms[idx].id.clone();
+            let dead_id = self.organisms[idx].id;
             let lesson = crate::organism::lessons::Lesson::of_death(&self.organisms[idx].death_cause);
             // Anyone close enough to see it learns from it, mourner or not: a
             // stranger from another tribe who watched the drowning is warier too.
@@ -363,7 +363,7 @@ impl Simulation {
                 let friend_only = {
                     let m = &self.organisms[*gi];
                     !is_child
-                        && m.friends.contains_key(&dead_id_str)
+                        && m.friends.contains_key(dead_id_str.as_str())
                         && m.parent_id != dead_id_str
                         && m.father_id.as_deref() != Some(dead_id_str.as_str())
                         && m.partner_id.as_deref() != Some(dead_id_str.as_str())
@@ -385,7 +385,7 @@ impl Simulation {
                         )
                         .with_salience(0.8)
                         .with_emotion(-2)
-                        .with_related(dead_id.clone()),
+                        .with_related(dead_id),
                     );
                 }
                 if is_child {
@@ -407,7 +407,7 @@ impl Simulation {
                         )
                         .with_salience(0.97)
                         .with_emotion(-3)
-                        .with_related(dead_id.clone()),
+                        .with_related(dead_id),
                     );
                 }
                 self.organisms[*gi].grief_ticks = grief_base + self.rng.random_range(0u32..40);
@@ -421,12 +421,12 @@ impl Simulation {
                 );
                 let tc = self.tick_count;
                 let dn = dead_name.clone();
-                let di = dead_id.clone();
+                let di = dead_id;
                 self.organisms[*gi].log_life_rel(
                     tc,
                     "loss",
                     format!("witnessed {} die", dn),
-                    Some(di),
+                    Some(di.to_string()),
                     Some(dn),
                 );
 
@@ -436,10 +436,16 @@ impl Simulation {
                 for &((mx, my), v) in &inherited_water {
                     Organism::remember(&mut self.organisms[*gi].water_memory, mx, my, v * 0.4, ms);
                 }
-                let is_widow = self.organisms[*gi].partner_id.as_ref() == Some(&self.organisms[idx].id);
+                let is_widow = self.organisms[*gi]
+                    .partner_id
+                    .as_ref()
+                    .is_some_and(|p| self.organisms[idx].id == *p);
                 let is_direct_kin = is_widow
                     || self.organisms[*gi].parent_id == self.organisms[idx].id
-                    || self.organisms[*gi].father_id.as_ref() == Some(&self.organisms[idx].id);
+                    || self.organisms[*gi]
+                        .father_id
+                        .as_ref()
+                        .is_some_and(|f| self.organisms[idx].id == *f);
                 if is_direct_kin {
                     for d in &inherited_disc {
                         if !self.organisms[*gi].discoveries.contains(d.as_str())
@@ -459,7 +465,7 @@ impl Simulation {
                         )
                         .with_salience(0.98)
                         .with_emotion(-3)
-                        .with_related(dead_id.clone()),
+                        .with_related(dead_id),
                     );
                     self.organisms[*gi].grief_ticks = (self.organisms[*gi].grief_ticks + 200).min(800);
                     self.organisms[*gi].comfort = (self.organisms[*gi].comfort - 0.30).max(0.0);
@@ -492,7 +498,7 @@ impl Simulation {
             if !ritual_participants.is_empty() {
                 let participant_ids: Vec<String> = ritual_participants
                     .iter()
-                    .map(|&pi| self.organisms[pi].id.clone())
+                    .map(|&pi| self.organisms[pi].id.to_string())
                     .collect();
                 for (slot, &pi) in ritual_participants.iter().enumerate() {
                     self.organisms[pi].grief_ticks = self.organisms[pi].grief_ticks.saturating_sub(20);
@@ -538,13 +544,13 @@ mod lifespan_tests {
 
     fn person(max_age: u32) -> Organism {
         let mut o = Organism::new(
-            "p".into(),
+            "p",
             "p".into(),
             0.0,
             0.0,
             0,
             String::new(),
-            "clan".into(),
+            "clan",
             9000,
             Traits::default(),
         );

@@ -115,8 +115,8 @@ impl Simulation {
         ) else {
             return false;
         };
-        let giver = self.organisms[a].lineage_id.clone();
-        let taker = self.organisms[b].lineage_id.clone();
+        let giver = self.organisms[a].lineage_id;
+        let taker = self.organisms[b].lineage_id;
         if giver.is_empty() || taker.is_empty() || giver == taker {
             return false;
         }
@@ -156,17 +156,20 @@ impl Simulation {
             .iter_mut()
             .filter(|o| o.alive && o.lineage_id == giver)
         {
-            let warmth = person.lineage_attitudes.entry(taker.clone()).or_insert(0.0);
+            let warmth = person
+                .lineage_attitudes
+                .entry(taker.to_string().into())
+                .or_insert(0.0);
             *warmth = (*warmth + 0.2).min(1.0);
         }
         let from = self
             .lineage_names
-            .get(&giver)
+            .get(giver.as_str())
             .cloned()
             .unwrap_or_else(|| "a tribe".into());
         let to = self
             .lineage_names
-            .get(&taker)
+            .get(taker.as_str())
             .cloned()
             .unwrap_or_else(|| "another tribe".into());
         push_event(
@@ -201,7 +204,7 @@ mod tests {
         {
             sim.organisms[i].x = *x;
             sim.organisms[i].y = *y;
-            sim.organisms[i].lineage_id = l.to_string();
+            sim.organisms[i].lineage_id = l.to_string().into();
             sim.organisms[i].inv_food = 0;
         }
         assert!(
@@ -245,7 +248,7 @@ mod tests {
         {
             sim.organisms[i].x = *x;
             sim.organisms[i].y = if i == 2 { 300.0 } else { 100.0 };
-            sim.organisms[i].lineage_id = l.to_string();
+            sim.organisms[i].lineage_id = l.to_string().into();
             sim.organisms[i].inv_food = *food;
         }
         assert!(sim.apply_command_json(r#"{"cmd":"trade_gift","ax":100.0,"ay":100.0,"bx":300.0,"by":300.0}"#));

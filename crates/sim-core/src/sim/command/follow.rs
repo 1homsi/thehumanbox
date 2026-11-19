@@ -23,12 +23,7 @@ mod tests {
     #[test]
     fn following_someone_keeps_their_town_awake_and_letting_go_frees_it() {
         let mut sim = Simulation::new(9);
-        let id = sim
-            .organisms
-            .iter()
-            .find(|o| o.alive)
-            .map(|o| o.id.clone())
-            .unwrap();
+        let id = sim.organisms.iter().find(|o| o.alive).map(|o| o.id).unwrap();
         assert!(sim.apply_command_json(&format!(r#"{{"cmd":"follow","id":"{id}"}}"#)));
         assert_eq!(sim.followed(), Some(id.as_str()));
         assert!(!sim.apply_command_json(&format!(r#"{{"cmd":"follow","id":"{id}"}}"#)));

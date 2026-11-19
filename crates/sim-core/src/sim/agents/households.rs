@@ -35,9 +35,9 @@ impl Simulation {
             return;
         }
         let host_name = self.organisms[host].name.clone();
-        let host_id = self.organisms[host].id.clone();
+        let host_id = self.organisms[host].id;
         let mover_name = self.organisms[mover].name.clone();
-        let mover_id = self.organisms[mover].id.clone();
+        let mover_id = self.organisms[mover].id;
         let m = &mut self.organisms[mover];
         m.home_x = hx;
         m.home_y = hy;
@@ -45,20 +45,24 @@ impl Simulation {
             tick,
             "household",
             format!("moved in with {host_name}"),
-            Some(host_id),
+            Some(host_id.to_string()),
             Some(host_name.clone()),
         );
         self.organisms[host].log_life_rel(
             tick,
             "household",
             format!("{mover_name} moved in with me"),
-            Some(mover_id),
+            Some(mover_id.to_string()),
             Some(mover_name),
         );
     }
 
     /// A grown child whose elder parent is short of food walks over and brings some. Runs on a cadence per child.
-    pub(crate) fn care_for_elder_parent(&mut self, idx: usize, org_idx_by_id: &FxHashMap<String, usize>) {
+    pub(crate) fn care_for_elder_parent(
+        &mut self,
+        idx: usize,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
+    ) {
         let tick = self.tick_count;
         if !self.on_minute(CARE_STEP, idx as u64) {
             return;
@@ -85,7 +89,7 @@ impl Simulation {
             .into_iter()
             .flatten()
             .filter(|id| !id.is_empty())
-            .filter_map(|id| org_idx_by_id.get(&id).copied())
+            .filter_map(|id| org_idx_by_id.get(id.as_str()).copied())
             .filter(|&p| {
                 let e = &self.organisms[p];
                 e.alive && e.energy < ELDER_HUNGRY && AgeStage::from_age(e.age, e.max_age) == AgeStage::Elder
@@ -106,11 +110,11 @@ impl Simulation {
         // Close enough: hand over the food.
         let elder_name = self.organisms[elder].name.clone();
         let child_name = self.organisms[idx].name.clone();
-        let child_id = self.organisms[idx].id.clone();
+        let child_id = self.organisms[idx].id;
         self.organisms[idx].energy = (self.organisms[idx].energy - DELIVERY / 2.0).max(0.0);
         let e = &mut self.organisms[elder];
         e.energy = (e.energy + DELIVERY).min(1.0);
-        let trust = e.org_trust.entry(child_id.clone()).or_insert(0.0);
+        let trust = e.org_trust.entry(child_id.to_string()).or_insert(0.0);
         *trust = (*trust + 0.05).min(1.0);
         self.organisms[idx].think(
             &format!("bringing food to {}", crate::text::prefix_chars(&elder_name, 4)),
@@ -120,7 +124,7 @@ impl Simulation {
             tick,
             "care",
             format!("fed by my child {child_name}"),
-            Some(child_id),
+            Some(child_id.to_string()),
             Some(child_name),
         );
     }
@@ -147,12 +151,8 @@ mod tests {
         o.wander_target = None;
     }
 
-    fn index_of(sim: &Simulation) -> FxHashMap<String, usize> {
-        sim.organisms
-            .iter()
-            .enumerate()
-            .map(|(i, o)| (o.id.clone(), i))
-            .collect()
+    fn index_of(sim: &Simulation) -> FxHashMap<crate::intern::Sym, usize> {
+        sim.organisms.iter().enumerate().map(|(i, o)| (o.id, i)).collect()
     }
 
     #[test]
@@ -185,8 +185,8 @@ mod tests {
         person(&mut sim, elder, 100.0, 100.0, 3200);
         person(&mut sim, child, 104.0, 100.0, 2000);
         sim.organisms[elder].energy = 0.2;
-        let elder_id = sim.organisms[elder].id.clone();
-        sim.organisms[child].parent_id = elder_id;
+        let elder_id = sim.organisms[elder].id;
+        sim.organisms[child].parent_id = elder_id.to_string();
         let ids = index_of(&sim);
         // A tick on the child's care cadence.
         sim.tick_count = 15 * 300 + child as u64;

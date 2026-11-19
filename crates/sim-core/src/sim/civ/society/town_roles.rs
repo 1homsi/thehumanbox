@@ -267,7 +267,7 @@ impl Simulation {
             town.role = role;
             town.role_tick = now.max(1);
             if scored && before != role {
-                changes.push((town.lineage.clone(), before, role));
+                changes.push((town.lineage.to_string(), before, role));
             }
         }
         for (lineage, before, after) in changes {

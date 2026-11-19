@@ -3,7 +3,7 @@ use crate::sim::world_events::push_event;
 
 impl Simulation {
     pub(crate) fn do_raid(&mut self, idx: usize, near: &[usize], ambush: bool) -> f32 {
-        let lid = self.organisms[idx].lineage_id.clone();
+        let lid = self.organisms[idx].lineage_id;
         let target = near.iter().copied().find(|&k| {
             self.organisms[k].lineage_id != lid
                 && self.organisms[idx].attitude_toward(&self.organisms[k].lineage_id) < -0.15
@@ -21,7 +21,7 @@ impl Simulation {
         self.organisms[ti].mark_harm(crate::organism::organism::Harm::War, self.tick_count);
         self.organisms[ti].fear_level = (self.organisms[ti].fear_level + 0.15).min(1.0);
 
-        let their = self.organisms[ti].lineage_id.clone();
+        let their = self.organisms[ti].lineage_id;
         self.organisms[idx].update_attitude(&their, -0.10);
         self.organisms[ti].update_attitude(&lid, -0.15);
 

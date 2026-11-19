@@ -45,7 +45,7 @@ pub(super) fn tick_cross_lineage_knowledge(sim: &mut Simulation, spatial: &Spati
         };
         let teacher = &sim.organisms[teacher_idx];
         let attitude = learner.attitude_toward(&teacher.lineage_id);
-        let trust = learner.org_trust.get(&teacher.id).copied().unwrap_or(0.0);
+        let trust = learner.org_trust.get(teacher.id.as_str()).copied().unwrap_or(0.0);
         // Curious, social organisms learn more readily, especially from a
         // trusted nearby teacher. Hostility makes accidental cultural transfer
         // rare without making it impossible at a shared border.
@@ -80,14 +80,14 @@ pub(super) fn tick_cross_lineage_knowledge(sim: &mut Simulation, spatial: &Spati
         if learner_idx == teacher_idx || !sim.organisms[learner_idx].alive {
             continue;
         }
-        let teacher_id = sim.organisms[teacher_idx].id.clone();
+        let teacher_id = sim.organisms[teacher_idx].id;
         let teacher_name = sim.organisms[teacher_idx].name.clone();
-        let teacher_lineage = sim.organisms[teacher_idx].lineage_id.clone();
+        let teacher_lineage = sim.organisms[teacher_idx].lineage_id;
         let learner = &mut sim.organisms[learner_idx];
         if !learner.discoveries.insert(discovery.clone()) {
             continue;
         }
-        *learner.org_trust.entry(teacher_id).or_insert(0.0) += 0.015;
+        *learner.org_trust.entry(teacher_id.to_string()).or_insert(0.0) += 0.015;
         learner.think(
             &format!("{} showed me {}", teacher_name, discovery.replace('_', " ")),
             tick_now,

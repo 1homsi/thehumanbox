@@ -97,7 +97,7 @@ mod tests {
                     0.0,
                     0,
                     String::new(),
-                    lid.into(),
+                    lid,
                     9000,
                     Traits::default(),
                 );

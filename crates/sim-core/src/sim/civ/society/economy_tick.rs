@@ -74,7 +74,12 @@ fn run_fiscal_cycle(sim: &mut Simulation, tick: u64) {
                 crate::sim::tech::buildings::BuildingKind::Bank => "bank",
                 _ => return None,
             };
-            Some((b.x as f32 + 0.5, b.y as f32 + 0.5, kind, b.owner_lineage.clone()))
+            Some((
+                b.x as f32 + 0.5,
+                b.y as f32 + 0.5,
+                kind,
+                b.owner_lineage.map(String::from),
+            ))
         })
         .collect();
 
@@ -113,7 +118,11 @@ fn run_fiscal_cycle(sim: &mut Simulation, tick: u64) {
                     healthcare: government.has_law(LawKind::Healthcare),
                     safety_net: government.has_law(LawKind::SafetyNet),
                     military_service: government.has_law(LawKind::MilitaryService),
-                    era: sim.lineage_eras.get(lid).copied().unwrap_or(Era::PreStone),
+                    era: sim
+                        .lineage_eras
+                        .get(lid.as_str())
+                        .copied()
+                        .unwrap_or(Era::PreStone),
                 },
             )
         })
@@ -159,10 +168,13 @@ fn collect_income_taxes(
         if org.alive
             && earned.get(idx).copied().unwrap_or(0) > 0
             && policies
-                .get(&org.lineage_id)
+                .get(org.lineage_id.as_str())
                 .is_some_and(|policy| policy.tax_rate > 0.0)
         {
-            contributors.entry(org.lineage_id.clone()).or_default().push(idx);
+            contributors
+                .entry(org.lineage_id.to_string())
+                .or_default()
+                .push(idx);
         }
     }
 
@@ -275,29 +287,29 @@ fn fund_public_services(sim: &mut Simulation, policies: &HashMap<String, FiscalP
         if !org.alive {
             continue;
         }
-        let Some(policy) = policies.get(&org.lineage_id) else {
+        let Some(policy) = policies.get(org.lineage_id.as_str()) else {
             continue;
         };
-        let already_spent = spent.get(&org.lineage_id).copied().unwrap_or(0);
+        let already_spent = spent.get(org.lineage_id.as_str()).copied().unwrap_or(0);
         let available = sim
             .governments
-            .get(&org.lineage_id)
+            .get(org.lineage_id.as_str())
             .map(|g| g.treasury.saturating_sub(already_spent))
             .unwrap_or(0);
         let specialty = org.specialty.as_deref().unwrap_or("");
 
         let wage = if policy.education && matches!(specialty, "teacher" | "scholar") && available >= 2 {
-            funded_education.insert(org.lineage_id.clone());
+            funded_education.insert(org.lineage_id.to_string());
             2
         } else if policy.healthcare && matches!(specialty, "healer" | "doctor") && available >= 3 {
-            funded_healthcare.insert(org.lineage_id.clone());
+            funded_healthcare.insert(org.lineage_id.to_string());
             3
         } else if policy.military_service && matches!(specialty, "soldier" | "officer") && available >= 3 {
             let military_wage = if specialty == "officer" { 5 } else { 3 };
             let weapon = military_issue_for_era(policy.era);
             if available >= MILITARY_EQUIPMENT_COST + military_wage && !org.has_tool(weapon) {
                 org.tools.insert(weapon.to_string(), 1);
-                *spent.entry(org.lineage_id.clone()).or_default() += MILITARY_EQUIPMENT_COST;
+                *spent.entry(org.lineage_id.to_string()).or_default() += MILITARY_EQUIPMENT_COST;
             }
             military_wage
         } else if policy.safety_net && org.wealth <= 1 && org.age > 180 && available >= 1 {
@@ -306,16 +318,16 @@ fn fund_public_services(sim: &mut Simulation, policies: &HashMap<String, FiscalP
             0
         };
 
-        let already_spent = spent.get(&org.lineage_id).copied().unwrap_or(0);
+        let already_spent = spent.get(org.lineage_id.as_str()).copied().unwrap_or(0);
         let available = sim
             .governments
-            .get(&org.lineage_id)
+            .get(org.lineage_id.as_str())
             .map(|g| g.treasury.saturating_sub(already_spent))
             .unwrap_or(0);
         let paid = wage.min(available);
         if paid > 0 {
             org.wealth = org.wealth.saturating_add(paid as u32);
-            *spent.entry(org.lineage_id.clone()).or_default() += paid;
+            *spent.entry(org.lineage_id.to_string()).or_default() += paid;
         }
     }
 
@@ -323,10 +335,10 @@ fn fund_public_services(sim: &mut Simulation, policies: &HashMap<String, FiscalP
     // themselves. Benefits are deliberately gradual so institutions matter
     // across generations without instantly erasing hardship.
     for org in sim.organisms.iter_mut().filter(|org| org.alive) {
-        if funded_education.contains(&org.lineage_id) && org.age > 120 {
+        if funded_education.contains(org.lineage_id.as_str()) && org.age > 120 {
             org.literacy = (org.literacy + 0.0025).min(1.0);
         }
-        if funded_healthcare.contains(&org.lineage_id) {
+        if funded_healthcare.contains(org.lineage_id.as_str()) {
             org.health = (org.health + 0.015).min(1.0);
             org.infection = (org.infection - 0.012).max(0.0);
         }
@@ -488,7 +500,7 @@ struct BarterRow {
     idx: usize,
     x: f32,
     y: f32,
-    lid: String,
+    lid: crate::intern::Sym,
     food: u8,
     water: u8,
     wood: u8,
@@ -506,7 +518,7 @@ fn run_barter(sim: &mut Simulation, tick: u64) {
             idx: i,
             x: o.x,
             y: o.y,
-            lid: o.lineage_id.clone(),
+            lid: o.lineage_id,
             food: o.inv_food,
             water: o.inv_water,
             wood: o.inv_wood,
@@ -567,7 +579,7 @@ fn run_barter(sim: &mut Simulation, tick: u64) {
         };
         let aname = a.name.clone();
         let bname = b.name.clone();
-        let lid = a.lineage_id.clone();
+        let lid = a.lineage_id;
         give(ai, &asur.0, 1, sim);
         take(bi, &asur.0, 1, sim);
         give(bi, &bsur.0, 1, sim);
@@ -599,7 +611,7 @@ struct CurrencyRow {
     idx: usize,
     x: f32,
     y: f32,
-    lid: String,
+    lid: crate::intern::Sym,
     food: u8,
     water: u8,
     wood: u8,
@@ -643,12 +655,15 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
         .enumerate()
         .filter(|(_, o)| o.alive && o.age > 400)
         .map(|(i, o)| {
-            let era = era_map.get(&o.lineage_id).copied().unwrap_or(Era::PreStone);
+            let era = era_map
+                .get(o.lineage_id.as_str())
+                .copied()
+                .unwrap_or(Era::PreStone);
             CurrencyRow {
                 idx: i,
                 x: o.x,
                 y: o.y,
-                lid: o.lineage_id.clone(),
+                lid: o.lineage_id,
                 food: o.inv_food,
                 water: o.inv_water,
                 wood: o.inv_wood,
@@ -718,9 +733,9 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
         sim.organisms[si].wealth = sim.organisms[si].wealth.saturating_add(price);
         let seller_name = sim.organisms[si].name.clone();
         let buyer_name = sim.organisms[bi].name.clone();
-        let buyer_id = sim.organisms[bi].id.clone();
-        let seller_id = sim.organisms[si].id.clone();
-        let lid = sim.organisms[si].lineage_id.clone();
+        let buyer_id = sim.organisms[bi].id;
+        let seller_id = sim.organisms[si].id;
+        let lid = sim.organisms[si].lineage_id;
         let mut first_currency = false;
         if !sim.organisms[si].discoveries.contains("currency") {
             sim.organisms[si].discoveries.insert("currency".to_string());
@@ -732,8 +747,8 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
         }
         sim.trades.push_back(Trade {
             tick,
-            buyer_id,
-            seller_id,
+            buyer_id: buyer_id.to_string(),
+            seller_id: seller_id.to_string(),
             good: good.clone(),
             amount: 1,
             price,
@@ -741,7 +756,7 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
         while sim.trades.len() > TRADE_LOG_CAP {
             sim.trades.pop_front();
         }
-        let era = era_map.get(&lid).copied().unwrap_or(Era::Bronze);
+        let era = era_map.get(lid.as_str()).copied().unwrap_or(Era::Bronze);
         let unit = currency_unit_for_era(era);
         let detail = format!(
             "{} sold {} to {} for {} {}",
@@ -767,7 +782,7 @@ fn update_wealth_labels(sim: &mut Simulation) {
             continue;
         }
         by_lineage
-            .entry(o.lineage_id.clone())
+            .entry(o.lineage_id.to_string())
             .or_default()
             .push((i, o.wealth));
     }

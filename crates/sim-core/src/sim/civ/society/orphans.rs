@@ -57,7 +57,7 @@ impl Simulation {
         for oi in orphans {
             let (ox, oy, lineage) = {
                 let o = &self.organisms[oi];
-                (o.x, o.y, o.lineage_id.clone())
+                (o.x, o.y, o.lineage_id)
             };
             let guardian = guardians
                 .iter()
@@ -80,10 +80,10 @@ impl Simulation {
                 kid.comfort = (kid.comfort + 0.05).min(1.0);
                 self.organisms[g].think("feeding an orphan", now);
             }
-            if self.orphans_cared.insert(self.organisms[oi].id.clone()) {
+            if self.orphans_cared.insert(self.organisms[oi].id.to_string()) {
                 let name = self
                     .lineage_names
-                    .get(&lineage)
+                    .get(lineage.as_str())
                     .cloned()
                     .unwrap_or_else(|| "a tribe".to_string());
                 let who = self.organisms[g].name.clone();
@@ -121,13 +121,13 @@ mod tests {
 
     fn person(id: &str, lineage: &str, age: u32, x: f32) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             id.into(),
             x,
             50.0,
             1,
             String::new(),
-            lineage.into(),
+            lineage,
             20_000,
             Default::default(),
         );

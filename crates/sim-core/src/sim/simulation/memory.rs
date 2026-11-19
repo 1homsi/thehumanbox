@@ -69,7 +69,7 @@ impl Simulation {
                     .organisms
                     .iter()
                     .filter(|o| o.alive)
-                    .map(|o| o.lineage_id.clone())
+                    .map(|o| o.lineage_id.to_string())
                     .collect();
                 self.lineage_names.retain(|k, _| alive_lineages.contains(k));
                 self.lineage_strategies.retain(|k, _| alive_lineages.contains(k));
@@ -130,7 +130,7 @@ mod tests {
                 tick,
             ));
             o.alive = false;
-            ids.push(o.id.clone());
+            ids.push(o.id.to_string());
         }
         ids
     }
@@ -142,7 +142,7 @@ mod tests {
         let dead = kill_with_memories(&mut sim, 3);
         let dropped = sim.apply_memory_pressure(MemoryPressure::Critical);
         assert_eq!(dropped, 3);
-        assert!(sim.organisms.iter().all(|o| !dead.contains(&o.id)));
+        assert!(sim.organisms.iter().all(|o| !dead.iter().any(|d| o.id == *d)));
         let flushed: Vec<&str> = sim
             .pending_memory_flushes
             .iter()

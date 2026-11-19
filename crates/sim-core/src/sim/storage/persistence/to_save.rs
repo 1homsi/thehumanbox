@@ -127,7 +127,7 @@ impl Simulation {
             territory: self
                 .territory
                 .iter()
-                .map(|(lid, tiles)| (lid.clone(), tiles.iter().map(|&(x, y)| [x, y]).collect()))
+                .map(|(lid, tiles)| (*lid, tiles.iter().map(|&(x, y)| [x, y]).collect()))
                 .collect(),
             last_immigration_tick: self.last_immigration_tick,
             settlement_tiers: self.settlement_tiers.clone(),

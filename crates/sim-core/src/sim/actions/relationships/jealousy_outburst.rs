@@ -18,7 +18,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let foreign_lids: Vec<String> = ctx
         .near
         .iter()
-        .map(|&k| ctx.sim.organisms[k].lineage_id.clone())
+        .map(|&k| ctx.sim.organisms[k].lineage_id.to_string())
         .filter(|l| *l != lid)
         .collect::<crate::hashing::FxHashSet<_>>()
         .into_iter()

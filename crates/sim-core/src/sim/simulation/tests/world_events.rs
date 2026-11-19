@@ -13,9 +13,9 @@ fn newcomers_follow_faith_and_never_revive_a_silent_world() {
             .iter()
             .filter(|o| o.alive)
             .take(8)
-            .map(|o| o.id.clone())
+            .map(|o| o.id.to_string())
             .collect();
-        sim.organisms.retain(|o| keep.contains(&o.id));
+        sim.organisms.retain(|o| keep.iter().any(|v| o.id == *v));
         sim.last_immigration_tick = 0;
         sim.tick_count = 1_000;
     };

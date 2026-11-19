@@ -5,17 +5,17 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no kin to bond with");
         return 0.0;
     };
-    let oid = ctx.sim.organisms[ki].id.clone();
+    let oid = ctx.sim.organisms[ki].id;
     {
         let me = &mut ctx.sim.organisms[ctx.idx];
-        let t = me.org_trust.entry(oid.clone()).or_insert(0.0);
+        let t = me.org_trust.entry(oid.to_string()).or_insert(0.0);
         *t = (*t + 0.15).min(1.0);
         me.comfort = (me.comfort + 0.06).min(1.0);
     }
     {
-        let my_id = ctx.sim.organisms[ctx.idx].id.clone();
+        let my_id = ctx.sim.organisms[ctx.idx].id;
         let o = &mut ctx.sim.organisms[ki];
-        let t = o.org_trust.entry(my_id).or_insert(0.0);
+        let t = o.org_trust.entry(my_id.to_string()).or_insert(0.0);
         *t = (*t + 0.15).min(1.0);
         o.comfort = (o.comfort + 0.06).min(1.0);
     }

@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no stranger to envoy to");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.04);
     ctx.think("sending an envoy");
     ctx.discover("envoys", "sent an envoy abroad");

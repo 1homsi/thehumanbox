@@ -9,8 +9,8 @@ pub fn gift_knowledge(
     history: &mut History,
     rng: &mut impl Rng,
 ) -> f32 {
-    let org_lineage = organisms[org_idx].lineage_id.clone();
-    let org_id = organisms[org_idx].id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
+    let org_id = organisms[org_idx].id;
 
     let best = Organism::best_remembered(
         &organisms[org_idx].food_memory,
@@ -39,8 +39,8 @@ pub fn gift_knowledge(
         return 0.0;
     };
 
-    let target_lid = organisms[ti].lineage_id.clone();
-    let target_id = organisms[ti].id.clone();
+    let target_lid = organisms[ti].lineage_id;
+    let target_id = organisms[ti].id;
     let target_name = organisms[ti].name.clone();
     // The memory is written into the *recipient*, so scale it by the
     // recipient's recall, not the giver's.
@@ -52,12 +52,12 @@ pub fn gift_knowledge(
     organisms[org_idx].update_attitude(&target_lid, 0.015);
     organisms[ti].update_attitude(&org_lineage, 0.030);
 
-    let t_trust = organisms[ti].org_trust.entry(org_id.clone()).or_insert(0.0);
+    let t_trust = organisms[ti].org_trust.entry(org_id.to_string()).or_insert(0.0);
     *t_trust = (*t_trust + 0.15).min(1.0);
 
     let o_trust = organisms[org_idx]
         .org_trust
-        .entry(target_id.clone())
+        .entry(target_id.to_string())
         .or_insert(0.0);
     *o_trust = (*o_trust + 0.05).min(1.0);
 
@@ -78,9 +78,9 @@ pub fn gift_knowledge(
 
         use crate::organism::memory::{MemoryEntry, MemoryKind};
         let target_name_for_mem = target_name.clone();
-        let target_id_for_mem = target_id.clone();
+        let target_id_for_mem = target_id;
         let actor_name = organisms[org_idx].name.clone();
-        let actor_id = organisms[org_idx].id.clone();
+        let actor_id = organisms[org_idx].id;
         organisms[org_idx].memories.insert(
             MemoryEntry::new(
                 MemoryKind::Bond,
@@ -140,7 +140,7 @@ pub fn gift_knowledge(
     history.gifts_total += 1;
     history
         .tribe_gifts
-        .push((org_lineage.clone(), target_lid.clone()));
+        .push((org_lineage.to_string(), target_lid.to_string()));
     reward_add
 }
 
@@ -160,7 +160,7 @@ pub fn teach(
         return 0.0;
     }
 
-    let org_lineage = organisms[org_idx].lineage_id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
     let me = &organisms[org_idx];
 
@@ -177,8 +177,8 @@ pub fn teach(
             (o.x - ox).abs() + (o.y - oy).abs() <= 5.0
                 && (o.discoveries.len() < disc_count || o.age < 400)
                 && (o.lineage_id == org_lineage
-                    || me.friends.contains_key(&o.id)
-                    || me.org_trust.get(&o.id).is_some_and(|&v| v >= 0.55))
+                    || me.friends.contains_key(o.id.as_str())
+                    || me.org_trust.get(o.id.as_str()).is_some_and(|&v| v >= 0.55))
         })
         .min_by_key(|(_, o)| o.discoveries.len())
         .map(|(i, _)| i);
@@ -246,7 +246,7 @@ pub fn teach(
     }
     for disc in &learned {
         let teacher_short = organisms[org_idx].name.clone();
-        let ti_id_str = organisms[ti].id.clone();
+        let ti_id_str = organisms[ti].id;
         let _ = ti_id_str; // suppress warning
         organisms[ti].log_life(
             tick,
@@ -255,20 +255,23 @@ pub fn teach(
         );
     }
 
-    let org_id2 = organisms[org_idx].id.clone();
+    let org_id2 = organisms[org_idx].id;
     let org_name = organisms[org_idx].name.clone();
-    let ti_id = organisms[ti].id.clone();
+    let ti_id = organisms[ti].id;
 
     // Teaching builds trust and friendship
-    let t = organisms[ti].org_trust.entry(org_id2.clone()).or_insert(0.0);
+    let t = organisms[ti].org_trust.entry(org_id2.to_string()).or_insert(0.0);
     *t = (*t + 0.10).min(1.0);
     let ti_trust = *t;
-    let o_t = organisms[org_idx].org_trust.entry(ti_id.clone()).or_insert(0.0);
+    let o_t = organisms[org_idx]
+        .org_trust
+        .entry(ti_id.to_string())
+        .or_insert(0.0);
     *o_t = (*o_t + 0.04).min(1.0);
 
     if ti_trust >= 0.55 {
         let on = org_name.clone();
-        let oi = org_id2.clone();
+        let oi = org_id2;
         organisms[ti].add_friend(&oi, &on, tick);
         let tn = target_name.clone();
         organisms[org_idx].add_friend(&ti_id, &tn, tick);
@@ -379,8 +382,8 @@ pub fn social_knowledge_share(
     tick: u64,
     rng: &mut impl Rng,
 ) {
-    let org_lineage = organisms[org_idx].lineage_id.clone();
-    let org_id = organisms[org_idx].id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
+    let org_id = organisms[org_idx].id;
     let (ox, oy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
     let food_to_share = ranked_memory_share(&organisms[org_idx].food_memory, (ox, oy), 0.45, 70, 4);
     let water_to_share = ranked_memory_share(&organisms[org_idx].water_memory, (ox, oy), 0.45, 70, 3);
@@ -405,8 +408,8 @@ pub fn social_knowledge_share(
                 return None;
             }
             let same_lineage = o.lineage_id == org_lineage;
-            let named_friend = friend_ids.contains(&o.id);
-            let trusted = high_trust.contains(&o.id);
+            let named_friend = friend_ids.contains(o.id.as_str());
+            let trusted = high_trust.contains(o.id.as_str());
             let attitude = organisms[org_idx].attitude_toward(&o.lineage_id);
             if !same_lineage && !named_friend && !trusted && attitude < 0.35 {
                 return None;
@@ -414,7 +417,11 @@ pub fn social_knowledge_share(
             if !same_lineage && attitude < -0.15 {
                 return None;
             }
-            let trust = organisms[org_idx].org_trust.get(&o.id).copied().unwrap_or(0.0);
+            let trust = organisms[org_idx]
+                .org_trust
+                .get(o.id.as_str())
+                .copied()
+                .unwrap_or(0.0);
             let strength = if same_lineage {
                 0.11 + organisms[org_idx].traits.social_tendency * 0.03
             } else if named_friend {
@@ -477,11 +484,14 @@ pub fn social_knowledge_share(
             let thought = format!("{speaker} warned me about danger near {x}, {y}");
             organisms[ki].think(&thought, tick);
         }
-        let ki_id = organisms[ki].id.clone();
-        let t = organisms[ki].org_trust.entry(org_id.clone()).or_insert(0.0);
+        let ki_id = organisms[ki].id;
+        let t = organisms[ki].org_trust.entry(org_id.to_string()).or_insert(0.0);
         *t = (*t + 0.008).min(1.0);
         let ki_trust_after = *t;
-        let o_t = organisms[org_idx].org_trust.entry(ki_id.clone()).or_insert(0.0);
+        let o_t = organisms[org_idx]
+            .org_trust
+            .entry(ki_id.to_string())
+            .or_insert(0.0);
         *o_t = (*o_t + 0.008).min(1.0);
         let my_trust_after = *o_t;
 
@@ -489,7 +499,7 @@ pub fn social_knowledge_share(
         const FRIEND_THRESHOLD: f32 = 0.55;
         if ki_trust_after >= FRIEND_THRESHOLD {
             let on = organisms[org_idx].name.clone();
-            let oi = org_id.clone();
+            let oi = org_id;
             organisms[ki].add_friend(&oi, &on, tick);
         }
         if my_trust_after >= FRIEND_THRESHOLD {

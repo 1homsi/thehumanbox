@@ -101,13 +101,13 @@ mod tests {
 
     fn person(id: &str, x: f32, y: f32) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             "x".into(),
             x,
             y,
             0,
             String::new(),
-            "lin".into(),
+            "lin",
             9000,
             Traits::default(),
         );

@@ -132,7 +132,7 @@ fn small_settlements_finish_existing_projects_before_starting_more() {
 fn housing_demand_counts_pending_homes_but_not_ruins_or_scenery() {
     let mut sim = Simulation::new(703);
     sim.buildings.clear();
-    let owner = sim.organisms[0].lineage_id.clone();
+    let owner = sim.organisms[0].lineage_id;
     sim.organisms[0].inv_wood = 100;
     sim.organisms[0].inv_stone = 100;
     sim.organisms[0].wealth = 1000;
@@ -140,7 +140,7 @@ fn housing_demand_counts_pending_homes_but_not_ruins_or_scenery() {
         housing_target(&sim, &owner, Era::Stone, 4),
         Some(BuildingKind::Hut)
     );
-    let mut b = Building::new(1, BuildingKind::House, 30, 30, Some(owner.clone()), 0);
+    let mut b = Building::new(1, BuildingKind::House, 30, 30, Some(owner.to_string()), 0);
     sim.buildings.push(b.clone());
     assert_eq!(housing_target(&sim, &owner, Era::Bronze, 4), None);
     assert_eq!(
@@ -165,7 +165,7 @@ fn housing_demand_counts_pending_homes_but_not_ruins_or_scenery() {
 fn a_tribe_that_can_pay_for_a_house_raises_one_and_fetches_stone_until_then() {
     let mut sim = Simulation::new(704);
     sim.buildings.clear();
-    let owner = sim.organisms[0].lineage_id.clone();
+    let owner = sim.organisms[0].lineage_id;
     for org in sim.organisms.iter_mut().filter(|o| o.lineage_id == owner) {
         org.inv_wood = 0;
         org.inv_stone = 0;

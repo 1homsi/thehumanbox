@@ -8,8 +8,8 @@ pub fn challenge_stranger(
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
 ) -> f32 {
-    let org_lineage = organisms[org_idx].lineage_id.clone();
-    let org_id = organisms[org_idx].id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
+    let org_id = organisms[org_idx].id;
 
     let target_idx = spatial
         .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 3)
@@ -27,7 +27,7 @@ pub fn challenge_stranger(
         return 0.0;
     };
 
-    let target_lid = organisms[ti].lineage_id.clone();
+    let target_lid = organisms[ti].lineage_id;
     let target_name = organisms[ti].name.clone();
 
     let kin_backing = spatial
@@ -64,9 +64,9 @@ pub fn challenge_stranger(
     organisms[ti].update_attitude(&org_lineage, -0.30);
     history
         .tribe_quarrels
-        .push((target_lid.clone(), org_lineage.clone()));
+        .push((target_lid.to_string(), org_lineage.to_string()));
 
-    let t_trust = organisms[ti].org_trust.entry(org_id).or_insert(0.0);
+    let t_trust = organisms[ti].org_trust.entry(org_id.to_string()).or_insert(0.0);
     *t_trust = (*t_trust - 0.20).max(-1.0);
 
     let (tx, ty) = (organisms[ti].x as i32, organisms[ti].y as i32);
@@ -112,8 +112,8 @@ pub fn challenge_stranger(
         use crate::organism::memory::{MemoryEntry, MemoryKind};
         let target_name_for_mem = target_name.clone();
         let attacker_name = org_name.clone();
-        let target_id_for_mem = organisms[ti].id.clone();
-        let attacker_id_for_mem = organisms[org_idx].id.clone();
+        let target_id_for_mem = organisms[ti].id;
+        let attacker_id_for_mem = organisms[org_idx].id;
         organisms[ti].memories.insert(
             MemoryEntry::new(
                 MemoryKind::Bond,
@@ -147,8 +147,8 @@ pub fn groom(
     events: &mut std::collections::VecDeque<Event>,
 ) -> f32 {
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
-    let org_lineage = organisms[org_idx].lineage_id.clone();
-    let org_id = organisms[org_idx].id.clone();
+    let org_lineage = organisms[org_idx].lineage_id;
+    let org_id = organisms[org_idx].id;
     let friend_ids: crate::hashing::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
     let high_trust: crate::hashing::FxHashSet<String> = organisms[org_idx]
         .org_trust
@@ -164,7 +164,7 @@ pub fn groom(
                 return false;
             }
             let same_lineage = o.lineage_id == org_lineage;
-            let bonded = friend_ids.contains(&o.id) || high_trust.contains(&o.id);
+            let bonded = friend_ids.contains(o.id.as_str()) || high_trust.contains(o.id.as_str());
             let not_hostile = same_lineage || organisms[org_idx].attitude_toward(&o.lineage_id) >= -0.15;
             (same_lineage || bonded) && not_hostile
         })
@@ -187,8 +187,8 @@ pub fn groom(
     };
 
     let target_name = organisms[ti].name.clone();
-    let ti_id = organisms[ti].id.clone();
-    let target_lineage = organisms[ti].lineage_id.clone();
+    let ti_id = organisms[ti].id;
+    let target_lineage = organisms[ti].lineage_id;
     let cross_lineage = target_lineage != org_lineage;
 
     organisms[org_idx].infection = (organisms[org_idx].infection * 0.94).max(0.0);
@@ -196,22 +196,25 @@ pub fn groom(
 
     organisms[org_idx].last_groomed = tick;
 
-    let t = organisms[ti].org_trust.entry(org_id.clone()).or_insert(0.0);
+    let t = organisms[ti].org_trust.entry(org_id.to_string()).or_insert(0.0);
     *t = (*t + 0.06).min(1.0);
     let ti_trust_after = *t;
-    let o_t = organisms[org_idx].org_trust.entry(ti_id.clone()).or_insert(0.0);
+    let o_t = organisms[org_idx]
+        .org_trust
+        .entry(ti_id.to_string())
+        .or_insert(0.0);
     *o_t = (*o_t + 0.06).min(1.0);
     let my_trust_after = *o_t;
 
     // Promote to named friend once mutual trust is strong enough
     const FRIEND_THRESHOLD: f32 = 0.55;
     if ti_trust_after >= FRIEND_THRESHOLD {
-        let oi = org_id.clone();
+        let oi = org_id;
         let on = organisms[org_idx].name.clone();
         organisms[ti].add_friend(&oi, &on, tick);
     }
     if my_trust_after >= FRIEND_THRESHOLD {
-        let ti2 = ti_id.clone();
+        let ti2 = ti_id;
         organisms[org_idx].add_friend(&ti2, &target_name, tick);
     }
 

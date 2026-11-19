@@ -20,7 +20,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         me.health = (me.health - 0.04).max(0.0);
         me.mark_harm(crate::organism::organism::Harm::Fight, ctx.tick);
     }
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, -0.05);
     ctx.think("duelling a rival");
     ctx.discover("duelling", "duelled a rival");

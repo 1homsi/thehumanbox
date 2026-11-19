@@ -107,8 +107,8 @@ pub fn establish_route(sim: &mut Simulation, actor_idx: usize, partner_idx: usiz
         return false;
     }
 
-    let actor_lineage = actor.lineage_id.clone();
-    let partner_lineage = partner.lineage_id.clone();
+    let actor_lineage = actor.lineage_id.to_string();
+    let partner_lineage = partner.lineage_id.to_string();
     let actor_name = actor.name.clone();
     let Some((actor_center, partner_center)) =
         settlement_endpoints_now(sim, &actor_lineage, &partner_lineage)

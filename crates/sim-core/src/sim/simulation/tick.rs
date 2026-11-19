@@ -303,7 +303,7 @@ impl Simulation {
                 .iter()
                 .zip(&standing)
                 .filter(|(o, &was)| was && !o.alive)
-                .map(|(o, _)| o.lineage_id.clone())
+                .map(|(o, _)| o.lineage_id.to_string())
                 .collect();
             for lineage in fallen {
                 self.note_death(&lineage, "war");
@@ -340,10 +340,10 @@ impl Simulation {
             let mut candidates: HashMap<String, (String, u32)> = HashMap::default();
             for org in self.organisms.iter().filter(|o| o.alive) {
                 let e = candidates
-                    .entry(org.lineage_id.clone())
-                    .or_insert_with(|| (org.id.clone(), 0));
+                    .entry(org.lineage_id.to_string())
+                    .or_insert_with(|| (org.id.to_string(), 0));
                 if org.age > e.1 {
-                    *e = (org.id.clone(), org.age);
+                    *e = (org.id.to_string(), org.age);
                 }
             }
             self.lineage_elders.clear();
@@ -355,7 +355,7 @@ impl Simulation {
             let tc = self.tick_count;
             for org in self.organisms.iter_mut() {
                 let was_elder = org.is_elder;
-                org.is_elder = elder_ids.contains(&org.id);
+                org.is_elder = elder_ids.contains(org.id.as_str());
                 if org.is_elder && !was_elder {
                     org.log_life(tc, "achievement", "became the elder of my people".to_string());
                 }
@@ -413,16 +413,18 @@ impl Simulation {
         let spatial = SpatialIndex::build(&self.organisms, 10);
         let animal_spatial = SpatialIndex::build_animals(&self.animals, 10);
         let mut buffers = TickBuffers::new();
-        let mut org_idx_by_id: FxHashMap<String, usize> =
+        let mut org_idx_by_id: FxHashMap<crate::intern::Sym, usize> =
             FxHashMap::with_capacity_and_hasher(self.organisms.len(), Default::default());
         let mut lineage_members = lineage_member_index(&self.organisms);
         for (i, o) in self.organisms.iter().enumerate() {
             if o.alive {
-                org_idx_by_id.insert(o.id.clone(), i);
+                org_idx_by_id.insert(o.id, i);
             }
         }
         for vehicle in &mut self.vehicles {
-            vehicle.occupants.retain(|id| org_idx_by_id.contains_key(id));
+            vehicle
+                .occupants
+                .retain(|id| org_idx_by_id.contains_key(id.as_str()));
             // A fishing boat keeps its voyage with nobody aboard; a crossing ends when its passenger is gone.
             if vehicle.occupants.is_empty() && vehicle.harbour.is_none() {
                 vehicle.route.clear();
@@ -516,13 +518,13 @@ impl Simulation {
                     population_slots_used += new_slots;
                     for child in &self.organisms[prev_len..] {
                         if growth::is_pending_birth(child) {
-                            *lineage_counts.entry(child.lineage_id.clone()).or_insert(0) += 1;
+                            *lineage_counts.entry(child.lineage_id).or_insert(0) += 1;
                         }
                     }
                     let child_idx = self.organisms.len() - 1;
-                    let child_lid = self.organisms[child_idx].lineage_id.clone();
-                    if let Some(elder_id) = self.lineage_elders.get(&child_lid).cloned() {
-                        let epos_opt = org_idx_by_id.get(&elder_id).copied();
+                    let child_lid = self.organisms[child_idx].lineage_id;
+                    if let Some(elder_id) = self.lineage_elders.get(child_lid.as_str()).cloned() {
+                        let epos_opt = org_idx_by_id.get(elder_id.as_str()).copied();
                         if let Some(epos) = epos_opt {
                             if epos != child_idx {
                                 let danger: Vec<_> = self.organisms[epos]
@@ -624,7 +626,7 @@ impl Simulation {
                 org_idx_by_id.clear();
                 for (i, o) in self.organisms.iter().enumerate() {
                     if o.alive {
-                        org_idx_by_id.insert(o.id.clone(), i);
+                        org_idx_by_id.insert(o.id, i);
                     }
                 }
             }

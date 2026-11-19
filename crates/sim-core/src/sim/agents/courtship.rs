@@ -624,7 +624,7 @@ pub fn generate_conversation(
     let entry_a = ConversationEntry {
         tick,
         with_name: b.name.clone(),
-        with_id: b.id.clone(),
+        with_id: b.id.to_string(),
         kind: kind.to_string(),
         lines: lines.clone(),
         meanings: meanings.clone(),
@@ -633,7 +633,7 @@ pub fn generate_conversation(
     let entry_b = ConversationEntry {
         tick,
         with_name: a.name.clone(),
-        with_id: a.id.clone(),
+        with_id: a.id.to_string(),
         kind: kind.to_string(),
         lines,
         meanings,

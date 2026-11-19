@@ -250,12 +250,12 @@ pub(crate) fn first_unknown_nearby_lineage(
         if (other.x - org.x).abs() + (other.y - org.y).abs() <= 5.0
             && other.alive
             && other.lineage_id != org.lineage_id
-            && !org.lineage_attitudes.contains_key(&other.lineage_id)
+            && !org.lineage_attitudes.contains_key(other.lineage_id.as_str())
         {
             first = Some(i);
         }
     }
-    first.map(|i| organisms[i].lineage_id.clone())
+    first.map(|i| organisms[i].lineage_id.to_string())
 }
 
 #[cfg(test)]
@@ -327,9 +327,9 @@ mod tests {
                     p.alive
                         && p.lineage_id != org.lineage_id
                         && (p.x - org.x).abs() + (p.y - org.y).abs() <= 5.0
-                        && !org.lineage_attitudes.contains_key(&p.lineage_id)
+                        && !org.lineage_attitudes.contains_key(p.lineage_id.as_str())
                 })
-                .map(|p| p.lineage_id.clone());
+                .map(|p| p.lineage_id.to_string());
             assert_eq!(
                 first_unknown_nearby_lineage(&people, i, &index, &mut buf),
                 expected

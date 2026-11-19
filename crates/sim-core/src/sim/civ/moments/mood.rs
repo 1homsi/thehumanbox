@@ -7,7 +7,7 @@ pub(in crate::sim::civ) fn tick_mood(sim: &mut Simulation) {
     let mut partner_pos: HashMap<String, (f32, f32, String)> = HashMap::default();
     for o in sim.organisms.iter() {
         if o.alive {
-            partner_pos.insert(o.id.clone(), (o.x, o.y, o.name.clone()));
+            partner_pos.insert(o.id.to_string(), (o.x, o.y, o.name.clone()));
         }
     }
     for i in 0..sim.organisms.len() {
@@ -125,14 +125,14 @@ pub(in crate::sim::civ) fn tick_jealousy_rivalries(sim: &mut Simulation) {
             if (other.x - my_x).abs() + (other.y - my_y).abs() > 8.0 {
                 continue;
             }
-            attitude_drops.push((i, other.lineage_id.clone(), -0.004));
+            attitude_drops.push((i, other.lineage_id.to_string(), -0.004));
             break;
         }
     }
     for (idx, rival_lid, delta) in attitude_drops {
         let entry = sim.organisms[idx]
             .lineage_attitudes
-            .entry(rival_lid)
+            .entry(rival_lid.into())
             .or_insert(0.0);
         *entry = (*entry + delta).max(-1.0);
     }
@@ -360,7 +360,7 @@ pub(in crate::sim::civ) fn tick_mood_contagion(sim: &mut Simulation) {
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive)
-        .map(|(i, o)| (i, o.x, o.y, o.lineage_id.clone()))
+        .map(|(i, o)| (i, o.x, o.y, o.lineage_id.to_string()))
         .collect();
     let mut deltas: Vec<(usize, i32, i32, f32)> = Vec::with_capacity(snapshot.len());
     let mut buf: Vec<usize> = Vec::with_capacity(16);
@@ -446,13 +446,13 @@ mod curiosity_tests {
         let mut sim = Simulation::new(7);
         sim.organisms.clear();
         let mut o = Organism::new(
-            "explorer".into(),
+            "explorer",
             "explorer".into(),
             WIDTH as f32 - 20.0,
             HEIGHT as f32 - 20.0,
             0,
             String::new(),
-            "clan".into(),
+            "clan",
             20_000,
             Traits::default(),
         );

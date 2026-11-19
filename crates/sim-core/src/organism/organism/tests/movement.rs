@@ -11,13 +11,13 @@ fn hydrated_organisms_leave_water_instead_of_lingering() {
     grid.set(11, 10, Tile::Grass);
 
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Swimmer".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -55,13 +55,13 @@ fn builder_packs_shelter_beside_a_hut_on_the_home_tile() {
     grid.set(10, 10, Tile::Hut);
 
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Builder".into(),
         11.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -102,13 +102,13 @@ fn hydrated_wader_in_shallows_keeps_going_instead_of_turning_back() {
     grid.depth[WorldGrid::idx(10, 10)] = 0.1;
 
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Wader".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -150,13 +150,13 @@ fn someone_stuck_in_the_shallows_gets_out_even_mid_crossing_and_afraid_of_the_sp
     }
 
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Wader".into(),
         12.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -200,13 +200,13 @@ fn a_danger_underfoot_is_not_fled_toward() {
         }
     }
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Walker".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -250,13 +250,13 @@ fn movement_toward_land_avoids_deep_water_step() {
     grid.depth[wi] = 0.9;
 
     let org = Organism::new(
-        "id".into(),
+        "id",
         "Walker".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -279,13 +279,13 @@ fn movement_toward_target_prefers_safer_nearby_step() {
     grid.hazard[east_idx] = 0.95;
 
     let org = Organism::new(
-        "id".into(),
+        "id",
         "CautiousWalker".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -311,13 +311,13 @@ fn movement_toward_target_uses_hazardous_step_when_safer_routes_blocked() {
     grid.set(11, 11, Tile::Rock);
 
     let org = Organism::new(
-        "id".into(),
+        "id",
         "TrappedWalker".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -340,13 +340,13 @@ fn movement_toward_shelter_does_not_step_into_hut_tile() {
     grid.set(11, 10, Tile::Hut);
 
     let org = Organism::new(
-        "id".into(),
+        "id",
         "ShelterSeeker".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -372,13 +372,13 @@ fn movement_toward_target_does_not_step_into_mineral_tile() {
     grid.set(11, 10, Tile::Mineral);
 
     let org = Organism::new(
-        "id".into(),
+        "id",
         "Miner".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -406,13 +406,13 @@ fn committed_journey_moves_around_wall_instead_of_shuffling() {
         grid.set(52, y, Tile::Rock);
     }
     let mut org = Organism::new(
-        "journey".into(),
+        "journey",
         "Traveller".into(),
         50.0,
         50.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         Traits::random(&mut rng),
     );
@@ -579,13 +579,13 @@ fn toolmakers_fetch_stone_from_nearby_rock() {
     }
     grid.set(16, 10, Tile::Rock);
     let mut org = Organism::new(
-        "id".into(),
+        "id",
         "Mason".into(),
         10.0,
         10.0,
         0,
         "".into(),
-        "lin".into(),
+        "lin",
         5000,
         traits,
     );
@@ -678,17 +678,7 @@ fn the_row_scan_finds_the_same_tile_as_the_cell_by_cell_search() {
         }
     }
     let traits = Traits::random(&mut rng);
-    let mut org = Organism::new(
-        "scan".into(),
-        "Scan".into(),
-        0.0,
-        0.0,
-        0,
-        "".into(),
-        "lin".into(),
-        5000,
-        traits,
-    );
+    let mut org = Organism::new("scan", "Scan".into(), 0.0, 0.0, 0, "".into(), "lin", 5000, traits);
     // Corners and edges as well as the open map.
     let mut spots = vec![
         (0, 0),

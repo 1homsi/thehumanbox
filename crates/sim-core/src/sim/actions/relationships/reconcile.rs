@@ -6,7 +6,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         .near
         .iter()
         .copied()
-        .map(|k| ctx.sim.organisms[k].lineage_id.clone())
+        .map(|k| ctx.sim.organisms[k].lineage_id)
         .find(|l| *l != lid);
     let Some(tl) = target_lid else {
         ctx.think("no one to reconcile with");

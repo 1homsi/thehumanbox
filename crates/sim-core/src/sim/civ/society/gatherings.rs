@@ -108,7 +108,7 @@ impl Simulation {
             if !o.alive {
                 continue;
             }
-            let Some(&center) = places.get(&o.lineage_id) else {
+            let Some(&center) = places.get(o.lineage_id.as_str()) else {
                 continue;
             };
             let here = (o.x as i32, o.y as i32);

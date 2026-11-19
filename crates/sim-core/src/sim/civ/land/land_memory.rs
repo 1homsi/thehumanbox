@@ -239,7 +239,7 @@ impl Simulation {
             let name = self.tribe_name(&town.lineage);
             self.land.ruins.push(TownRuin {
                 id: town.id,
-                lineage: town.lineage.clone(),
+                lineage: town.lineage.to_string(),
                 name: name.clone(),
                 center: town.center,
                 abandoned_tick: now,
@@ -294,7 +294,7 @@ impl Simulation {
                     .iter()
                     .filter(|t| chebyshev(t.center, r.center) <= LIVED_IN)
                     .min_by_key(|t| (chebyshev(t.center, r.center), t.id))
-                    .map(|t| (t.lineage.clone(), r.center))
+                    .map(|t| (t.lineage.to_string(), r.center))
             })
             .collect();
         for (lineage, at) in lived_in {

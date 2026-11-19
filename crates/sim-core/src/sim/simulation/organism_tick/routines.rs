@@ -99,12 +99,12 @@ impl Simulation {
 
         // Only a partner who is gone needs the id owned: the common case reads it in place.
         let partner_dead = self.organisms[idx].partner_id.as_ref().is_some_and(|pid| {
-            let partner_pos = org_idx_by_id.get(pid).copied();
+            let partner_pos = org_idx_by_id.get(pid.as_str()).copied();
             partner_pos.map(|p| !self.organisms[p].alive).unwrap_or(true)
         });
         if partner_dead {
             if let Some(pid) = self.organisms[idx].partner_id.clone() {
-                let partner_pos = org_idx_by_id.get(&pid).copied();
+                let partner_pos = org_idx_by_id.get(pid.as_str()).copied();
                 let partner_name = partner_pos
                     .map(|p| self.organisms[p].name.clone())
                     .or_else(|| {
@@ -128,7 +128,7 @@ impl Simulation {
         }
         let attracted_gone = self.organisms[idx].attracted_to.as_ref().is_some_and(|aid| {
             !org_idx_by_id
-                .get(aid)
+                .get(aid.as_str())
                 .is_some_and(|&i| self.organisms[i].alive && self.organisms[i].partner_id.is_none())
         });
         if attracted_gone {

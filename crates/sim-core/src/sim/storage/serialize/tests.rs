@@ -17,7 +17,7 @@ fn full_payload_carries_each_tribes_history_with_its_place_dead_or_alive() {
         .find(|o| o.alive)
         .expect("founder exists")
         .lineage_id
-        .clone();
+        .to_string();
     sim.chronicle(&lid, "famine", None, None, Some((12, 34)));
     sim.chronicle("a tribe that died out", "war", Some(&lid), None, None);
 
@@ -50,7 +50,7 @@ fn tribe_work_counts_only_stints_still_running_by_trade() {
         .find(|o| o.alive)
         .expect("founder exists")
         .lineage_id
-        .clone();
+        .to_string();
     let plan = |skill, until| WorkPlan {
         skill,
         spot: (0, 0),
@@ -303,7 +303,7 @@ fn full_payload_includes_lineage_era_progress() {
         .find(|o| o.alive)
         .expect("founder exists")
         .lineage_id
-        .clone();
+        .to_string();
     for org in sim.organisms.iter_mut().filter(|o| o.lineage_id == lid) {
         org.discoveries.insert("fire".to_string());
         org.discoveries.insert("stone_tools".to_string());
@@ -318,7 +318,8 @@ fn full_payload_includes_lineage_era_progress() {
             kept_one_lineage_member = true;
         }
     }
-    sim.lineage_eras.insert(lid.clone(), crate::sim::era::Era::Stone);
+    sim.lineage_eras
+        .insert(lid.to_string().into(), crate::sim::era::Era::Stone);
 
     let world_population = sim.organisms.iter().filter(|o| o.alive).count();
 
@@ -397,11 +398,12 @@ fn every_payload_exposes_only_active_player_guidance() {
         .find(|org| org.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.tick_count = 500;
-    sim.lineage_strategies.insert(lid.clone(), ("trade".into(), 900));
+    sim.lineage_strategies
+        .insert(lid.to_string(), ("trade".into(), 900));
     sim.lineage_strategy_objectives.insert(
-        lid.clone(),
+        lid.to_string(),
         crate::sim::simulation::StrategyObjective {
             strategy: "trade".into(),
             started_tick: 450,
@@ -416,7 +418,7 @@ fn every_payload_exposes_only_active_player_guidance() {
         .insert("expired".into(), ("hunt".into(), 400));
     sim.lineage_strategy_history
         .push_back(crate::sim::simulation::StrategyCampaignRecord {
-            lineage_id: lid.clone(),
+            lineage_id: lid.to_string(),
             lineage_name: "Wayfinders".into(),
             strategy: "explore".into(),
             started_tick: 100,
@@ -459,15 +461,15 @@ fn full_payload_exposes_farm_lifecycle_contract() {
         .find(|org| org.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.tick_count = 1_300;
     sim.lineage_eras
-        .insert(lineage_id.clone(), crate::sim::era::Era::Bronze);
+        .insert(lineage_id.to_string().into(), crate::sim::era::Era::Bronze);
     sim.farms.push(crate::sim::agriculture::Farm {
         id: 7,
         x: 120,
         y: 120,
-        owner_lineage: lineage_id.clone(),
+        owner_lineage: lineage_id.to_string(),
         crop: crate::sim::agriculture::CropKind::Wheat,
         planted_tick: 100,
         ready_tick: 1_300,
@@ -519,7 +521,7 @@ fn full_payload_exposes_authoritative_settlement_contract() {
     for (index, org) in sim.organisms.iter_mut().enumerate() {
         org.alive = index < 4;
         if org.alive {
-            org.lineage_id = lineage_id.clone();
+            org.lineage_id = lineage_id.clone().into();
             org.x = 100.0 + index as f32;
             org.y = 110.0;
         }
@@ -831,7 +833,7 @@ fn full_payload_carries_each_nation_with_its_towns_and_relations() {
     let mut sim = Simulation::new(46);
     for (index, org) in sim.organisms.iter_mut().enumerate() {
         org.alive = index < 6;
-        org.lineage_id = ["east", "west", "far"][index % 3].to_string();
+        org.lineage_id = (["east", "west", "far"][index % 3].to_string()).into();
     }
     sim.lineage_names.insert("far".into(), "Farfolk".into());
     sim.towns = ["east", "west", "far"]
@@ -955,12 +957,12 @@ fn full_payload_carries_ruins_by_stage_and_refugees_on_the_road() {
         center: [40, 60],
         ..Default::default()
     });
-    let walker = sim.organisms[0].id.clone();
+    let walker = sim.organisms[0].id;
     sim.land.migrations.push(Migration {
         id: 1,
         lineage: "east".into(),
         cause: MigrationCause::War,
-        members: vec![walker, "gone".into()],
+        members: vec![walker.to_string(), "gone".into()],
         host: "west".into(),
         from: [10, 10],
         to: [12, 10],

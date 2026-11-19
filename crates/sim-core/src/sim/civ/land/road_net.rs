@@ -760,7 +760,7 @@ impl Simulation {
             .organisms
             .iter()
             .filter(|o| o.alive)
-            .map(|o| o.lineage_id.clone())
+            .map(|o| o.lineage_id.to_string())
             .collect();
         let knowing: BTreeSet<String> = lineages_that_build_roads(self).into_iter().collect();
         let wants = wanted(self, &knowing);
@@ -1058,7 +1058,7 @@ impl Simulation {
         }
         let mut labour: BTreeMap<String, u32> = BTreeMap::new();
         for o in self.organisms.iter().filter(|o| o.alive) {
-            *labour.entry(o.lineage_id.clone()).or_insert(0) += 1;
+            *labour.entry(o.lineage_id.to_string()).or_insert(0) += 1;
         }
         let mut budget: BTreeMap<String, u32> = labour
             .into_iter()
@@ -1115,7 +1115,7 @@ impl Simulation {
             .buildings
             .iter()
             .filter(|b| !b.decorative && b.is_operational() && POWER_SOURCES.contains(&b.kind))
-            .filter_map(|b| b.owner_lineage.clone().map(|l| (l, [b.x, b.y])))
+            .filter_map(|b| b.owner_lineage.map(String::from).map(|l| (l, [b.x, b.y])))
             .collect();
         let towns: FxHashMap<u32, [i32; 2]> = self.towns.iter().map(|t| (t.id, t.center)).collect();
         let powered = |owner: &str, town: u32| {
@@ -1345,7 +1345,7 @@ mod tests {
     fn town(id: u32, lineage: &str, center: [i32; 2]) -> Town {
         Town {
             id,
-            lineage: lineage.to_string(),
+            lineage: lineage.to_string().into(),
             center,
             streets: Vec::new(),
             founded_tick: 0,
@@ -1366,7 +1366,7 @@ mod tests {
         sim.organisms.truncate(24);
         for (i, o) in sim.organisms.iter_mut().enumerate() {
             o.alive = true;
-            o.lineage_id = if i < 12 { OWNER } else { PARTNER }.to_string();
+            o.lineage_id = (if i < 12 { OWNER } else { PARTNER }.to_string()).into();
             o.inv_stone = 5;
         }
         sim.towns.push(town(1, OWNER, [80, 100]));
@@ -1493,7 +1493,7 @@ mod tests {
     #[test]
     fn a_busy_road_is_paved_and_a_quiet_one_falls_back_to_a_track() {
         let mut sim = world();
-        sim.lineage_eras.insert(OWNER.to_string(), Era::Medieval);
+        sim.lineage_eras.insert(OWNER.to_string().into(), Era::Medieval);
         let id = edge(&mut sim, Dest::Partner, [80, 100], [140, 100], Some(2));
         finish(&mut sim, id);
         let grade = |sim: &Simulation| sim.road_net.edge(id).unwrap().grade;

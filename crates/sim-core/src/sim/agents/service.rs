@@ -77,7 +77,7 @@ impl Simulation {
             self.organisms[idx].home_x as i32,
             self.organisms[idx].home_y as i32,
         );
-        let lineage = self.organisms[idx].lineage_id.clone();
+        let lineage = self.organisms[idx].lineage_id;
         let priest = self.organisms[idx].specialty.as_deref() == Some("priest");
         if !priest && !idx.is_multiple_of(2) {
             return;
@@ -105,7 +105,7 @@ impl Simulation {
             if priest {
                 let name = self
                     .lineage_names
-                    .get(&lineage)
+                    .get(lineage.as_str())
                     .cloned()
                     .unwrap_or_else(|| "A tribe".to_string());
                 crate::sim::world_events::push_event(

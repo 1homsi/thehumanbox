@@ -34,7 +34,7 @@ impl Simulation {
     pub(crate) fn tick_refugees(&mut self) {
         let mut tribes: FxHashMap<String, Tribe> = FxHashMap::default();
         for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
-            let t = tribes.entry(o.lineage_id.clone()).or_default();
+            let t = tribes.entry(o.lineage_id.to_string()).or_default();
             t.members.push(i);
             t.x += o.x;
             t.y += o.y;
@@ -84,7 +84,7 @@ impl Simulation {
             let members = tribes[&lineage].members.clone();
             for &i in &members {
                 let o = &mut self.organisms[i];
-                o.lineage_id = host.clone();
+                o.lineage_id = host.clone().into();
                 o.home_x = hx as f32;
                 o.home_y = hy as f32;
                 o.begin_journey((hx, hy), "seeking refuge", now);
@@ -130,13 +130,13 @@ mod tests {
 
     fn person(id: &str, lineage: &str, x: f32, sex: Sex) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             id.into(),
             x,
             50.0,
             0,
             String::new(),
-            lineage.into(),
+            lineage,
             20_000,
             Default::default(),
         );

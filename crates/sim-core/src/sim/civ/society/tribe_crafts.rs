@@ -102,7 +102,7 @@ impl Simulation {
             if !matches!(o.age_stage(), AgeStage::Child | AgeStage::Teen) {
                 continue;
             }
-            let Some(&skill) = self.lineage_crafts.get(&o.lineage_id) else {
+            let Some(&skill) = self.lineage_crafts.get(o.lineage_id.as_str()) else {
                 continue;
             };
             let level = o.skills.level(skill);

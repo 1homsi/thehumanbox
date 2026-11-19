@@ -12,7 +12,7 @@ fn curious_adults_choose_distant_land_expeditions() {
         }
     }
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
-    sim.organisms[idx].id = "curious-adult".to_string();
+    sim.organisms[idx].id = "curious-adult".to_string().into();
     sim.organisms[idx].x = (WIDTH / 2) as f32;
     sim.organisms[idx].y = (HEIGHT / 2) as f32;
     sim.organisms[idx].age = 2_000;
@@ -85,7 +85,10 @@ fn founders_spread_across_world_sectors() {
         use crate::hashing::FxHashMap as HashMap;
         let mut by_lid: HashMap<String, Vec<(f32, f32)>> = HashMap::default();
         for o in &alive {
-            by_lid.entry(o.lineage_id.clone()).or_default().push((o.x, o.y));
+            by_lid
+                .entry(o.lineage_id.to_string())
+                .or_default()
+                .push((o.x, o.y));
         }
         let centroids: Vec<(f32, f32)> = by_lid
             .values()
@@ -307,13 +310,13 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     let mut traits = Traits::random(&mut cast_rng);
     apply_sex_traits(&mut traits, Sex::Female);
     let mut me = Organism::new(
-        "me-id".into(),
+        "me-id",
         generate_name(&mut cast_rng, Sex::Female),
         50.0,
         50.0,
         1,
         "".into(),
-        "lid-a".into(),
+        "lid-a",
         20_000,
         traits,
     );
@@ -329,13 +332,13 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     let mut friend_traits = Traits::random(&mut cast_rng);
     apply_sex_traits(&mut friend_traits, Sex::Male);
     let mut far = Organism::new(
-        "far-id".into(),
+        "far-id",
         "FarFriend".into(),
         500.0,
         250.0,
         1,
         "".into(),
-        "lid-b".into(),
+        "lid-b",
         20_000,
         friend_traits,
     );
@@ -354,12 +357,12 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     let spatial = SpatialIndex::build(&sim.organisms, 10);
     let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
     let mut buffers = TickBuffers::new();
-    let org_idx_by_id: FxHashMap<String, usize> = sim
+    let org_idx_by_id: FxHashMap<crate::intern::Sym, usize> = sim
         .organisms
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive)
-        .map(|(i, o)| (o.id.clone(), i))
+        .map(|(i, o)| (o.id, i))
         .collect();
     let mut lineage_members = lineage_member_index(&sim.organisms);
     sim.tick_organism(
@@ -393,13 +396,13 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
     let mut traits = Traits::random(&mut sim.rng);
     apply_sex_traits(&mut traits, Sex::Female);
     let mut me = Organism::new(
-        "me-id".into(),
+        "me-id",
         generate_name(&mut sim.rng, Sex::Female),
         50.0,
         50.0,
         1,
         "".into(),
-        "lid-a".into(),
+        "lid-a",
         20_000,
         traits,
     );
@@ -414,13 +417,13 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
     let mut friend_traits = Traits::random(&mut sim.rng);
     apply_sex_traits(&mut friend_traits, Sex::Male);
     let mut near = Organism::new(
-        "near-id".into(),
+        "near-id",
         "NearFriend".into(),
         70.0,
         70.0,
         1,
         "".into(),
-        "lid-b".into(),
+        "lid-b",
         20_000,
         friend_traits,
     );
@@ -437,12 +440,12 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
     let spatial2 = SpatialIndex::build(&sim.organisms, 10);
     let animal_spatial2 = SpatialIndex::build_animals(&sim.animals, 10);
     let mut buffers2 = TickBuffers::new();
-    let org_idx_by_id2: FxHashMap<String, usize> = sim
+    let org_idx_by_id2: FxHashMap<crate::intern::Sym, usize> = sim
         .organisms
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive)
-        .map(|(i, o)| (o.id.clone(), i))
+        .map(|(i, o)| (o.id, i))
         .collect();
     let mut lineage_members = lineage_member_index(&sim.organisms);
     sim.tick_organism(
@@ -472,7 +475,7 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
 fn a_new_tribe_leaves_as_a_band_on_one_journey() {
     let mut sim = Simulation::new(5);
     let founder = sim.organisms.iter().position(|o| o.alive).unwrap();
-    let old = sim.organisms[founder].lineage_id.clone();
+    let old = sim.organisms[founder].lineage_id;
     let (fx, fy) = (sim.organisms[founder].x, sim.organisms[founder].y);
     let kin: Vec<usize> = sim
         .organisms
@@ -484,7 +487,7 @@ fn a_new_tribe_leaves_as_a_band_on_one_journey() {
         .collect();
     for (n, &i) in kin.iter().enumerate() {
         let o = &mut sim.organisms[i];
-        o.lineage_id = old.clone();
+        o.lineage_id = old;
         o.age = 1200;
         o.x = fx + n as f32;
         o.y = fy;
@@ -493,7 +496,7 @@ fn a_new_tribe_leaves_as_a_band_on_one_journey() {
 
     sim.fork_new_tribe(founder, 40, 40);
 
-    let new = sim.organisms[founder].lineage_id.clone();
+    let new = sim.organisms[founder].lineage_id;
     assert_ne!(new, old);
     let band: Vec<_> = sim
         .organisms

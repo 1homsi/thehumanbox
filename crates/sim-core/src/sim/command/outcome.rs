@@ -187,7 +187,7 @@ impl Simulation {
                         b.id,
                         b.damage,
                         b.is_ruined(),
-                        b.owner_lineage.clone(),
+                        b.owner_lineage.map(String::from),
                         crate::sim::civ::society::vacancy::is_home(b.kind),
                     )
                 })

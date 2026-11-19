@@ -20,8 +20,8 @@ impl Simulation {
         ) else {
             return false;
         };
-        let winner = self.organisms[a].lineage_id.clone();
-        let loser = self.organisms[b].lineage_id.clone();
+        let winner = self.organisms[a].lineage_id;
+        let loser = self.organisms[b].lineage_id;
         if winner.is_empty() || loser.is_empty() || winner == loser {
             return false;
         }
@@ -30,23 +30,23 @@ impl Simulation {
             .iter_mut()
             .filter(|o| o.alive && o.lineage_id == loser)
         {
-            o.lineage_id = winner.clone();
+            o.lineage_id = winner;
         }
         // Neither tribe keeps an attitude toward the other once they are one.
         for o in self.organisms.iter_mut() {
-            o.lineage_attitudes.remove(&loser);
+            o.lineage_attitudes.remove(loser.as_str());
             if o.lineage_id == winner {
-                o.lineage_attitudes.remove(&winner);
+                o.lineage_attitudes.remove(winner.as_str());
             }
         }
         let winner_name = self
             .lineage_names
-            .get(&winner)
+            .get(winner.as_str())
             .cloned()
             .unwrap_or_else(|| "a tribe".into());
         let loser_name = self
             .lineage_names
-            .get(&loser)
+            .get(loser.as_str())
             .cloned()
             .unwrap_or_else(|| "another tribe".into());
         let now = self.tick_count;
@@ -68,7 +68,7 @@ impl Simulation {
             self.report("none_here", 0, None);
             return false;
         };
-        let old = self.organisms[nearest].lineage_id.clone();
+        let old = self.organisms[nearest].lineage_id;
         if old.is_empty() {
             self.report("none_here", 0, None);
             return false;
@@ -94,11 +94,11 @@ impl Simulation {
         let name = crate::organism::organism::generate_tribe_name(&mut self.rng);
         self.lineage_names.insert(new_lid.clone(), name.clone());
         for &i in &movers {
-            self.organisms[i].lineage_id = new_lid.clone();
+            self.organisms[i].lineage_id = new_lid.clone().into();
         }
         let old_name = self
             .lineage_names
-            .get(&old)
+            .get(old.as_str())
             .cloned()
             .unwrap_or_else(|| "a tribe".into());
         let now = self.tick_count;
@@ -132,13 +132,13 @@ mod tests {
             o.alive = true;
             o.x = x;
             o.y = y;
-            o.lineage_id = lid.to_string();
+            o.lineage_id = lid.to_string().into();
             o.sex = Sex::Female;
         }
     }
 
     fn tribe_of(sim: &Simulation, k: usize) -> String {
-        sim.organisms[k].lineage_id.clone()
+        sim.organisms[k].lineage_id.to_string()
     }
 
     #[test]

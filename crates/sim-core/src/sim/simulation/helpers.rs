@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) fn living_lineage_members<'a>(
     organisms: &'a [Organism],
-    members: &'a FxHashMap<String, Vec<usize>>,
+    members: &'a FxHashMap<crate::intern::Sym, Vec<usize>>,
     lineage_id: &'a str,
 ) -> impl Iterator<Item = &'a Organism> {
     members
@@ -13,16 +13,11 @@ pub(super) fn living_lineage_members<'a>(
         .filter(move |o| o.alive && o.lineage_id == lineage_id)
 }
 
-pub(super) fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<String, Vec<usize>> {
-    let mut members: FxHashMap<String, Vec<usize>> = FxHashMap::default();
+pub(super) fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<crate::intern::Sym, Vec<usize>> {
+    let mut members: FxHashMap<crate::intern::Sym, Vec<usize>> = FxHashMap::default();
     for (idx, org) in organisms.iter().enumerate() {
         if org.alive {
-            // Copy a lineage's id only the first time it appears.
-            if let Some(indices) = members.get_mut(&org.lineage_id) {
-                indices.push(idx);
-            } else {
-                members.insert(org.lineage_id.clone(), vec![idx]);
-            }
+            members.entry(org.lineage_id).or_default().push(idx);
         }
     }
     members

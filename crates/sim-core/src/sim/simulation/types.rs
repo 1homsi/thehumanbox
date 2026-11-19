@@ -46,9 +46,9 @@ impl PendingMemoryFlush {
 
     pub fn of(o: &crate::organism::organism::Organism, tick: u64) -> Option<Self> {
         (!o.memories.is_empty()).then(|| PendingMemoryFlush {
-            org_id: o.id.clone(),
+            org_id: o.id.to_string(),
             org_name: o.name.clone(),
-            lineage_id: o.lineage_id.clone(),
+            lineage_id: o.lineage_id.to_string(),
             flushed_tick: tick,
             memories: o.memories.top(Self::KEEP).into_iter().cloned().collect(),
         })

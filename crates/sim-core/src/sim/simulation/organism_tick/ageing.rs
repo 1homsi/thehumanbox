@@ -93,13 +93,13 @@ mod health_tests {
     #[test]
     fn injury_lowers_learned_value_of_the_action() {
         let mut person = Organism::new(
-            "test".into(),
+            "test",
             "Test".into(),
             0.0,
             0.0,
             0,
             String::new(),
-            "tribe".into(),
+            "tribe",
             5000,
             Traits::default(),
         );

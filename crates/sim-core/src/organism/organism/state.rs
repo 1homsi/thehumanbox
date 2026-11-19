@@ -179,7 +179,8 @@ impl Organism {
             self.org_trust = v.into_iter().collect();
         }
         if self.lineage_attitudes.len() > MAX_ATTITUDES {
-            let mut v: Vec<(String, f32)> = std::mem::take(&mut self.lineage_attitudes).into_iter().collect();
+            let mut v: Vec<(crate::intern::Sym, f32)> =
+                std::mem::take(&mut self.lineage_attitudes).into_iter().collect();
             v.sort_by(|a, b| {
                 b.1.abs()
                     .partial_cmp(&a.1.abs())
@@ -368,7 +369,10 @@ impl Organism {
         if other_lid == self.lineage_id {
             return;
         }
-        let v = self.lineage_attitudes.entry(other_lid.to_string()).or_insert(0.0);
+        let v = match self.lineage_attitudes.get_mut(other_lid) {
+            Some(v) => v,
+            None => self.lineage_attitudes.entry(other_lid.into()).or_insert(0.0),
+        };
         *v = (*v + delta).clamp(-1.0, 1.0);
     }
 

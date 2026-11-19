@@ -104,9 +104,9 @@ impl Simulation {
         let mut members: BTreeMap<String, Vec<usize>> = BTreeMap::new();
         let mut sums: BTreeMap<String, (f64, f64)> = BTreeMap::new();
         for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
-            *census.pop.entry(o.lineage_id.clone()).or_insert(0) += 1;
-            members.entry(o.lineage_id.clone()).or_default().push(i);
-            let s = sums.entry(o.lineage_id.clone()).or_insert((0.0, 0.0));
+            *census.pop.entry(o.lineage_id.to_string()).or_insert(0) += 1;
+            members.entry(o.lineage_id.to_string()).or_default().push(i);
+            let s = sums.entry(o.lineage_id.to_string()).or_insert((0.0, 0.0));
             s.0 += f64::from(o.x);
             s.1 += f64::from(o.y);
         }
@@ -253,7 +253,7 @@ impl Simulation {
                 .iter()
                 .filter(|o| o.alive)
                 .fold(BTreeMap::new(), |mut m, o| {
-                    *m.entry(o.lineage_id.clone()).or_insert(0) += 1;
+                    *m.entry(o.lineage_id.to_string()).or_insert(0) += 1;
                     m
                 });
         let nation = &mut self.diplomacy.nations[i];
@@ -342,7 +342,7 @@ impl Simulation {
             let capital_held = self
                 .towns
                 .iter()
-                .any(|t| t.id == n.capital && n.members.contains(&t.lineage));
+                .any(|t| t.id == n.capital && n.members.iter().any(|m| t.lineage == *m));
             if !capital_held {
                 n.capital = self.capital_for(census, &n.ruler, &n.members);
             }
@@ -809,7 +809,7 @@ impl Simulation {
                 let towns: Vec<u32> = self
                     .towns
                     .iter()
-                    .filter(|t| n.members.contains(&t.lineage))
+                    .filter(|t| n.members.iter().any(|m| t.lineage == *m))
                     .map(|t| t.id)
                     .collect();
                 let capital_at = self.towns.iter().find(|t| t.id == n.capital).map(|t| t.center);

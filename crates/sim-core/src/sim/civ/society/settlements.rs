@@ -75,7 +75,7 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
     let mut by_lineage: BTreeMap<String, SettlementAccumulator> = BTreeMap::new();
 
     for resident in sim.organisms.iter().filter(|org| org.alive) {
-        let entry = by_lineage.entry(resident.lineage_id.clone()).or_default();
+        let entry = by_lineage.entry(resident.lineage_id.to_string()).or_default();
         entry.population += 1;
         // Residents anchor the center more strongly than a single small
         // building, while major completed buildings still pull it toward the
@@ -283,7 +283,7 @@ mod tests {
         for (index, org) in sim.organisms.iter_mut().enumerate() {
             org.alive = index < population;
             if org.alive {
-                org.lineage_id = lineage_id.clone();
+                org.lineage_id = lineage_id.clone().into();
                 org.x = 100.0 + (index % 4) as f32;
                 org.y = 120.0 + (index / 4) as f32;
                 org.home_x = 101.0;

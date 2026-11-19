@@ -50,7 +50,7 @@ fn market_squares(sim: &Simulation) -> BTreeMap<String, [i32; 2]> {
             building.y + i32::from(height) / 2,
         ];
         squares
-            .entry(lineage.clone())
+            .entry(lineage.to_string())
             .and_modify(|best| *best = (*best).min(square))
             .or_insert(square);
     }
@@ -70,7 +70,7 @@ pub(super) fn market_days(sim: &mut Simulation) {
         .buildings
         .iter()
         .filter(|building| building.kind == BuildingKind::Market && building.is_operational())
-        .filter_map(|building| building.owner_lineage.clone())
+        .filter_map(|building| building.owner_lineage.map(String::from))
         .collect();
     let day = tick / MARKET_DAY_TICKS;
     for lineage in owners {
@@ -133,7 +133,7 @@ impl Simulation {
             let distance = chebyshev((o.x as i32, o.y as i32), (square[0], square[1]));
             if distance <= MARKET_STAND_RANGE {
                 if closing {
-                    standing.entry(o.lineage_id.clone()).or_default().push(idx);
+                    standing.entry(o.lineage_id.to_string()).or_default().push(idx);
                 }
                 self.organisms[idx].think("trading at the market", tick);
                 continue;
@@ -187,8 +187,8 @@ impl Simulation {
             .filter(|&i| self.organisms[i].inv_food == 0 && self.organisms[i].wealth >= MARKET_FOOD_PRICE)
             .collect();
         for (&seller, &buyer) in sellers.iter().zip(buyers.iter()).take(MARKET_MAX_SALES) {
-            let seller_id = self.organisms[seller].id.clone();
-            let buyer_id = self.organisms[buyer].id.clone();
+            let seller_id = self.organisms[seller].id;
+            let buyer_id = self.organisms[buyer].id;
             {
                 let seller_org = &mut self.organisms[seller];
                 seller_org.inv_food -= 1;
@@ -201,8 +201,8 @@ impl Simulation {
             }
             self.trades.push_back(Trade {
                 tick,
-                buyer_id,
-                seller_id,
+                buyer_id: buyer_id.to_string(),
+                seller_id: seller_id.to_string(),
                 good: "food".to_string(),
                 amount: 1,
                 price: MARKET_FOOD_PRICE,

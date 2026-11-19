@@ -18,17 +18,17 @@ impl Simulation {
                 .organisms
                 .iter()
                 .filter(|o| o.alive)
-                .map(|o| o.lineage_id.clone())
+                .map(|o| o.lineage_id.to_string())
                 .collect();
 
             let mut att_totals: HashMap<(String, String), (f32, u32)> = HashMap::default();
             for org in self.organisms.iter().filter(|o| o.alive) {
                 for (other_lid, &att) in &org.lineage_attitudes {
-                    if alive_lineages.contains(other_lid) {
+                    if alive_lineages.contains(other_lid.as_str()) {
                         let key = if org.lineage_id < *other_lid {
-                            (org.lineage_id.clone(), other_lid.clone())
+                            (org.lineage_id.to_string(), other_lid.to_string())
                         } else {
-                            (other_lid.clone(), org.lineage_id.clone())
+                            (other_lid.to_string(), org.lineage_id.to_string())
                         };
                         let e = att_totals.entry(key).or_insert((0.0, 0));
                         e.0 += att;
@@ -58,7 +58,7 @@ impl Simulation {
 
             let mut lineage_sizes: HashMap<String, usize> = HashMap::default();
             for org in self.organisms.iter().filter(|o| o.alive) {
-                *lineage_sizes.entry(org.lineage_id.clone()).or_insert(0) += 1;
+                *lineage_sizes.entry(org.lineage_id.to_string()).or_insert(0) += 1;
             }
             self.cached_lineage_sizes = serde_json::to_value(
                 lineage_sizes
@@ -295,7 +295,7 @@ impl Simulation {
                     json!({
                         "id": p.id,
                         "lineage_id": p.lineage,
-                        "tribe": self.lineage_names.get(&p.lineage).cloned().unwrap_or_default(),
+                        "tribe": self.lineage_names.get(p.lineage.as_str()).cloned().unwrap_or_default(),
                         "kind": p.kind.name(),
                         "x": p.x,
                         "y": p.y,
@@ -655,7 +655,7 @@ impl Simulation {
                         .filter(|o| o.alive && !o.lineage_id.is_empty())
                     {
                         let shown = crate::sim::agents::generations::shown_generation(o.generation);
-                        let e = oldest.entry(o.lineage_id.clone()).or_insert(0);
+                        let e = oldest.entry(o.lineage_id.to_string()).or_insert(0);
                         *e = (*e).max(shown);
                     }
                     let mut rows: Vec<(String, u32, u32)> = oldest
@@ -681,8 +681,8 @@ impl Simulation {
                 let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::default();
                 let mut lineage_pop: HashMap<String, usize> = HashMap::default();
                 for org in self.organisms.iter().filter(|o| o.alive) {
-                    *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
-                    let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
+                    *lineage_pop.entry(org.lineage_id.to_string()).or_insert(0) += 1;
+                    let entry = lineage_discoveries.entry(org.lineage_id.to_string()).or_default();
                     for d in &org.discoveries {
                         entry.insert(d.clone());
                     }
@@ -692,8 +692,8 @@ impl Simulation {
                     .lineage_eras
                     .iter()
                     .map(|(lid, era)| {
-                        let lineage_population = *lineage_pop.get(lid).unwrap_or(&0);
-                        let discoveries = lineage_discoveries.get(lid);
+                        let lineage_population = *lineage_pop.get(lid.as_str()).unwrap_or(&0);
+                        let discoveries = lineage_discoveries.get(lid.as_str());
                         let next = era.advance();
                         let (next_era, required, known, missing, world_population_required) =
                             if let Some(next) = next {
@@ -929,9 +929,12 @@ impl Simulation {
                         .iter()
                         .filter(|o| o.alive && o.lineage_id == top_lid)
                         .max_by_key(|o| o.age)
-                        .map(|o| o.id.clone());
+                        .map(|o| o.id);
                     if let Some(fid) = featured {
-                        obj.insert("featured_org_id".to_string(), serde_json::Value::String(fid));
+                        obj.insert(
+                            "featured_org_id".to_string(),
+                            serde_json::Value::String(fid.to_string()),
+                        );
                     }
                 }
 
@@ -1000,7 +1003,7 @@ impl Simulation {
                 let currencies: crate::hashing::FxHashMap<String, &str> = self
                     .lineage_eras
                     .iter()
-                    .map(|(lid, era)| (lid.clone(), crate::sim::economy::currency_unit_for_era(*era)))
+                    .map(|(lid, era)| (lid.to_string(), crate::sim::economy::currency_unit_for_era(*era)))
                     .collect();
                 obj.insert(
                     "lineage_currencies".to_string(),

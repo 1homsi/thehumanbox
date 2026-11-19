@@ -122,7 +122,7 @@ fn a_crowd_is_the_same_people_in_the_same_places_every_time() {
         let spots: Vec<(String, i32, i32)> = sim
             .organisms
             .iter()
-            .map(|o| (o.lineage_id.clone(), o.x as i32, o.y as i32))
+            .map(|o| (o.lineage_id.to_string(), o.x as i32, o.y as i32))
             .collect();
         (placed, spots)
     };

@@ -23,7 +23,7 @@ impl Simulation {
         if !self.cmd_family(x, y) {
             return false;
         }
-        let lineage = self.organisms[before].lineage_id.clone();
+        let lineage = self.organisms[before].lineage_id;
         for person in self.organisms[before..]
             .iter_mut()
             .filter(|o| o.lineage_id == lineage)

@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no other tribe to signal");
         return 0.0;
     };
-    let their_lid = ctx.sim.organisms[ki].lineage_id.clone();
+    let their_lid = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their_lid, 0.05);
     ctx.think("exchanging peace signals");
     ctx.discover(

@@ -325,7 +325,7 @@ fn battle_deaths_are_counted_in_their_year_and_written_into_the_life_story() {
         organism.x = 50.0;
         organism.y = 50.0;
     }
-    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
+    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.to_string()).collect();
     let mut battles = vec![Battle {
         id: "river-hill".into(),
         attackers: vec!["river".into()],
@@ -478,7 +478,7 @@ fn the_badly_wounded_leave_the_battle_alive_and_go_home() {
     // in this exchange, and they weigh leaving.
     sim.organisms[0].health = 0.26;
     sim.organisms[0].traits.fear = 1.0;
-    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
+    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.to_string()).collect();
     let mut battles = vec![Battle {
         id: "river-hill".into(),
         attackers: vec!["river".into()],
@@ -519,7 +519,10 @@ fn the_badly_wounded_leave_the_battle_alive_and_go_home() {
     );
     let hurt = &sim.organisms[0];
     assert!(hurt.alive, "the wounded fighter lived");
-    assert!(!battles[0].attacker_orgs.contains(&hurt.id), "and left the fight");
+    assert!(
+        !battles[0].attacker_orgs.iter().any(|v| hurt.id == *v),
+        "and left the fight"
+    );
     assert_eq!(hurt.wander_target, Some((10, 10)), "for home");
     assert!(hurt
         .life_log
@@ -543,7 +546,7 @@ fn a_fighter_who_is_not_at_the_battle_is_not_hurt_by_it() {
     // One river fighter is still at home, far from the field.
     sim.organisms[1].x = 200.0;
     sim.organisms[1].y = 200.0;
-    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
+    let ids: Vec<String> = sim.organisms.iter().map(|o| o.id.to_string()).collect();
     let mut battles = vec![Battle {
         id: "river-hill".into(),
         attackers: vec!["river".into()],

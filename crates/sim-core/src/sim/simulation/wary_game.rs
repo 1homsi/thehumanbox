@@ -46,7 +46,7 @@ impl Simulation {
         }
         let tick = self.tick_count;
         self.organisms[hunter].think("the game here has grown wary", tick);
-        let lineage = self.organisms[hunter].lineage_id.clone();
+        let lineage = self.organisms[hunter].lineage_id;
         let name = self.tribe_name(&lineage);
         push_event(
             &mut self.events,

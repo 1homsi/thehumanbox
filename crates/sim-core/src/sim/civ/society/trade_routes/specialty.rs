@@ -43,7 +43,7 @@ pub(super) fn update_specialties(sim: &mut Simulation) {
         .iter()
         .filter(|org| org.alive && !org.lineage_id.is_empty())
     {
-        let entry = holdings.entry(org.lineage_id.clone()).or_default();
+        let entry = holdings.entry(org.lineage_id.to_string()).or_default();
         for &good in LAND_GOODS {
             *entry.entry(good).or_default() += u32::from(org.land_good_count(good));
         }
@@ -87,7 +87,7 @@ pub(super) fn update_specialties(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|org| org.alive)
-        .map(|org| org.lineage_id.clone())
+        .map(|org| org.lineage_id.to_string())
         .collect();
     sim.specialties.retain(|lineage, _| living.contains(lineage));
 }

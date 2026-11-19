@@ -5,10 +5,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("secrets with no one to tell");
         return 0.0;
     };
-    let oid = ctx.sim.organisms[ki].id.clone();
+    let oid = ctx.sim.organisms[ki].id;
     {
         let me = &mut ctx.sim.organisms[ctx.idx];
-        let t = me.org_trust.entry(oid.clone()).or_insert(0.0);
+        let t = me.org_trust.entry(oid.to_string()).or_insert(0.0);
         *t = (*t + 0.08).min(1.0);
         me.comfort = (me.comfort + 0.04).min(1.0);
     }

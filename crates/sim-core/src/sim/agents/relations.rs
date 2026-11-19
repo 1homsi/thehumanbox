@@ -38,7 +38,11 @@ impl Simulation {
     }
 
     /// An idle person with a rival within three tiles steps away from them.
-    pub(crate) fn keep_away_from_rivals(&mut self, idx: usize, org_idx_by_id: &FxHashMap<String, usize>) {
+    pub(crate) fn keep_away_from_rivals(
+        &mut self,
+        idx: usize,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
+    ) {
         let tick = self.tick_count;
         if !self.on_minute(10, idx as u64) {
             return;
@@ -54,7 +58,7 @@ impl Simulation {
             .org_trust
             .iter()
             .filter(|(_, &v)| v <= RIVAL_TRUST)
-            .filter_map(|(id, _)| org_idx_by_id.get(id).copied())
+            .filter_map(|(id, _)| org_idx_by_id.get(id.as_str()).copied())
             .filter(|&r| r != idx && self.organisms[r].alive)
             .map(|r| (chebyshev(here, self.grid_pos(r)), r))
             .filter(|(d, _)| *d <= KEEP_AWAY)
@@ -79,7 +83,11 @@ impl Simulation {
     }
 
     /// An idle person with a friend a little way off walks over to them now and then.
-    pub(crate) fn walk_to_a_friend(&mut self, idx: usize, org_idx_by_id: &FxHashMap<String, usize>) {
+    pub(crate) fn walk_to_a_friend(
+        &mut self,
+        idx: usize,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
+    ) {
         let tick = self.tick_count;
         if !self.on_minute(200, idx as u64) {
             return;
@@ -104,7 +112,7 @@ impl Simulation {
         let nearest_friend = self.organisms[idx]
             .friends
             .keys()
-            .filter_map(|id| org_idx_by_id.get(id).copied())
+            .filter_map(|id| org_idx_by_id.get(id.as_str()).copied())
             .filter(|&f| f != idx && self.organisms[f].alive)
             .map(|f| (chebyshev(here, self.grid_pos(f)), f))
             .filter(|(d, _)| (FRIEND_NEAR..=FRIEND_FAR).contains(d))
@@ -138,25 +146,22 @@ impl Simulation {
             .collect();
         let tick = self.tick_count;
         for other in competitors {
-            let (my_id, my_name) = (self.organisms[idx].id.clone(), self.organisms[idx].name.clone());
-            let (their_id, their_name) = (
-                self.organisms[other].id.clone(),
-                self.organisms[other].name.clone(),
-            );
+            let (my_id, my_name) = (self.organisms[idx].id, self.organisms[idx].name.clone());
+            let (their_id, their_name) = (self.organisms[other].id, self.organisms[other].name.clone());
             for (who, rival_id, rival_name) in [
-                (idx, their_id.clone(), their_name.clone()),
-                (other, my_id.clone(), my_name.clone()),
+                (idx, their_id, their_name.clone()),
+                (other, my_id, my_name.clone()),
             ] {
                 let trust = self.organisms[who]
                     .org_trust
-                    .entry(rival_id.clone())
+                    .entry(rival_id.to_string())
                     .or_insert(0.0);
                 *trust = trust.min(COMPETITOR_TRUST);
                 self.organisms[who].log_life_rel(
                     tick,
                     "rivalry",
                     format!("competing with {rival_name} for the same person"),
-                    Some(rival_id),
+                    Some(rival_id.to_string()),
                     Some(rival_name),
                 );
             }
@@ -189,12 +194,8 @@ mod tests {
         sim
     }
 
-    fn index_of(sim: &Simulation) -> FxHashMap<String, usize> {
-        sim.organisms
-            .iter()
-            .enumerate()
-            .map(|(i, o)| (o.id.clone(), i))
-            .collect()
+    fn index_of(sim: &Simulation) -> FxHashMap<crate::intern::Sym, usize> {
+        sim.organisms.iter().enumerate().map(|(i, o)| (o.id, i)).collect()
     }
 
     #[test]
@@ -204,8 +205,8 @@ mod tests {
         sim.organisms[0].y = 100.0;
         sim.organisms[1].x = 102.0;
         sim.organisms[1].y = 100.0;
-        let rival_id = sim.organisms[1].id.clone();
-        sim.organisms[0].org_trust.insert(rival_id, -0.5);
+        let rival_id = sim.organisms[1].id;
+        sim.organisms[0].org_trust.insert(rival_id.to_string(), -0.5);
         sim.tick_count = 5000;
         let ids = index_of(&sim);
 
@@ -232,7 +233,7 @@ mod tests {
 
         sim.mark_mate_rivals(a, (110, 100), &spatial);
 
-        let (a_id, b_id) = (sim.organisms[a].id.clone(), sim.organisms[b].id.clone());
+        let (a_id, b_id) = (sim.organisms[a].id.to_string(), sim.organisms[b].id.to_string());
         assert!(sim.organisms[a].org_trust[&b_id] <= COMPETITOR_TRUST);
         assert!(sim.organisms[b].org_trust[&a_id] <= COMPETITOR_TRUST);
     }
@@ -245,8 +246,10 @@ mod tests {
         sim.organisms[me].y = 100.0;
         sim.organisms[friend].x = 115.0;
         sim.organisms[friend].y = 100.0;
-        let friend_id = sim.organisms[friend].id.clone();
-        sim.organisms[me].friends.insert(friend_id, "Friend".into());
+        let friend_id = sim.organisms[friend].id;
+        sim.organisms[me]
+            .friends
+            .insert(friend_id.to_string(), "Friend".into());
         // A tick on this person's visit cadence, when the visit falls on the walk.
         sim.tick_count = 600;
         let ids = index_of(&sim);

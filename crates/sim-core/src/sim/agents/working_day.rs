@@ -113,7 +113,7 @@ impl Simulation {
             if self.organisms[idx].energy < 0.6 || self.organisms[idx].hydration < 0.6 {
                 return;
             }
-            let lineage = self.organisms[idx].lineage_id.clone();
+            let lineage = self.organisms[idx].lineage_id;
             let Some(place) = self.workplace_for(&lineage, &trade, home) else {
                 return;
             };

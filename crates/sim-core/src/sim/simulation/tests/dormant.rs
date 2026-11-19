@@ -8,12 +8,12 @@ fn everyone_ages_one_tick_per_tick_awake_or_dormant() {
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| (o.id.clone(), o.age))
+        .map(|o| (o.id.to_string(), o.age))
         .collect();
     sim.tick_n(64);
     let mut checked = 0;
     for o in sim.organisms.iter().filter(|o| o.alive) {
-        if let Some(&age) = before.get(&o.id) {
+        if let Some(&age) = before.get(o.id.as_str()) {
             let aged = u64::from(o.age - age);
             assert!(
                 aged.abs_diff(64) < town_lod::TOWN_STEP,
@@ -95,10 +95,9 @@ fn a_tribe_that_knows_fire_works_out_medicine_while_dormant_and_spreads_it() {
         .iter()
         .find(|o| o.alive)
         .expect("someone alive")
-        .lineage_id
-        .clone();
+        .lineage_id;
     for o in sim.organisms.iter_mut().filter(|o| o.alive) {
-        o.lineage_id = lineage.clone();
+        o.lineage_id = lineage;
         o.discoveries.remove("medicine");
         o.discover("fire");
     }

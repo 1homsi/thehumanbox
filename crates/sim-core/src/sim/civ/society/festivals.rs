@@ -61,7 +61,7 @@ impl Simulation {
             let mut tribes: Vec<(String, usize)> = {
                 let mut counts: std::collections::BTreeMap<String, usize> = Default::default();
                 for o in self.organisms.iter().filter(|o| o.alive) {
-                    *counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
+                    *counts.entry(o.lineage_id.to_string()).or_insert(0) += 1;
                 }
                 counts.into_iter().collect()
             };
@@ -187,7 +187,7 @@ mod tests {
                 100.0,
                 0,
                 String::new(),
-                "clan".into(),
+                "clan",
                 20_000,
                 Default::default(),
             );

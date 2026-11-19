@@ -46,7 +46,7 @@ impl Simulation {
                 return;
             }
         }
-        let lineage = self.organisms[idx].lineage_id.clone();
+        let lineage = self.organisms[idx].lineage_id;
         let Some(plaza) = self.towns.iter().find(|p| p.lineage == lineage) else {
             return;
         };
@@ -60,7 +60,7 @@ impl Simulation {
         }
         let is_leader = self
             .governments
-            .get(&lineage)
+            .get(lineage.as_str())
             .and_then(|g| g.leader_id.as_deref())
             == Some(self.organisms[idx].id.as_str());
         let target = (center.0 + (idx as i32 % 3) - 1, center.1 + (tick as i32 % 3) - 1);
@@ -71,7 +71,7 @@ impl Simulation {
             self.organisms[idx].begin_journey(target, "going to give a speech", tick);
             let name = self
                 .lineage_names
-                .get(&lineage)
+                .get(lineage.as_str())
                 .cloned()
                 .unwrap_or_else(|| "A tribe".to_string());
             push_event(

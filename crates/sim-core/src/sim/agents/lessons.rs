@@ -44,14 +44,14 @@ impl Simulation {
             (false, true) => FROM_NEIGHBOUR * HEARD_OF_IT,
             (false, false) => return,
         };
-        let (dead_id, dead_name) = (d.id.clone(), d.name.clone());
+        let (dead_id, dead_name) = (d.id, d.name.clone());
         if self.organisms[witness].lessons.learn(lesson, strength) {
             let tick = self.tick_count;
             self.organisms[witness].log_life_rel(
                 tick,
                 "lesson",
                 lesson.story(&dead_name),
-                Some(dead_id),
+                Some(dead_id.to_string()),
                 Some(dead_name),
             );
         }
@@ -64,13 +64,13 @@ mod tests {
 
     fn tribe() -> Simulation {
         let mut sim = Simulation::new(7);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for (i, o) in sim.organisms.iter_mut().enumerate().take(4) {
             o.alive = true;
             o.x = 50.0 + i as f32;
             o.y = 50.0;
             o.age = o.max_age / 3;
-            o.lineage_id = lineage.clone();
+            o.lineage_id = lineage;
             o.lessons = Default::default();
         }
         sim
@@ -79,8 +79,8 @@ mod tests {
     #[test]
     fn a_child_who_saw_their_mother_drown_heeds_it_more_than_a_neighbour() {
         let mut sim = tribe();
-        let mother = sim.organisms[0].id.clone();
-        sim.organisms[1].parent_id = mother;
+        let mother = sim.organisms[0].id;
+        sim.organisms[1].parent_id = mother.to_string();
         sim.take_lesson(1, 0, Lesson::Water, (50, 50));
         sim.take_lesson(2, 0, Lesson::Water, (50, 50));
         let child = sim.organisms[1].lessons.heeds(Lesson::Water);
@@ -136,8 +136,8 @@ mod tests {
     #[test]
     fn a_parent_far_away_hears_of_it() {
         let mut sim = tribe();
-        let parent = sim.organisms[3].id.clone();
-        sim.organisms[0].parent_id = parent;
+        let parent = sim.organisms[3].id;
+        sim.organisms[0].parent_id = parent.to_string();
         sim.organisms[3].x = 95.0;
         sim.organisms[0].energy = 0.0;
         sim.organisms[0].hydration = 0.9;

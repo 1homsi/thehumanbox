@@ -69,7 +69,7 @@ impl Simulation {
             let d = (o.x - x).det_hypot(o.y - y);
             match by_lineage.iter_mut().find(|(lid, _)| *lid == o.lineage_id) {
                 Some((_, best)) => *best = best.min(d),
-                None => by_lineage.push((o.lineage_id.clone(), d)),
+                None => by_lineage.push((o.lineage_id.to_string(), d)),
             }
         }
         by_lineage.sort_by(|a, b| a.1.total_cmp(&b.1));
@@ -79,9 +79,9 @@ impl Simulation {
         let (a, b) = (a.clone(), b.clone());
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
             if o.lineage_id == a {
-                o.lineage_attitudes.insert(b.clone(), attitude);
+                o.lineage_attitudes.insert(b.clone().into(), attitude);
             } else if o.lineage_id == b {
-                o.lineage_attitudes.insert(a.clone(), attitude);
+                o.lineage_attitudes.insert(a.clone().into(), attitude);
             }
         }
         let name = |lid: &str| {
@@ -108,7 +108,7 @@ impl Simulation {
             .map(|o| (o, (o.x - x).det_hypot(o.y - y)))
             .filter(|&(_, d)| d <= radius)
             .min_by(|a, b| a.1.total_cmp(&b.1))
-            .map(|(o, _)| o.lineage_id.clone())
+            .map(|(o, _)| o.lineage_id.to_string())
     }
 
     /// Guiding a lineage to explore sends its adults on one shared journey to
@@ -146,7 +146,7 @@ impl Simulation {
         }
         let Some((strategy, expires_at)) = self
             .lineage_strategies
-            .get(&organism.lineage_id)
+            .get(organism.lineage_id.as_str())
             .filter(|(_, expires_at)| *expires_at > self.tick_count)
             .cloned()
         else {

@@ -153,7 +153,7 @@ fn spawn_carts(sim: &mut Simulation) {
         .organisms
         .iter()
         .filter(|o| o.alive && o.discoveries.contains(WHEEL))
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect();
     for lineage in wheeled {
         if carts_of(sim, &lineage) >= MAX_CARTS_PER_TRIBE {
@@ -303,9 +303,9 @@ mod tests {
         sim.organisms.truncate(20);
         for o in sim.organisms.iter_mut() {
             o.alive = true;
-            o.lineage_id = TRIBE.to_string();
+            o.lineage_id = TRIBE.to_string().into();
         }
-        sim.lineage_eras.insert(TRIBE.to_string(), Era::Iron);
+        sim.lineage_eras.insert(TRIBE.to_string().into(), Era::Iron);
         let mut granary = Building::new(9001, BuildingKind::Granary, 92, 97, Some(TRIBE.to_string()), 0);
         granary.condition = 1.0;
         sim.buildings.push(granary);

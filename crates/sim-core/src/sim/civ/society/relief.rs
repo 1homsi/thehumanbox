@@ -55,7 +55,7 @@ impl Simulation {
     fn larders(&self) -> BTreeMap<String, Larder> {
         let mut larders: BTreeMap<String, Larder> = BTreeMap::new();
         for o in self.organisms.iter().filter(|o| o.alive) {
-            let l = larders.entry(o.lineage_id.clone()).or_default();
+            let l = larders.entry(o.lineage_id.to_string()).or_default();
             l.pop += 1;
             l.sum.0 += f64::from(o.x);
             l.sum.1 += f64::from(o.y);
@@ -74,7 +74,7 @@ impl Simulation {
             let e = first.entry(t.lineage.as_str()).or_insert(t.id);
             if t.id <= *e {
                 *e = t.id;
-                if let Some(l) = larders.get_mut(&t.lineage) {
+                if let Some(l) = larders.get_mut(t.lineage.as_str()) {
                     l.centre = Some(t.center);
                 }
             }
@@ -121,7 +121,7 @@ impl Simulation {
             .collect();
         let mut members: BTreeMap<String, Vec<usize>> = BTreeMap::new();
         for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
-            members.entry(o.lineage_id.clone()).or_default().push(i);
+            members.entry(o.lineage_id.to_string()).or_default().push(i);
         }
         let needy: Vec<String> = larders
             .iter()

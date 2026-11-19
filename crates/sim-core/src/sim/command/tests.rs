@@ -49,11 +49,11 @@ fn spawned_tribe_shares_one_generated_lineage() {
 fn sandbox_spawn_cannot_consume_a_pending_birth_slot() {
     let mut sim = Simulation::new(4);
     sim.set_population_limit(120);
-    let mother_id = sim.organisms[1].id.clone();
+    let mother_id = sim.organisms[1].id;
     sim.organisms[1].pregnant = true;
     sim.organisms[0].alive = false;
     sim.organisms[0].age = 0;
-    sim.organisms[0].parent_id = mother_id;
+    sim.organisms[0].parent_id = mother_id.to_string();
     sim.organisms[0].father_id = Some("father".to_string());
     let alive_before = alive(&sim);
 
@@ -161,7 +161,7 @@ fn guiding_a_lineage_to_explore_sends_adults_on_one_shared_journey() {
         .organisms
         .iter()
         .find(|o| o.alive)
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id)
         .expect("a living lineage");
     for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
         o.age = 1000;
@@ -204,8 +204,8 @@ fn a_spawned_tribe_gets_a_name() {
     let mut sim = Simulation::new(1);
     let before = sim.organisms.len();
     assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":300.0,"y":200.0,"count":5}"#));
-    let lid = sim.organisms[before].lineage_id.clone();
-    assert!(sim.lineage_names.get(&lid).is_some_and(|n| !n.is_empty()));
+    let lid = sim.organisms[before].lineage_id;
+    assert!(sim.lineage_names.get(lid.as_str()).is_some_and(|n| !n.is_empty()));
 }
 
 #[test]
@@ -213,7 +213,7 @@ fn one_new_person_joins_the_nearest_tribe() {
     let mut sim = Simulation::new(1);
     let host = sim.organisms.iter().position(|o| o.alive).unwrap();
     let (x, y) = (sim.organisms[host].x, sim.organisms[host].y);
-    let lineage = sim.organisms[host].lineage_id.clone();
+    let lineage = sim.organisms[host].lineage_id;
     let before = sim.organisms.len();
     let cmd = format!(r#"{{"cmd":"spawn","x":{x},"y":{y},"count":1}}"#);
     assert!(sim.apply_command_json(&cmd));
@@ -264,13 +264,13 @@ fn earthquake_cracks_land_and_hurts_people() {
 #[test]
 fn war_and_peace_set_attitudes_between_the_nearest_tribes() {
     let mut sim = Simulation::new(1);
-    let a = sim.organisms[0].lineage_id.clone();
+    let a = sim.organisms[0].lineage_id;
     let other = sim
         .organisms
         .iter()
         .position(|o| o.alive && o.lineage_id != a)
         .unwrap();
-    let b = sim.organisms[other].lineage_id.clone();
+    let b = sim.organisms[other].lineage_id;
     for o in sim.organisms.iter_mut() {
         if o.lineage_id == a || o.lineage_id == b {
             o.x = 50.0;
@@ -281,9 +281,15 @@ fn war_and_peace_set_attitudes_between_the_nearest_tribes() {
         }
     }
     assert!(sim.apply_command_json(r#"{"cmd":"war","x":50.0,"y":50.0}"#));
-    assert_eq!(sim.organisms[0].lineage_attitudes.get(&b).copied(), Some(-1.0));
+    assert_eq!(
+        sim.organisms[0].lineage_attitudes.get(b.as_str()).copied(),
+        Some(-1.0)
+    );
     assert!(sim.apply_command_json(r#"{"cmd":"peace","x":50.0,"y":50.0}"#));
-    assert_eq!(sim.organisms[other].lineage_attitudes.get(&a).copied(), Some(1.0));
+    assert_eq!(
+        sim.organisms[other].lineage_attitudes.get(a.as_str()).copied(),
+        Some(1.0)
+    );
 }
 
 #[test]
@@ -386,8 +392,7 @@ fn guide_accepts_only_living_lineages_allowed_strategies_and_bounded_duration() 
         .iter()
         .find(|organism| organism.alive)
         .unwrap()
-        .lineage_id
-        .clone();
+        .lineage_id;
 
     let guide =
         format!(r#"{{"cmd":"guide","lineage":"{lineage}","strategy":"explore","duration_ticks":600}}"#);
@@ -408,10 +413,10 @@ fn guide_accepts_only_living_lineages_allowed_strategies_and_bounded_duration() 
     }
     assert!(sim.apply_command_json(&guide));
     assert_eq!(
-        sim.lineage_strategies.get(&lineage),
+        sim.lineage_strategies.get(lineage.as_str()),
         Some(&("explore".to_string(), 1100))
     );
-    let objective = sim.lineage_strategy_objectives.get(&lineage).unwrap();
+    let objective = sim.lineage_strategy_objectives.get(lineage.as_str()).unwrap();
     assert_eq!(objective.strategy, "explore");
     assert_eq!(objective.started_tick, 500);
     assert_eq!(objective.expires_tick, 1100);
@@ -429,10 +434,10 @@ fn guide_accepts_only_living_lineages_allowed_strategies_and_bounded_duration() 
         format!(r#"{{"cmd":"set_strategy","lineage":"{lineage}","strategy":"defend","duration":60}}"#);
     assert!(sim.apply_command_json(&alias));
     assert_eq!(
-        sim.lineage_strategies.get(&lineage),
+        sim.lineage_strategies.get(lineage.as_str()),
         Some(&("defend".to_string(), 560))
     );
-    let objective = sim.lineage_strategy_objectives.get(&lineage).unwrap();
+    let objective = sim.lineage_strategy_objectives.get(lineage.as_str()).unwrap();
     assert_eq!(objective.strategy, "defend");
     assert_eq!(objective.started_tick, 500);
     assert_eq!(objective.expires_tick, 560);

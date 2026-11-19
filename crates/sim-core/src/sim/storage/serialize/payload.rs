@@ -83,7 +83,7 @@ impl BuildingJson {
             kind: b.kind.name(),
             last_damage_tick: b.last_damage_tick,
             last_repair_tick: b.last_repair_tick,
-            lineage_id: b.owner_lineage.clone().unwrap_or_default(),
+            lineage_id: (b.owner_lineage.unwrap_or_default()).to_string(),
             repairing: b.is_repairing_at(tick),
             ruined: b.is_ruined(),
             ruined_at_tick: b.ruined_at_tick,

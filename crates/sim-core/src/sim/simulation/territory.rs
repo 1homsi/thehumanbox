@@ -26,7 +26,7 @@ impl Simulation {
             }
         }
         if !self.territory.contains_key(lid) {
-            self.territory.insert(lid.to_string(), Default::default());
+            self.territory.insert(lid.to_string().into(), Default::default());
         }
         let Some(tiles) = self.territory.get_mut(lid) else {
             return;
@@ -61,11 +61,10 @@ impl Simulation {
             match self.tile_owner.get_mut(&p) {
                 Some(owner) if owner == lid => {}
                 Some(owner) => {
-                    owner.clear();
-                    owner.push_str(lid);
+                    *owner = lid.into();
                 }
                 None => {
-                    self.tile_owner.insert(p, lid.to_string());
+                    self.tile_owner.insert(p, lid.into());
                 }
             }
         }
@@ -100,7 +99,7 @@ impl Simulation {
                 to_claim.push((tx, ty));
             }
         }
-        let tiles = self.territory.entry(lid.to_string()).or_default();
+        let tiles = self.territory.entry(lid.to_string().into()).or_default();
         for p in &to_claim {
             tiles.insert(*p);
         }
@@ -119,7 +118,7 @@ impl Simulation {
         // owned by *this* lineage - another lineage may have a more
         // recent claim on the same tile.
         for p in to_claim {
-            self.tile_owner.insert(p, lid.to_string());
+            self.tile_owner.insert(p, lid.into());
         }
         for p in evicted {
             if let Some(owner) = self.tile_owner.get(&p) {
@@ -150,7 +149,7 @@ impl Simulation {
             })
             .collect();
         for (loser, winner, (lx, ly)) in conquests {
-            let Some(loser_tiles) = self.territory.get(&loser).cloned() else {
+            let Some(loser_tiles) = self.territory.get(loser.as_str()).cloned() else {
                 continue;
             };
             let r = 14;
@@ -162,12 +161,12 @@ impl Simulation {
             if taken.len() < 4 {
                 continue;
             }
-            if let Some(lset) = self.territory.get_mut(&loser) {
+            if let Some(lset) = self.territory.get_mut(loser.as_str()) {
                 for t in &taken {
                     lset.swap_remove(t);
                 }
             }
-            let wset = self.territory.entry(winner.clone()).or_default();
+            let wset = self.territory.entry(winner.clone().into()).or_default();
             for &t in &taken {
                 wset.insert(t);
             }
@@ -181,7 +180,7 @@ impl Simulation {
                 .collect();
             for b in self.buildings.iter_mut() {
                 if taken_set.contains(&(b.x, b.y)) {
-                    b.owner_lineage = Some(winner.clone());
+                    b.owner_lineage = Some(winner.clone().into());
                     b.town = winner_towns
                         .iter()
                         .map(|(id, t)| (t.distance(b.x, b.y), *id))

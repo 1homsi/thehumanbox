@@ -157,7 +157,7 @@ impl Simulation {
                         "kind": b.kind.name(),
                         "x": b.x,
                         "y": b.y,
-                        "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
+                        "lineage_id": b.owner_lineage.unwrap_or_default(),
                         "condition": b.condition,
                         "construction_progress": b.condition,
                         "damage": b.damage_fraction(),

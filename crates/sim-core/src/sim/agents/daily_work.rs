@@ -295,7 +295,7 @@ impl Simulation {
         if !(WORK_HOURS.0..WORK_HOURS.1).contains(&phase) || !self.free_to_work(idx) {
             return;
         }
-        let lineage = self.organisms[idx].lineage_id.clone();
+        let lineage = self.organisms[idx].lineage_id;
         let home = (
             self.organisms[idx].home_x as i32,
             self.organisms[idx].home_y as i32,
@@ -344,7 +344,7 @@ impl Simulation {
                         && self.spot_still_good(skill, p)
                 });
             let (spot, harvest) = if skill == Skill::Farming {
-                let lineage = self.organisms[idx].lineage_id.clone();
+                let lineage = self.organisms[idx].lineage_id;
                 match self.field_to_work(&lineage, here) {
                     Some(field) => field,
                     None => continue,
@@ -384,7 +384,7 @@ impl Simulation {
     /// and learn (`agents::skills` teaches watchers, twice as fast from a parent).
     fn take_apprentices(&mut self, idx: usize, skill: Skill, spot: (i32, i32)) {
         let tick = self.tick_count;
-        let parent_id = self.organisms[idx].id.clone();
+        let parent_id = self.organisms[idx].id;
         let parent_name = self.organisms[idx].name.clone();
         let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
         let free = |o: &crate::organism::organism::Organism| {
@@ -412,7 +412,7 @@ impl Simulation {
             .collect();
         let worker_level = self.organisms[idx].skills.level(skill);
         if worker_level >= crate::organism::skills::SKILLED {
-            let lineage = self.organisms[idx].lineage_id.clone();
+            let lineage = self.organisms[idx].lineage_id;
             let youngsters: Vec<usize> = self
                 .organisms
                 .iter()
@@ -467,7 +467,7 @@ impl Simulation {
                     tick,
                     "learned",
                     format!("went to learn from {}, {}", parent_name, told),
-                    Some(parent_id.clone()),
+                    Some(parent_id.to_string()),
                     Some(parent_name.clone()),
                 );
             }
@@ -589,7 +589,7 @@ impl Simulation {
         // Field work follows the field: a tended field that ripened is brought in,
         // and one brought in sends the worker to the next field or home.
         if plan.skill == Skill::Farming {
-            let lineage = self.organisms[idx].lineage_id.clone();
+            let lineage = self.organisms[idx].lineage_id;
             let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             self.organisms[idx].work = self
                 .field_to_work(&lineage, here)
@@ -748,13 +748,13 @@ mod tests {
 
     fn teen_of(sim: &Simulation, id: &str, parent: &str) -> crate::organism::organism::Organism {
         let mut teen = crate::organism::organism::Organism::new(
-            id.into(),
+            id,
             "Teen".into(),
             102.0,
             101.0,
             1,
             parent.into(),
-            sim.organisms[0].lineage_id.clone(),
+            sim.organisms[0].lineage_id,
             4000,
             Default::default(),
         );
@@ -833,13 +833,13 @@ mod tests {
     fn a_parent_going_fishing_takes_the_children_along_to_learn() {
         let mut sim = shore();
         let mut child = crate::organism::organism::Organism::new(
-            "kid".into(),
+            "kid",
             "Kid".into(),
             101.0,
             100.0,
             1,
-            sim.organisms[0].id.clone(),
-            sim.organisms[0].lineage_id.clone(),
+            sim.organisms[0].id.to_string(),
+            sim.organisms[0].lineage_id,
             4000,
             Default::default(),
         );
@@ -862,13 +862,13 @@ mod tests {
     fn a_ripe_field_calls_someone_out_to_bring_it_in() {
         use crate::sim::tech::agriculture::{CropKind, Farm};
         let mut sim = shore();
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         sim.tick_count = morning(0);
         sim.farms.push(Farm {
             id: 1,
             x: 96,
             y: 100,
-            owner_lineage: lineage,
+            owner_lineage: lineage.to_string(),
             crop: CropKind::Wheat,
             planted_tick: 0,
             ready_tick: 1,
@@ -889,13 +889,13 @@ mod tests {
     fn a_field_that_ripens_while_tended_is_brought_in_straight_away() {
         use crate::sim::tech::agriculture::{CropKind, Farm};
         let mut sim = shore();
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         sim.tick_count = morning(0);
         sim.farms.push(Farm {
             id: 1,
             x: 96,
             y: 100,
-            owner_lineage: lineage,
+            owner_lineage: lineage.to_string(),
             crop: CropKind::Wheat,
             planted_tick: 0,
             ready_tick: sim.tick_count + 5,
@@ -919,7 +919,7 @@ mod tests {
     fn food_in_hand_does_not_keep_a_farmer_from_a_ripe_field() {
         use crate::sim::tech::agriculture::{CropKind, Farm};
         let mut sim = shore();
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         sim.organisms[0].inv_food = 255;
         sim.organisms[0].skills.set(Skill::Farming, 0.8);
         sim.tick_count = morning(0);
@@ -927,7 +927,7 @@ mod tests {
             id: 1,
             x: 96,
             y: 100,
-            owner_lineage: lineage,
+            owner_lineage: lineage.to_string(),
             crop: CropKind::Wheat,
             planted_tick: 0,
             ready_tick: 1,

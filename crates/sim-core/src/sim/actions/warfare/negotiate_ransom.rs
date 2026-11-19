@@ -10,7 +10,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no hostage to ransom");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.06);
     ctx.sim.organisms[ctx.idx].inv_food = ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
     ctx.think("negotiating a ransom");

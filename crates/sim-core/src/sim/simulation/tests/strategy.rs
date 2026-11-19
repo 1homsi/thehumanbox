@@ -5,13 +5,13 @@ use super::*;
 #[test]
 fn lineage_wellbeing_snapshot_excludes_dead_members_and_refreshes_next_tick() {
     let mut sim = Simulation::new(0xBEE1);
-    let lineage = sim.organisms[0].lineage_id.clone();
+    let lineage = sim.organisms[0].lineage_id.to_string();
     for org in &mut sim.organisms {
         org.alive = false;
     }
     for (idx, energy) in [(0, 0.25), (1, 0.75), (2, 0.95)] {
         let org = &mut sim.organisms[idx];
-        org.lineage_id = lineage.clone();
+        org.lineage_id = lineage.clone().into();
         org.energy = energy;
         org.alive = idx != 2;
     }
@@ -37,11 +37,14 @@ fn completing_a_strategy_objective_rewards_the_lineage_once() {
         .find(|organism| organism.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.lineage_names
-        .insert(lineage_id.clone(), "Wayfinders".to_string());
+        .insert(lineage_id.to_string(), "Wayfinders".to_string());
     sim.start_strategy_objective(&lineage_id, "trade", 200);
-    let objective = sim.lineage_strategy_objectives.get_mut(&lineage_id).unwrap();
+    let objective = sim
+        .lineage_strategy_objectives
+        .get_mut(lineage_id.as_str())
+        .unwrap();
     objective.target = 2;
 
     for organism in sim
@@ -113,10 +116,10 @@ fn replaying_a_completed_strategy_does_not_create_another_reward() {
         .find(|organism| organism.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.start_strategy_objective(&lineage_id, "trade", 200);
     sim.lineage_strategy_objectives
-        .get_mut(&lineage_id)
+        .get_mut(lineage_id.as_str())
         .unwrap()
         .target = 1;
     for organism in sim
@@ -155,13 +158,16 @@ fn expired_strategy_objective_records_failure_and_penalty_once() {
         .find(|organism| organism.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.lineage_names
-        .insert(lineage_id.clone(), "Long Walk".to_string());
+        .insert(lineage_id.to_string(), "Long Walk".to_string());
     sim.start_strategy_objective(&lineage_id, "explore", 110);
     sim.lineage_strategies
-        .insert(lineage_id.clone(), ("explore".to_string(), 110));
-    let objective = sim.lineage_strategy_objectives.get_mut(&lineage_id).unwrap();
+        .insert(lineage_id.to_string(), ("explore".to_string(), 110));
+    let objective = sim
+        .lineage_strategy_objectives
+        .get_mut(lineage_id.as_str())
+        .unwrap();
     objective.progress = 7;
     objective.target = 10;
     for organism in sim
@@ -186,7 +192,7 @@ fn expired_strategy_objective_records_failure_and_penalty_once() {
     assert_eq!(campaign.reason.as_deref(), Some("deadline"));
     assert_eq!(campaign.progress, 7);
     assert_eq!(campaign.target, 10);
-    assert!(!sim.lineage_strategies.contains_key(&lineage_id));
+    assert!(!sim.lineage_strategies.contains_key(lineage_id.as_str()));
     assert_eq!(
         sim.events
             .iter()
@@ -223,12 +229,12 @@ fn extinct_lineage_archives_an_active_campaign_with_its_name() {
         .find(|organism| organism.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.lineage_names
-        .insert(lineage_id.clone(), "Last Ember".to_string());
+        .insert(lineage_id.to_string(), "Last Ember".to_string());
     sim.start_strategy_objective(&lineage_id, "defend", 800);
     sim.lineage_strategies
-        .insert(lineage_id.clone(), ("defend".to_string(), 800));
+        .insert(lineage_id.to_string(), ("defend".to_string(), 800));
     for organism in sim
         .organisms
         .iter_mut()
@@ -240,8 +246,8 @@ fn extinct_lineage_archives_an_active_campaign_with_its_name() {
 
     sim.resolve_extinct_strategy_objectives();
 
-    assert!(!sim.lineage_strategy_objectives.contains_key(&lineage_id));
-    assert!(!sim.lineage_strategies.contains_key(&lineage_id));
+    assert!(!sim.lineage_strategy_objectives.contains_key(lineage_id.as_str()));
+    assert!(!sim.lineage_strategies.contains_key(lineage_id.as_str()));
     let campaign = sim.lineage_strategy_history.back().unwrap();
     assert_eq!(campaign.lineage_id, lineage_id);
     assert_eq!(campaign.lineage_name, "Last Ember");
@@ -259,14 +265,17 @@ fn loading_legacy_guidance_creates_a_playable_objective() {
         .find(|organism| organism.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.lineage_strategies
-        .insert(lineage_id.clone(), ("settle".to_string(), 1_000));
+        .insert(lineage_id.to_string(), ("settle".to_string(), 1_000));
     sim.lineage_strategy_objectives.clear();
 
     let loaded = Simulation::from_save(0x001E_6AC7, sim.to_save_state());
 
-    let objective = loaded.lineage_strategy_objectives.get(&lineage_id).unwrap();
+    let objective = loaded
+        .lineage_strategy_objectives
+        .get(lineage_id.as_str())
+        .unwrap();
     assert_eq!(objective.strategy, "settle");
     assert_eq!(objective.started_tick, 400);
     assert_eq!(objective.expires_tick, 1_000);
@@ -286,11 +295,11 @@ fn loading_repairs_zero_target_or_mismatched_guidance_objectives() {
         .find(|organism| organism.alive)
         .unwrap()
         .lineage_id
-        .clone();
+        .to_string();
     sim.lineage_strategies
-        .insert(lineage_id.clone(), ("trade".to_string(), 1_000));
+        .insert(lineage_id.to_string(), ("trade".to_string(), 1_000));
     sim.lineage_strategy_objectives.insert(
-        lineage_id.clone(),
+        lineage_id.to_string(),
         StrategyObjective {
             strategy: "hunt".to_string(),
             started_tick: 100,
@@ -304,7 +313,10 @@ fn loading_repairs_zero_target_or_mismatched_guidance_objectives() {
 
     let loaded = Simulation::from_save(0xBAD_0B1, sim.to_save_state());
 
-    let objective = loaded.lineage_strategy_objectives.get(&lineage_id).unwrap();
+    let objective = loaded
+        .lineage_strategy_objectives
+        .get(lineage_id.as_str())
+        .unwrap();
     assert_eq!(objective.strategy, "trade");
     assert_eq!(objective.started_tick, 400);
     assert_eq!(objective.expires_tick, 1_000);
@@ -331,7 +343,7 @@ fn emergency_shelter_reflex_does_not_reopen_an_existing_project() {
     sim.buildings.clear();
     sim.weather.kind = 2;
     sim.organisms[idx].inv_wood = 1;
-    let lineage = sim.organisms[idx].lineage_id.clone();
+    let lineage = sim.organisms[idx].lineage_id.to_string();
     let (x, y) = (90, 90);
     sim.organisms[idx].x = x as f32;
     sim.organisms[idx].y = y as f32;
@@ -344,7 +356,14 @@ fn emergency_shelter_reflex_does_not_reopen_an_existing_project() {
 
     assert!(sim.should_start_emergency_shelter(idx));
 
-    let mut hut = Building::new(1, BuildingKind::Hut, x, y, Some(lineage), sim.tick_count);
+    let mut hut = Building::new(
+        1,
+        BuildingKind::Hut,
+        x,
+        y,
+        Some(lineage.to_string()),
+        sim.tick_count,
+    );
     hut.condition = 0.5;
     sim.buildings.push(hut);
     assert!(sim.organisms[idx].has_shelter_project_within(&sim.buildings, 3));
@@ -360,7 +379,7 @@ fn emergency_shelter_reflex_does_not_reopen_an_existing_project() {
 fn fortify_position_consumes_material_and_records_lineage_ownership() {
     let mut sim = Simulation::new(0xF047);
     let idx = sim.organisms.iter().position(|organism| organism.alive).unwrap();
-    let lineage_id = sim.organisms[idx].lineage_id.clone();
+    let lineage_id = sim.organisms[idx].lineage_id.to_string();
     sim.organisms[idx].inv_wood = 1;
     let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
     let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 10);

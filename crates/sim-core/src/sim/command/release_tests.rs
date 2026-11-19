@@ -109,7 +109,7 @@ fn a_dog_released_beside_someone_bonds_to_them_and_is_named() {
         o.x = 20.0;
         o.y = 20.0;
     }
-    let owner_id = sim.organisms[0].id.clone();
+    let owner_id = sim.organisms[0].id;
     sim.organisms[0].x = 150.0;
     sim.organisms[0].y = 150.0;
     let before = sim.animals.len();

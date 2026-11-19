@@ -27,7 +27,7 @@ impl Simulation {
             .iter()
             .enumerate()
             .filter(|(_, o)| o.alive)
-            .map(|(i, o)| (o.id.clone(), i))
+            .map(|(i, o)| (o.id.to_string(), i))
             .collect();
         for battle in battles {
             let target = battle.location;

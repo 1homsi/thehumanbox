@@ -85,8 +85,8 @@ impl Simulation {
                 o.health = -1.0;
                 o.mark_harm(if d <= blast { Harm::Disaster } else { Harm::Fire }, now);
                 killed += 1;
-                if !tribes.contains(&o.lineage_id) {
-                    tribes.push(o.lineage_id.clone());
+                if !tribes.iter().any(|t| o.lineage_id == *t) {
+                    tribes.push(o.lineage_id.to_string());
                 }
             } else {
                 // Survivors of the firestorm are badly burned; those just past it are scorched and terrified.

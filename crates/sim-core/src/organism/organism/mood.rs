@@ -34,13 +34,13 @@ mod tests {
 
     fn person() -> Organism {
         let mut o = Organism::new(
-            "p".into(),
+            "p",
             "Ama".into(),
             0.0,
             0.0,
             0,
             String::new(),
-            "lin".into(),
+            "lin",
             9000,
             Traits::default(),
         );

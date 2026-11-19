@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no one to forgive right now");
         return 0.0;
     };
-    let their_lid = ctx.sim.organisms[ki].lineage_id.clone();
+    let their_lid = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their_lid, 0.1);
     ctx.think("letting go of old grudges");
     ctx.event("bond", "forgave a former enemy and opened the door to peace");

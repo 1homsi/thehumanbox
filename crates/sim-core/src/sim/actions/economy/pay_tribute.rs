@@ -17,7 +17,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     };
     ctx.sim.organisms[ctx.idx].inv_stone -= 1;
     ctx.sim.organisms[ki].inv_stone = ctx.sim.organisms[ki].inv_stone.saturating_add(1);
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.08);
     ctx.think("paying tribute");
     ctx.event("trade", "paid stone tribute to a foreign lineage");

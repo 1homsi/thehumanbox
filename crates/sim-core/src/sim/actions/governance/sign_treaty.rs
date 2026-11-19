@@ -14,7 +14,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no one to sign a treaty with");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     if has_active_battle_between(&ctx.sim.battles, &lid, &their) {
         ctx.think("cannot sign a treaty while our peoples are still fighting");
         return 0.0;
@@ -67,8 +67,8 @@ mod tests {
             id: "battle-river-hill".into(),
             attackers: vec!["river".into()],
             defenders: vec!["hill".into()],
-            attacker_orgs: vec![sim.organisms[0].id.clone()],
-            defender_orgs: vec![sim.organisms[1].id.clone()],
+            attacker_orgs: vec![sim.organisms[0].id.to_string()],
+            defender_orgs: vec![sim.organisms[1].id.to_string()],
             scale: BattleScale::Skirmish,
             location: (100, 100),
             started_tick: 1,

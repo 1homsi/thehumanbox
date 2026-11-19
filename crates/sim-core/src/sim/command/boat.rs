@@ -35,12 +35,12 @@ impl Simulation {
             .iter()
             .filter(|o| o.alive)
             .min_by_key(|o| (o.x as i32 - x).abs() + (o.y as i32 - y).abs())
-            .map(|o| o.lineage_id.clone())
+            .map(|o| o.lineage_id)
             .unwrap_or_default();
         self.vehicles.push(Vehicle {
             id: self.next_vehicle_id,
             kind: TransportKind::Boat,
-            owner_lineage: owner,
+            owner_lineage: owner.to_string(),
             x,
             y,
             occupants: Vec::new(),

@@ -495,12 +495,7 @@ pub async fn org_conversations_handler(
             .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
         let convos: Vec<_> = org.conversations.iter().cloned().collect();
-        (
-            org.name.clone(),
-            org.lineage_id.clone(),
-            org.vocabulary.words(),
-            convos,
-        )
+        (org.name.clone(), org.lineage_id, org.vocabulary.words(), convos)
     };
     Ok((
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],

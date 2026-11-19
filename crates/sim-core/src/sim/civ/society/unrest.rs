@@ -96,7 +96,7 @@ fn rise_up(sim: &mut Simulation, lid: &str, poor: &[usize], tick: u64) {
         .get(lid)
         .cloned()
         .unwrap_or_else(|| "a tribe".into());
-    let rich_id = sim.organisms[rich].id.clone();
+    let rich_id = sim.organisms[rich].id;
     let new_leader = reform_after_rising(sim, lid, &rich_id, poor);
     let detail = match new_leader {
         Some(name) => format!(
@@ -133,9 +133,9 @@ fn reform_after_rising(sim: &mut Simulation, lid: &str, deposed_id: &str, poor: 
                 .unwrap_or(std::cmp::Ordering::Equal)
                 .then(b.cmp(&a))
         })?;
-    let next_id = sim.organisms[next].id.clone();
+    let next_id = sim.organisms[next].id;
     let next_name = sim.organisms[next].name.clone();
-    government.leader_id = Some(next_id.clone());
+    government.leader_id = Some(next_id.to_string());
     let tick = sim.tick_count;
     if let Some(old) = sim.organisms.iter_mut().find(|o| o.id == deposed_id) {
         old.is_leader = false;
@@ -160,13 +160,13 @@ mod tests {
 
     fn person(id: &str, lid: &str, wealth: u32) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             "x".into(),
             0.0,
             0.0,
             0,
             String::new(),
-            lid.into(),
+            lid,
             9000,
             Traits::default(),
         );
@@ -235,10 +235,10 @@ mod reform_tests {
             o.max_age = 4000;
             o.wealth = if i == 0 { 40 } else { 0 };
         }
-        let rich_id = sim.organisms[0].id.clone();
+        let rich_id = sim.organisms[0].id;
         sim.organisms[0].is_leader = true;
         let mut government = Government::new("clan".into(), GovernmentKind::Republic, 0);
-        government.leader_id = Some(rich_id.clone());
+        government.leader_id = Some(rich_id.to_string());
         government.tax_rate = 0.2;
         sim.governments.insert("clan".into(), government);
         let poor: Vec<usize> = (1..8).collect();

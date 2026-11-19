@@ -15,10 +15,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         o.inv_wood = o.inv_wood.saturating_add(1);
         o.comfort = (o.comfort + 0.04).min(1.0);
     }
-    let oid = ctx.sim.organisms[ki].id.clone();
+    let oid = ctx.sim.organisms[ki].id;
     {
         let me = &mut ctx.sim.organisms[ctx.idx];
-        let t = me.org_trust.entry(oid).or_insert(0.0);
+        let t = me.org_trust.entry(oid.to_string()).or_insert(0.0);
         *t = (*t + 0.10).min(1.0);
     }
     ctx.think("gifting a tool to kin");

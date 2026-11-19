@@ -84,7 +84,7 @@ impl PrayerKind {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Prayer {
     pub id: u32,
-    pub lineage: String,
+    pub lineage: crate::intern::Sym,
     pub kind: PrayerKind,
     pub x: i32,
     pub y: i32,
@@ -149,7 +149,7 @@ impl Simulation {
             .iter()
             .filter(|o| o.alive && !o.lineage_id.is_empty())
         {
-            let n = needs.entry(o.lineage_id.clone()).or_default();
+            let n = needs.entry(o.lineage_id.to_string()).or_default();
             n.people += 1;
             n.x += o.x;
             n.y += o.y;
@@ -244,7 +244,7 @@ impl Simulation {
             self.prayers.next_id = id.wrapping_add(1);
             self.prayers.active.push(Prayer {
                 id,
-                lineage: lineage.clone(),
+                lineage: lineage.clone().into(),
                 kind,
                 x: cx.round() as i32,
                 y: cy.round() as i32,
@@ -281,7 +281,9 @@ impl Simulation {
             .collect();
         for i in out.into_iter().rev() {
             let p = self.prayers.active.remove(i);
-            self.prayers.quiet_until.insert(p.lineage, now + PRAYER_COOLDOWN);
+            self.prayers
+                .quiet_until
+                .insert(p.lineage.to_string(), now + PRAYER_COOLDOWN);
         }
     }
 
@@ -297,7 +299,7 @@ impl Simulation {
             .active
             .iter()
             .filter(|p| p.kind == PrayerKind::Rain)
-            .map(|p| p.lineage.clone())
+            .map(|p| p.lineage.to_string())
             .collect();
         self.prayers.active.retain(|p| p.kind != PrayerKind::Rain);
         for lineage in settled {
@@ -333,11 +335,11 @@ impl Simulation {
             self.adjust_faith(&p.lineage, -1);
             self.prayers
                 .quiet_until
-                .insert(p.lineage.clone(), now + PRAYER_COOLDOWN);
+                .insert(p.lineage.to_string(), now + PRAYER_COOLDOWN);
             self.prayers
                 .despair_until
-                .insert(p.lineage.clone(), now + DESPAIR_TICKS);
-            self.prayers.blessed_until.remove(&p.lineage);
+                .insert(p.lineage.to_string(), now + DESPAIR_TICKS);
+            self.prayers.blessed_until.remove(p.lineage.as_str());
             for o in self
                 .organisms
                 .iter_mut()
@@ -368,12 +370,12 @@ impl Simulation {
             return;
         }
         for o in self.organisms.iter_mut().filter(|o| o.alive) {
-            if self.prayers.blessed_until.contains_key(&o.lineage_id) {
+            if self.prayers.blessed_until.contains_key(o.lineage_id.as_str()) {
                 o.health = (o.health + 0.03).min(1.0);
                 o.energy = (o.energy + 0.02).min(1.0);
                 o.infection *= 0.9;
                 o.hope = o.hope.max(0.6);
-            } else if self.prayers.despair_until.contains_key(&o.lineage_id) {
+            } else if self.prayers.despair_until.contains_key(o.lineage_id.as_str()) {
                 o.energy = (o.energy - 0.015).max(0.1);
                 o.hope = (o.hope - 0.02).max(0.0);
             }
@@ -394,11 +396,11 @@ impl Simulation {
         if self.prayers.active.is_empty() {
             return;
         }
-        let spots: Vec<(String, i32, i32)> = self
+        let spots: Vec<(crate::intern::Sym, i32, i32)> = self
             .prayers
             .active
             .iter()
-            .map(|p| (p.lineage.clone(), p.x, p.y))
+            .map(|p| (p.lineage, p.x, p.y))
             .collect();
         for (lineage, x, y) in spots {
             for i in 0..self.organisms.len() {
@@ -524,14 +526,14 @@ impl Simulation {
             self.adjust_faith(&p.lineage, 1);
             self.prayers
                 .quiet_until
-                .insert(p.lineage.clone(), now + PRAYER_COOLDOWN);
+                .insert(p.lineage.to_string(), now + PRAYER_COOLDOWN);
             self.prayers
                 .blessed_until
-                .insert(p.lineage.clone(), now + BLESSING_TICKS);
-            self.prayers.despair_until.remove(&p.lineage);
+                .insert(p.lineage.to_string(), now + BLESSING_TICKS);
+            self.prayers.despair_until.remove(p.lineage.as_str());
             if p.kind == PrayerKind::Knowledge {
                 // The answer to "how?" sticks: the stall clock starts over.
-                self.prayers.era_since.remove(&p.lineage);
+                self.prayers.era_since.remove(p.lineage.as_str());
             }
             for o in self
                 .organisms
@@ -547,7 +549,7 @@ impl Simulation {
             let name = self.tribe_name(&p.lineage);
             let detail = format!("give thanks: the gods answered their {} prayer", p.kind.name());
             push_event(&mut self.events, now, "answered", &name, &detail);
-            answered_lineages.push(p.lineage);
+            answered_lineages.push(p.lineage.to_string());
         }
         self.unasked_gifts(kinds, at, &answered_lineages);
     }
@@ -566,8 +568,7 @@ mod tests {
             .iter()
             .find(|o| o.alive)
             .expect("a person")
-            .lineage_id
-            .clone();
+            .lineage_id;
         sim.organisms.retain(|o| o.lineage_id == lineage);
         for o in sim.organisms.iter_mut() {
             o.energy = 1.0;
@@ -576,7 +577,7 @@ mod tests {
             o.diseases.clear();
         }
         sim.rebuild_lineage_aggregates();
-        (sim, lineage)
+        (sim, lineage.to_string())
     }
 
     fn check(sim: &mut Simulation) {

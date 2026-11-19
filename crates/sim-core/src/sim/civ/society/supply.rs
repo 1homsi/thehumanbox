@@ -118,7 +118,7 @@ impl Simulation {
             .iter()
             .map(|t| Ledger {
                 id: t.id,
-                lineage: t.lineage.clone(),
+                lineage: t.lineage.to_string(),
                 centre: t.center,
                 ..Default::default()
             })

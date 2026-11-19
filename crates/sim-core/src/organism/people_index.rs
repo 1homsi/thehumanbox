@@ -40,13 +40,13 @@ mod tests {
 
     fn person(id: &str, lineage: &str, alive: bool) -> Organism {
         let mut o = Organism::new(
-            id.into(),
+            id,
             "Resident".into(),
             1.0,
             1.0,
             1,
             String::new(),
-            lineage.into(),
+            lineage,
             5000,
             Traits::default(),
         );

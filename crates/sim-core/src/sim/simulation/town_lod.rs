@@ -131,7 +131,7 @@ impl Simulation {
             .towns
             .iter()
             .filter(|t| {
-                !busy.contains(&t.lineage) && !at_front(&foes, &t.lineage, (t.center[0], t.center[1]))
+                !busy.contains(t.lineage.as_str()) && !at_front(&foes, &t.lineage, (t.center[0], t.center[1]))
             })
             .filter(|t| {
                 hot.iter()
@@ -213,7 +213,7 @@ impl Simulation {
                 });
                 match town {
                     Some(&(id, _)) => calm.towns.contains(&id).then_some(id),
-                    None if calm.busy.contains(&o.lineage_id) => None,
+                    None if calm.busy.contains(o.lineage_id.as_str()) => None,
                     None => {
                         let (cx, cy) = (home.0.div_euclid(HAMLET), home.1.div_euclid(HAMLET));
                         if at_front(

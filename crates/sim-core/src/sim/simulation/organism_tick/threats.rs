@@ -82,15 +82,13 @@ impl Simulation {
                 perception_buf,
             ),
         };
-        let prior_lineage = self.organisms[idx].lineage_id.clone();
+        let prior_lineage = self.organisms[idx].lineage_id;
         self.validate_or_assign_wander_target_indexed(idx, spatial, lineage_members);
         if self.organisms[idx].lineage_id != prior_lineage {
-            if let Some(members) = lineage_members.get_mut(&prior_lineage) {
+            if let Some(members) = lineage_members.get_mut(prior_lineage.as_str()) {
                 members.retain(|&member_idx| member_idx != idx);
             }
-            let members = lineage_members
-                .entry(self.organisms[idx].lineage_id.clone())
-                .or_default();
+            let members = lineage_members.entry(self.organisms[idx].lineage_id).or_default();
             let position = members.binary_search(&idx).unwrap_or_else(|position| position);
             members.insert(position, idx);
         }

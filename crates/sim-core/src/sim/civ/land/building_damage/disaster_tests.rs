@@ -72,7 +72,7 @@ fn a_ruined_home_hurts_who_is_inside_and_is_announced() {
     person.x = 101.0;
     person.y = 101.0;
     person.health = 1.0;
-    let pid = person.id.clone();
+    let pid = person.id;
     let hit = strike_buildings(&mut sim, 101, 101, 2.0, 1.0, 1.0, DamageCause::Meteor);
     assert_eq!(hit, 1);
     assert!(damage(&sim, id) >= 1.0);

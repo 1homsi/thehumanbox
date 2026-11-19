@@ -36,10 +36,10 @@ impl Simulation {
                 &mut self.rng,
             );
         }
-        let mother = self.organisms[before].id.clone();
-        let father = self.organisms[before + 1].id.clone();
-        self.organisms[before].partner_id = Some(father.clone());
-        self.organisms[before + 1].partner_id = Some(mother.clone());
+        let mother = self.organisms[before].id;
+        let father = self.organisms[before + 1].id;
+        self.organisms[before].partner_id = Some(father.to_string());
+        self.organisms[before + 1].partner_id = Some(mother.to_string());
         // The parents are welcomed as adults first; the children keep their own ages below.
         self.welcome_newcomers(before, &lid);
         for sex in [Sex::Male, Sex::Female] {
@@ -57,8 +57,8 @@ impl Simulation {
             );
             let child = self.organisms.last_mut().expect("a child was just spawned");
             child.age = (child.max_age as f32 * 0.12) as u32;
-            child.parent_id = mother.clone();
-            child.father_id = Some(father.clone());
+            child.parent_id = mother.to_string();
+            child.father_id = Some(father.to_string());
         }
         let added = self.organisms.len() > before;
         self.report(if added { "family_arrived" } else { "world_full" }, 0, None);
@@ -274,7 +274,7 @@ impl Simulation {
             return;
         };
         let name = crate::organism::animal::pick_dog_name(&mut self.rng);
-        dog.bonded_org = Some(self.organisms[oi].id.clone());
+        dog.bonded_org = Some(self.organisms[oi].id.to_string());
         dog.name = Some(name.clone());
         let tick = self.tick_count;
         let owner = &mut self.organisms[oi];
@@ -388,9 +388,12 @@ mod family_tests {
         assert!(sim.apply_command_json(r#"{"cmd":"family","x":100.0,"y":100.0}"#));
         let family = &sim.organisms[before..];
         assert_eq!(family.len(), 4);
-        let lineage = family[0].lineage_id.clone();
+        let lineage = family[0].lineage_id;
         assert!(family.iter().all(|o| o.lineage_id == lineage), "one new tribe");
-        assert!(sim.lineage_names.contains_key(&lineage), "the tribe has a name");
+        assert!(
+            sim.lineage_names.contains_key(lineage.as_str()),
+            "the tribe has a name"
+        );
 
         let (mother, father) = (&family[0], &family[1]);
         assert_eq!(mother.sex, Sex::Female);

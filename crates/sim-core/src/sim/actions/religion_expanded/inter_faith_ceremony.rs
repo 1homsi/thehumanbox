@@ -12,7 +12,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if ctx.kin.is_empty() {
         return 0.0;
     }
-    let stranger_lid = ctx.sim.organisms[si].lineage_id.clone();
+    let stranger_lid = ctx.sim.organisms[si].lineage_id;
     ctx.org_mut().update_attitude(&stranger_lid, 0.12);
     ctx.event(
         "ritual",

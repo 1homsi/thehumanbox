@@ -77,7 +77,7 @@ impl Simulation {
                 .filter(|o| o.alive && (o.x as i32 - v.x).abs().max((o.y as i32 - v.y).abs()) <= CLAIM_RANGE)
                 .min_by_key(|o| (o.x as i32 - v.x).abs().max((o.y as i32 - v.y).abs()));
             match nearest {
-                Some(o) if o.lineage_id != v.owner_lineage => claims.push((i, o.lineage_id.clone())),
+                Some(o) if o.lineage_id != v.owner_lineage => claims.push((i, o.lineage_id.to_string())),
                 Some(_) => {}
                 None if now >= v.ready_tick + SCRAP_AFTER => scrap.push(i),
                 None => {}
@@ -237,7 +237,7 @@ impl Simulation {
                 }
                 let d = dist[WorldGrid::idx(nx, ny)];
                 if d < i32::MAX && launch.as_ref().is_none_or(|l| d < l.2) {
-                    launch = Some((o.lineage_id.clone(), idx, d));
+                    launch = Some((o.lineage_id.to_string(), idx, d));
                 }
             }
         }
@@ -295,14 +295,14 @@ impl Simulation {
             let land = next[i];
             route.push(((land % WIDTH) as i32, (land / WIDTH) as i32));
             route.reverse();
-            let id = self.organisms[idx].id.clone();
+            let id = self.organisms[idx].id;
             self.vehicles.push(Vehicle {
                 id: self.next_vehicle_id,
                 kind: TransportKind::Boat,
                 owner_lineage: lineage.clone(),
                 x,
                 y,
-                occupants: vec![id],
+                occupants: vec![id.to_string()],
                 cargo: 0,
                 route,
                 ready_tick: self.tick_count + 24,
@@ -341,12 +341,14 @@ impl Simulation {
         if self
             .vehicles
             .iter()
-            .any(|v| v.ferry.is_some() && v.occupants.contains(&person.id))
+            .any(|v| v.ferry.is_some() && v.occupants.iter().any(|id| person.id == *id))
         {
             return Some((22, Some("riding the ferry".into()), "ferry_ride"));
         }
         let existing = self.vehicles.iter().position(|v| {
-            v.kind == TransportKind::Boat && v.ferry.is_none() && v.occupants.first() == Some(&person.id)
+            v.kind == TransportKind::Boat
+                && v.ferry.is_none()
+                && v.occupants.first().is_some_and(|id| person.id == *id)
         });
         let boat_idx = if let Some(i) = existing {
             i
@@ -374,14 +376,14 @@ impl Simulation {
                 return None;
             }
             let route = crossing(&self.grid, pos, 8)?;
-            let id = person.id.clone();
+            let id = person.id;
             if let Some(i) = reusable {
-                self.vehicles[i].occupants.push(id);
+                self.vehicles[i].occupants.push(id.to_string());
                 self.vehicles[i].route = route;
                 self.vehicles[i].cargo = goods_carried(person);
                 i
             } else {
-                let lineage = person.lineage_id.clone();
+                let lineage = person.lineage_id;
                 self.organisms[idx].inv_wood -= 4;
                 self.organisms[idx].discover("raft_building");
                 self.organisms[idx].log_event("built a wooden boat for a coastal crossing".into());
@@ -390,10 +392,10 @@ impl Simulation {
                 self.vehicles.push(Vehicle {
                     id: self.next_vehicle_id,
                     kind: TransportKind::Boat,
-                    owner_lineage: lineage,
+                    owner_lineage: lineage.to_string(),
                     x: pos.0,
                     y: pos.1,
-                    occupants: vec![id],
+                    occupants: vec![id.to_string()],
                     cargo,
                     route,
                     ready_tick: self.tick_count + 24,
@@ -479,9 +481,9 @@ mod tests {
             }
         }
         sim.organisms.truncate(10);
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         for (i, o) in sim.organisms.iter_mut().enumerate() {
-            o.lineage_id = lineage.clone();
+            o.lineage_id = lineage;
             o.x = 105.0 + (i % 5) as f32;
             o.y = 90.0;
             o.age = 2_000;
@@ -582,18 +584,18 @@ mod storm_tests {
     #[test]
     fn a_boat_on_the_water_sits_out_a_storm_then_sails_on() {
         let mut sim = Simulation::new(0x5708);
-        let person = sim.organisms[0].id.clone();
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let person = sim.organisms[0].id;
+        let lineage = sim.organisms[0].lineage_id;
         sim.organisms[0].x = 45.0;
         sim.organisms[0].y = 45.0;
         sim.vehicles.clear();
         sim.vehicles.push(Vehicle {
             id: 1,
             kind: TransportKind::Boat,
-            owner_lineage: lineage,
+            owner_lineage: lineage.to_string(),
             x: 45,
             y: 45,
-            occupants: vec![person],
+            occupants: vec![person.to_string()],
             cargo: 0,
             route: vec![(46, 45)],
             ready_tick: 0,
@@ -636,7 +638,7 @@ mod deck_tests {
         for x in 101..=110 {
             sim.grid.set(x, 100, Tile::Water);
         }
-        let lineage = sim.organisms[0].lineage_id.clone();
+        let lineage = sim.organisms[0].lineage_id;
         let person = &mut sim.organisms[0];
         person.x = 100.;
         person.y = 100.;
@@ -649,7 +651,7 @@ mod deck_tests {
         sim.vehicles.push(Vehicle {
             id: 7,
             kind: TransportKind::Boat,
-            owner_lineage: lineage,
+            owner_lineage: lineage.to_string(),
             x: 100,
             y: 100,
             occupants: Vec::new(),
@@ -701,7 +703,7 @@ mod stranded_tests {
         sim.organisms[0].alive = true;
         sim.organisms[0].x = 200.0;
         sim.organisms[0].y = 150.0;
-        sim.organisms[0].lineage_id = "locals".to_string();
+        sim.organisms[0].lineage_id = "locals".to_string().into();
         sim.vehicles = vec![stranded("sailors", (202, 150))];
         sim.tick_count = 300;
         sim.tick_stranded_boats();

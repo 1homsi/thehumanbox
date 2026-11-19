@@ -434,16 +434,16 @@ impl Simulation {
             if self.organisms[i].sex != Sex::Female || self.organisms[i].partner_id.is_some() {
                 continue;
             }
-            let lineage = self.organisms[i].lineage_id.clone();
+            let lineage = self.organisms[i].lineage_id;
             let Some(&j) = in_range.iter().find(|&&j| {
                 let o = &self.organisms[j];
                 o.sex == Sex::Male && o.partner_id.is_none() && o.lineage_id == lineage
             }) else {
                 continue;
             };
-            let (a, b) = (self.organisms[i].id.clone(), self.organisms[j].id.clone());
-            self.organisms[i].partner_id = Some(b);
-            self.organisms[j].partner_id = Some(a);
+            let (a, b) = (self.organisms[i].id, self.organisms[j].id);
+            self.organisms[i].partner_id = Some(b.to_string());
+            self.organisms[j].partner_id = Some(a.to_string());
             paired += 1;
         }
         for &i in &in_range {
@@ -496,7 +496,7 @@ impl Simulation {
                         .det_hypot(p.y - ay)
                         .total_cmp(&(q.x - ax).det_hypot(q.y - ay))
                 })
-                .map(|o| o.id.clone());
+                .map(|o| o.id.to_string());
             let a = &mut self.animals[ai];
             a.kind = AnimalKind::Dog;
             a.energy = 1.0;

@@ -28,7 +28,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let Some(si) = stranger_idx else {
         return 0.0;
     };
-    let stranger_lid = ctx.sim.organisms[si].lineage_id.clone();
+    let stranger_lid = ctx.sim.organisms[si].lineage_id;
     let stranger_name = ctx.sim.organisms[si].name.clone();
     let stranger = &mut ctx.sim.organisms[si];
     stranger.religion_id = Some(religion_id);

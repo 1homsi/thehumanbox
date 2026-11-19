@@ -38,14 +38,14 @@ fn a_faith_nobody_keeps_is_forgotten_and_a_kept_one_is_not() {
 #[test]
 fn a_vanished_tribe_holds_no_land() {
     let mut sim = Simulation::new(42);
-    let living = sim.organisms.iter().find(|o| o.alive).unwrap().lineage_id.clone();
+    let living = sim.organisms.iter().find(|o| o.alive).unwrap().lineage_id;
     sim.territory
-        .insert(living.clone(), [(1, 1)].into_iter().collect());
+        .insert(living.to_string().into(), [(1, 1)].into_iter().collect());
     sim.territory
         .insert("gone".into(), [(2, 2)].into_iter().collect());
     sim.lineage_homes.insert("gone".into(), [2, 2, 0]);
     forget_vanished_tribes(&mut sim);
-    assert!(sim.territory.contains_key(&living));
+    assert!(sim.territory.contains_key(living.as_str()));
     assert!(!sim.territory.contains_key("gone"));
     assert!(!sim.lineage_homes.contains_key("gone"));
 }

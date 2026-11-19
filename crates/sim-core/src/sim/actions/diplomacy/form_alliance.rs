@@ -10,7 +10,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("seeking allies");
         return 0.0;
     };
-    let their = ctx.sim.organisms[ki].lineage_id.clone();
+    let their = ctx.sim.organisms[ki].lineage_id;
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.10);
     ctx.think("forging an alliance");
     ctx.discover("alliance", "forged an alliance");

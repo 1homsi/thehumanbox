@@ -16,7 +16,7 @@ pub(super) fn tick_artwork(sim: &mut Simulation) {
         if sim.rng.random::<f32>() > 0.04 {
             continue;
         }
-        let era = era_map.get(&o.lineage_id).copied().unwrap_or(Era::Stone);
+        let era = era_map.get(o.lineage_id.as_str()).copied().unwrap_or(Era::Stone);
         let kind = pick_art_kind(era);
         let id = sim.next_artwork_id;
         sim.next_artwork_id += 1;
@@ -24,7 +24,7 @@ pub(super) fn tick_artwork(sim: &mut Simulation) {
         new_artworks.push(Artwork {
             id,
             kind,
-            creator_id: o.id.clone(),
+            creator_id: o.id.to_string(),
             creator_name: o.name.clone(),
             location: [o.x as i32, o.y as i32],
             tick: sim.tick_count,
@@ -77,7 +77,7 @@ pub(super) fn tick_books(sim: &mut Simulation) {
         if sim.rng.random::<f32>() > 0.05 {
             continue;
         }
-        let era = era_map.get(&o.lineage_id).copied().unwrap_or(Era::Iron);
+        let era = era_map.get(o.lineage_id.as_str()).copied().unwrap_or(Era::Iron);
         if era < Era::Bronze {
             continue;
         }
@@ -88,10 +88,10 @@ pub(super) fn tick_books(sim: &mut Simulation) {
         new_books.push(Book {
             id,
             title: title.clone(),
-            author_org_id: o.id.clone(),
+            author_org_id: o.id.to_string(),
             author_name: o.name.clone(),
             written_tick: sim.tick_count,
-            lineage_id: o.lineage_id.clone(),
+            lineage_id: o.lineage_id.to_string(),
             topic,
             copies: if era >= Era::Renaissance { 50 } else { 1 },
         });

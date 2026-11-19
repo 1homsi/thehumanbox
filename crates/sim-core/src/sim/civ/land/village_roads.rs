@@ -31,7 +31,7 @@ pub(crate) fn lineages_that_build_roads(sim: &Simulation) -> HashSet<String> {
     sim.organisms
         .iter()
         .filter(|o| o.alive && o.discoveries.contains("road_building"))
-        .map(|o| o.lineage_id.clone())
+        .map(|o| o.lineage_id.to_string())
         .collect()
 }
 
@@ -407,7 +407,7 @@ mod tests {
             o.alive = false;
         }
         sim.organisms[0].alive = true;
-        sim.organisms[0].lineage_id = "road-builders".to_string();
+        sim.organisms[0].lineage_id = "road-builders".to_string().into();
         assert!(lineages_that_build_roads(&sim).is_empty());
         sim.organisms[0].discover("road_building");
         assert!(lineages_that_build_roads(&sim).contains("road-builders"));

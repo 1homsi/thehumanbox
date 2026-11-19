@@ -15,7 +15,7 @@ impl Simulation {
             self.report("none_here", 0, None);
             return false;
         };
-        let lid = self.organisms[i].lineage_id.clone();
+        let lid = self.organisms[i].lineage_id;
         if lid.is_empty() {
             self.report("none_here", 0, None);
             return false;
@@ -46,7 +46,7 @@ impl Simulation {
         self.report("cured_tribe", cured as u32, None);
         let name = self
             .lineage_names
-            .get(&lid)
+            .get(lid.as_str())
             .cloned()
             .unwrap_or_else(|| "a tribe".into());
         push_event(
@@ -71,7 +71,7 @@ impl Simulation {
             self.report("animal_full", 0, None);
             return false;
         }
-        let owner = self.organisms[i].id.clone();
+        let owner = self.organisms[i].id;
         let name = self.organisms[i].name.clone();
         let gx = (self.organisms[i].x + 1.0).clamp(2.0, WIDTH as f32 - 2.0);
         let gy = self.organisms[i].y.clamp(2.0, HEIGHT as f32 - 2.0);
@@ -79,7 +79,7 @@ impl Simulation {
         self.next_animal_id += 1;
         let mut dog = Animal::new(id, gx, gy, AnimalKind::Dog);
         dog.energy = 1.0;
-        dog.bonded_org = Some(owner);
+        dog.bonded_org = Some(owner.to_string());
         dog.name = Some(pick_dog_name(&mut self.rng));
         self.animals.push(dog);
         let now = self.tick_count;
@@ -111,7 +111,7 @@ mod tests {
             o.alive = true;
             o.x = x;
             o.y = y;
-            o.lineage_id = lid.to_string();
+            o.lineage_id = lid.to_string().into();
             o.health = 1.0;
             o.infection = if sick { 0.8 } else { 0.0 };
         }
@@ -145,7 +145,7 @@ mod tests {
     fn a_guardian_dog_bonds_to_the_person_nearest_the_click() {
         let mut sim = Simulation::new(42);
         people(&mut sim, &[(60.0, 60.0, "LA", false)]);
-        let owner = sim.organisms[0].id.clone();
+        let owner = sim.organisms[0].id;
         let before = sim.animals.len();
         assert!(sim.apply_command_json(r#"{"cmd":"guardian","x":60.0,"y":60.0}"#));
         let dog = sim.animals.last().expect("a dog was summoned");
