@@ -62,6 +62,9 @@ pub fn challenge_stranger(
 
     organisms[org_idx].update_attitude(&target_lid, -0.20);
     organisms[ti].update_attitude(&org_lineage, -0.30);
+    history
+        .tribe_quarrels
+        .push((target_lid.clone(), org_lineage.clone()));
 
     let t_trust = organisms[ti].org_trust.entry(org_id).or_insert(0.0);
     *t_trust = (*t_trust - 0.20).max(-1.0);

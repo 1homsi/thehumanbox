@@ -47,6 +47,12 @@ impl Simulation {
         for &i in &mb {
             self.organisms[i].update_attitude(&la, MARRIAGE_WARMTH);
         }
+        self.remember_both(
+            &la,
+            &lb,
+            crate::sim::civ::society::relations::MemoryKind::Marriage,
+            0.06,
+        );
         let (na, nb) = (self.tribe_name(&la), self.tribe_name(&lb));
         let couple = format!("{} and {}", self.organisms[a].name, self.organisms[b].name);
         let hostile = (mood_a + mood_b) / 2.0 < WEDDING_PEACE_BELOW;

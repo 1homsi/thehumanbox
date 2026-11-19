@@ -210,6 +210,16 @@ impl Simulation {
         );
 
         {
+            let facts = if self
+                .tick_count
+                .is_multiple_of(crate::sim::warfare::RAID_CHECK_INTERVAL)
+            {
+                self.tribe_facts()
+            } else {
+                Default::default()
+            };
+            let at_war = self.lineages_at_war();
+            let mut reasons = Vec::new();
             let new_battles = crate::sim::warfare::try_spawn_raids(
                 self.tick_count,
                 &mut self.rng,
@@ -218,9 +228,17 @@ impl Simulation {
                 &self.treaties,
                 &self.battles,
                 &mut self.events,
+                &crate::sim::warfare::WarMinds {
+                    relations: &self.diplomacy.relations,
+                    facts: &facts,
+                    sides: &crate::sim::warfare::NO_SIDES,
+                    at_war: &at_war,
+                },
+                &mut reasons,
             );
             let new_battles = self.turn_away_warded(new_battles);
             let new_battles = self.weary_stay_home(new_battles);
+            let new_battles = self.enter_wars(new_battles, &reasons, false);
             self.march_warbands(&new_battles);
             for battle in &new_battles {
                 self.chronicle_battle(battle);
@@ -234,14 +252,30 @@ impl Simulation {
                 &self.treaties,
                 &self.battles,
                 &mut self.events,
+                &crate::sim::warfare::WarMinds {
+                    relations: &self.diplomacy.relations,
+                    facts: &facts,
+                    sides: &crate::sim::warfare::NO_SIDES,
+                    at_war: &at_war,
+                },
+                &mut reasons,
             );
             let new_wars = self.turn_away_warded(new_wars);
             let new_wars = self.weary_stay_home(new_wars);
+            let new_wars = self.enter_wars(new_wars, &reasons, true);
             self.march_warbands(&new_wars);
             for battle in &new_wars {
                 self.chronicle_battle(battle);
             }
             self.battles.extend(new_wars);
+            let front_battles = self.tick_wars();
+            let front_battles = self.turn_away_warded(front_battles);
+            self.march_warbands(&front_battles);
+            for battle in &front_battles {
+                self.chronicle_battle(battle);
+            }
+            self.battles.extend(front_battles);
+            let in_war = self.war_battle_ids();
             let standing: Vec<bool> = self.organisms.iter().map(|o| o.alive).collect();
             crate::sim::warfare::tick_battles(
                 self.tick_count,
@@ -257,6 +291,7 @@ impl Simulation {
                     buildings: &self.buildings,
                     field_fortifications: &self.field_fortifications,
                     grid: &self.grid,
+                    in_war: &in_war,
                 },
             );
             self.record_fallen_leaders(&standing);
@@ -272,6 +307,7 @@ impl Simulation {
                 self.note_death(&lineage, "war");
                 self.mourn_war_dead(&lineage);
             }
+            self.settle_wars();
             self.make_weary_peace();
             self.apply_conquests();
         }
@@ -590,6 +626,8 @@ impl Simulation {
         self.tick_tribe_crafts();
         self.tick_game_wariness();
         self.tick_war_weariness();
+        self.tick_relations();
+        self.tick_relief();
         self.tick_wild_food();
         self.check_animal_catches();
 

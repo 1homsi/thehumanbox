@@ -14,8 +14,12 @@ mod spawning;
 mod tests;
 mod treaties;
 mod types;
+mod wars;
+#[cfg(test)]
+mod wars_tests;
 
 pub use battles::*;
 pub use spawning::*;
 pub use treaties::*;
 pub use types::*;
+pub use wars::*;

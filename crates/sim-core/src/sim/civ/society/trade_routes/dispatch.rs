@@ -275,6 +275,7 @@ pub(super) fn dispatch_cargo_on_route_index(
         to,
         way: way.map(|w| w.legs).unwrap_or_default(),
         dispatch_state: String::new(),
+        kind: CaravanKind::Trade,
     });
 
     let receiver_name = sim
@@ -352,4 +353,66 @@ pub fn action_is_possible(sim: &Simulation, actor_idx: usize, action: usize, nea
         289 => can_receive_due_for_lineage(sim, &actor.lineage_id),
         _ => true,
     }
+}
+
+pub fn send_shipment(
+    sim: &mut Simulation,
+    sender: &str,
+    receiver: &str,
+    from: [i32; 2],
+    to: [i32; 2],
+    amount: u32,
+    kind: CaravanKind,
+) -> bool {
+    if amount == 0 || sender == receiver || !valid_world_point(from) || !valid_world_point(to) {
+        return false;
+    }
+    let used: HashSet<u32> = sim.caravans.iter().map(|caravan| caravan.id).collect();
+    let Some(id) = allocate_available_id(&mut sim.next_caravan_id, &used) else {
+        return false;
+    };
+    let way = crate::sim::civ::land::road_net::caravan_way(sim, from, to);
+    let (walk, haste) = match &way {
+        Some(way) => (
+            way.walk.max(manhattan_distance(from, to)),
+            CARAVAN_ROAD_HASTE + CARAVAN_GRADE_HASTE * f64::from(way.grade),
+        ),
+        None => (
+            manhattan_distance(from, to),
+            f64::from(sim.grid.road_share(from, to)) * CARAVAN_ROAD_HASTE,
+        ),
+    };
+    let open_ticks = walk.saturating_mul(4).clamp(60, MAX_CARAVAN_TRAVEL_TICKS);
+    let travel_ticks = ((open_ticks as f64) * (1.0 - haste)).round() as u64;
+    if let Some(way) = &way {
+        for edge in sim
+            .road_net
+            .edges
+            .iter_mut()
+            .filter(|e| way.legs.iter().any(|&(id, _)| id == e.id))
+        {
+            edge.traffic = edge
+                .traffic
+                .saturating_add(crate::sim::civ::land::road_net::CARAVAN_TRAFFIC);
+            edge.last_used = sim.tick_count;
+        }
+    }
+    sim.caravans.push(Caravan {
+        id,
+        route_id: 0,
+        sender_lineage: sender.to_string(),
+        receiver_lineage: receiver.to_string(),
+        sender_org_id: String::new(),
+        cargo: "food".to_string(),
+        amount,
+        unit_price: 0,
+        departed_tick: sim.tick_count,
+        arrives_tick: sim.tick_count.saturating_add(travel_ticks),
+        from,
+        to,
+        way: way.map(|w| w.legs).unwrap_or_default(),
+        dispatch_state: String::new(),
+        kind,
+    });
+    true
 }

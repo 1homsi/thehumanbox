@@ -693,6 +693,28 @@ pub(super) fn print_progress(sim: &Simulation) {
             "Caravan ways at end: on roads {}, off roads {}, path length {:.0}, straight {:.0}",
             stats.caravans_on_roads, stats.caravans_off_roads, stats.caravan_path, stats.caravan_straight
         );
+        let d = &sim.diplomacy;
+        let list = |m: &std::collections::BTreeMap<&'static str, u32>| {
+            m.iter()
+                .map(|(k, v)| format!("{k}={v}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+        println!(
+            "Diplomacy at end: ledger pairs {}, raids {}, front battles {}, wars started {} [{}], wars active {}, outcomes [{}], allies joined {}, relief shipments {} ({} grain), tribute shipments {}, towns ceded {}",
+            d.relations.len(),
+            d.stats.raids,
+            d.stats.front_battles,
+            d.stats.wars_by_reason.values().sum::<u32>(),
+            list(&d.stats.wars_by_reason),
+            d.wars.iter().filter(|w| w.active()).count(),
+            list(&d.stats.outcomes),
+            d.stats.allies_joined,
+            d.stats.relief_shipments,
+            d.stats.relief_food,
+            d.stats.tribute_shipments,
+            d.stats.towns_ceded
+        );
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();

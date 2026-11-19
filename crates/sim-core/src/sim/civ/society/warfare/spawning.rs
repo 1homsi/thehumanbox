@@ -54,6 +54,8 @@ pub fn try_spawn_raids(
     treaties: &[Treaty],
     active_battles: &[Battle],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
+    minds: &WarMinds<'_>,
+    reasons: &mut Vec<(String, CasusBelli)>,
 ) -> Vec<Battle> {
     use rand::RngExt;
     let mut out = Vec::new();
@@ -78,6 +80,7 @@ pub fn try_spawn_raids(
             already_engaged.insert(l.clone());
         }
     }
+    already_engaged.extend(minds.at_war.iter().cloned());
 
     // Sorted: the loop below draws from `rng` per lineage, so HashMap order
     // decided the raid outcome and shifted the shared RNG stream.
@@ -93,16 +96,29 @@ pub fn try_spawn_raids(
         }
 
         let mood = tribe_mood(organisms, &pop_per_lineage[a_lid]);
-        let mut candidates: Vec<(String, f32)> = mood
-            .iter()
+        let mut known: std::collections::BTreeSet<&str> = mood.keys().map(String::as_str).collect();
+        known.extend(minds.relations.others_of(a_lid));
+        let mut candidates: Vec<(String, f32, CasusBelli)> = known
+            .into_iter()
+            .map(|lid| {
+                (
+                    lid,
+                    minds.opinion(a_lid, lid, mood.get(lid).copied().unwrap_or(0.0)),
+                )
+            })
             .filter(|(lid, att)| {
-                **att <= RAID_ATTITUDE_THRESHOLD
+                *att <= RAID_ATTITUDE_THRESHOLD
                     && pop_per_lineage.get(*lid).map(|v| v.len()).unwrap_or(0) >= RAID_MIN_POP
                     && !already_engaged.contains(*lid)
                     && !has_active_treaty(treaties, a_lid, lid, tick)
                     && *lid != a_lid
+                    && !minds.same_side(a_lid, lid)
             })
-            .map(|(lid, att)| (lid.clone(), *att))
+            .filter_map(|(lid, att)| {
+                minds
+                    .casus(a_lid, lid, false)
+                    .map(|why| (lid.to_string(), att, why))
+            })
             .collect();
         if candidates.is_empty() {
             continue;
@@ -117,7 +133,7 @@ pub fn try_spawn_raids(
                 .unwrap_or(std::cmp::Ordering::Equal)
                 .then_with(|| x.0.cmp(&y.0))
         });
-        let (b_lid, _) = candidates.remove(0);
+        let (b_lid, _, why) = candidates.remove(0);
 
         if rng.random::<f32>() > 0.35 {
             continue;
@@ -157,6 +173,7 @@ pub fn try_spawn_raids(
         };
         already_engaged.insert(a_lid.clone());
         already_engaged.insert(b_lid.clone());
+        reasons.push((id.clone(), why));
         push_event(
             events,
             tick,
@@ -189,6 +206,8 @@ pub fn try_spawn_border_wars(
     treaties: &[Treaty],
     active_battles: &[Battle],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
+    minds: &WarMinds<'_>,
+    reasons: &mut Vec<(String, CasusBelli)>,
 ) -> Vec<Battle> {
     use rand::RngExt;
     let mut out = Vec::new();
@@ -213,6 +232,7 @@ pub fn try_spawn_border_wars(
             already_engaged.insert(l.clone());
         }
     }
+    already_engaged.extend(minds.at_war.iter().cloned());
 
     // Sorted: the pair loop draws from `rng` and `break`s after the first
     // match, so HashMap order decided which pair went to war.
@@ -250,7 +270,10 @@ pub fn try_spawn_border_wars(
             if b_terr.is_empty() {
                 continue;
             }
-            let att_ab = mood.get(b_lid.as_str()).copied().unwrap_or(0.0);
+            if minds.same_side(a_lid, b_lid) {
+                continue;
+            }
+            let att_ab = minds.opinion(a_lid, b_lid, mood.get(b_lid.as_str()).copied().unwrap_or(0.0));
             if att_ab > BORDER_WAR_ATTITUDE_THRESHOLD {
                 continue;
             }
@@ -269,6 +292,9 @@ pub fn try_spawn_border_wars(
             if overlap < BORDER_WAR_BORDER_OVERLAP_MIN {
                 continue;
             }
+            let Some(why) = minds.casus(a_lid, b_lid, true) else {
+                continue;
+            };
             if rng.random::<f32>() > 0.55 {
                 continue;
             }
@@ -306,6 +332,7 @@ pub fn try_spawn_border_wars(
             });
             already_engaged.insert(a_lid.clone());
             already_engaged.insert(b_lid.clone());
+            reasons.push((id.clone(), why));
             push_event(
                 events,
                 tick,

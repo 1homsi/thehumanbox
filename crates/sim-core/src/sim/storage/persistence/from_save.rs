@@ -330,6 +330,7 @@ impl Simulation {
             rail_lines: state.rail_lines,
             rail_remnants: state.rail_remnants,
             road_net: state.road_net,
+            diplomacy: state.diplomacy,
             cart_grain: state.cart_grain,
             towns: state.towns,
             next_town_id: state.next_town_id,
@@ -422,6 +423,7 @@ impl Simulation {
         crate::sim::civ::settlements::rebuild_tiers(&mut sim);
         crate::sim::civ::trade_routes::repair_loaded_state(&mut sim);
         crate::sim::civ::civ_tick::town::settle_loaded_towns(&mut sim);
+        sim.seed_relations_from_treaties();
         sim
     }
 

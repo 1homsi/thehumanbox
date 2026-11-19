@@ -219,6 +219,11 @@ pub(super) fn deliver_caravan(sim: &mut Simulation, caravan_id: u32, members: Op
     let completed = delivered >= caravan.amount;
     let mut first_arrival = false;
     if completed {
+        sim.note_shipment_delivered(caravan.kind, &caravan.sender_lineage, &caravan.receiver_lineage);
+    }
+    if completed && !caravan.kind.is_trade() {
+        sim.caravans.remove(caravan_index);
+    } else if completed {
         sim.caravans.remove(caravan_index);
         if let Some(route) = sim
             .trade_routes

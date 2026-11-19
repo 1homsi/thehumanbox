@@ -31,6 +31,29 @@ pub struct TradeRoute {
     pub way: Vec<(u32, bool)>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CaravanKind {
+    #[default]
+    Trade,
+    Relief,
+    Tribute,
+}
+
+impl CaravanKind {
+    pub fn is_trade(&self) -> bool {
+        *self == CaravanKind::Trade
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            CaravanKind::Trade => "trade",
+            CaravanKind::Relief => "relief",
+            CaravanKind::Tribute => "tribute",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Caravan {
@@ -54,4 +77,6 @@ pub struct Caravan {
     /// from the public wire payload.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub(crate) dispatch_state: String,
+    #[serde(default, skip_serializing_if = "CaravanKind::is_trade")]
+    pub kind: CaravanKind,
 }

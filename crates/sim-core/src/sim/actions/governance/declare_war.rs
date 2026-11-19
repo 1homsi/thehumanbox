@@ -29,6 +29,14 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
             WAR_ATTITUDE_PENALTY,
         )
     };
+    if invalidated > 0 {
+        ctx.sim.remember(
+            &their,
+            &lid,
+            crate::sim::civ::society::relations::MemoryKind::Betrayal,
+            -0.4,
+        );
+    }
     ctx.think("declaring war");
     let treaty_label = if invalidated == 1 { "treaty" } else { "treaties" };
     ctx.event(

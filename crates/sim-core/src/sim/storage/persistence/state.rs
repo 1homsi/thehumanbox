@@ -247,6 +247,11 @@ pub struct SaveState {
         skip_serializing_if = "crate::sim::civ::land::road_net::RoadNet::is_empty"
     )]
     pub(super) road_net: crate::sim::civ::land::road_net::RoadNet,
+    #[serde(
+        default,
+        skip_serializing_if = "crate::sim::civ::society::diplomacy::Diplomacy::is_empty"
+    )]
+    pub(super) diplomacy: crate::sim::civ::society::diplomacy::Diplomacy,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(super) cart_grain: Vec<crate::sim::civ::land::village_carts::CartGrain>,
     #[serde(default, alias = "town_plazas")]

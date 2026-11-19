@@ -198,6 +198,7 @@ fn load_repair_rejects_unsafe_ids_points_and_per_route_overflow() {
             },
             way: Vec::new(),
             dispatch_state: "state".repeat(600),
+            kind: CaravanKind::Trade,
         })
         .collect();
     sim.next_trade_route_id = u32::MAX;
@@ -241,6 +242,7 @@ fn load_repair_drops_future_and_unbounded_caravan_clocks() {
         to,
         way: Vec::new(),
         dispatch_state: String::new(),
+        kind: CaravanKind::Trade,
     };
     sim.caravans = vec![caravan(1, 50, 100), caravan(2, 101, 110), caravan(3, 0, u64::MAX)];
 
@@ -280,6 +282,7 @@ fn snow_holds_caravans_back_on_the_road() {
         to: [40, 10],
         way: Vec::new(),
         dispatch_state: String::new(),
+        kind: CaravanKind::Trade,
     });
     sim.tick_count = 150;
     sim.weather.kind = 3;

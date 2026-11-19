@@ -89,6 +89,10 @@ pub struct History {
     pub alliances_formed: u64,
     pub challenges_total: u64,
     pub gifts_total: u64,
+    #[serde(skip)]
+    pub tribe_gifts: Vec<(String, String)>,
+    #[serde(skip)]
+    pub tribe_quarrels: Vec<(String, String)>,
     pub droughts: u64,
     pub outbreaks: u64,
     #[serde(default)]
