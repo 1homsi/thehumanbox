@@ -75,12 +75,12 @@ pub(crate) fn housing_capacity(sim: &Simulation, lineage: &str) -> usize {
 /// True while a tribe has fewer beds than people: only then does anyone
 /// set out to build another home.
 pub(crate) fn short_of_housing(sim: &Simulation, lineage: &str) -> bool {
-    let population = sim
-        .organisms
+    let capacity = housing_capacity(sim, lineage);
+    sim.organisms
         .iter()
         .filter(|o| o.alive && o.lineage_id == lineage)
-        .count();
-    housing_capacity(sim, lineage) < population
+        .nth(capacity)
+        .is_some()
 }
 
 /// Indices of standing homes nobody lives in: every home of a tribe that
