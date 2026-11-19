@@ -845,6 +845,7 @@ fn full_payload_carries_each_nation_with_its_towns_and_relations() {
             founded_tick: 0,
             planned: false,
             growth: 0,
+            ..Default::default()
         })
         .collect();
     sim.diplomacy.nations.push(Nation {
@@ -889,4 +890,50 @@ fn full_payload_carries_each_nation_with_its_towns_and_relations() {
     assert_eq!(relation["with"].as_str(), Some("far"));
     assert_eq!(relation["name"].as_str(), Some("Farfolk"));
     assert!(relation["opinion"].as_f64().is_some_and(|o| o < -0.2));
+}
+
+#[test]
+fn full_payload_carries_each_town_role_and_what_it_lacks_and_spares() {
+    use crate::sim::civ::civ_tick::town::Town;
+    use crate::sim::civ::society::town_roles::TownRole;
+    use crate::sim::civ::trade_routes::{send_cargo, CaravanKind};
+
+    let mut sim = Simulation::new(47);
+    sim.towns = vec![
+        Town {
+            id: 1,
+            lineage: "east".into(),
+            center: [40, 60],
+            role: TownRole::Mining,
+            short: 0b001,
+            spare: 0b100,
+            ..Default::default()
+        },
+        Town {
+            id: 2,
+            lineage: "east".into(),
+            center: [60, 60],
+            ..Default::default()
+        },
+    ];
+    sim.caravans.clear();
+    assert!(send_cargo(
+        &mut sim,
+        "east",
+        "east",
+        [40, 60],
+        [60, 60],
+        "stone",
+        9,
+        CaravanKind::Supply
+    ));
+    let payload = sim.state_json();
+    let town = &payload["towns"][0];
+    assert_eq!(town["role"].as_str(), Some("mining"));
+    assert_eq!(town["short"], serde_json::json!(["food"]));
+    assert_eq!(town["spare"], serde_json::json!(["stone"]));
+    assert_eq!(payload["towns"][1]["role"].as_str(), Some("mixed"));
+    let caravan = &payload["caravans"][0];
+    assert_eq!(caravan["kind"].as_str(), Some("supply"));
+    assert_eq!(caravan["cargo"].as_str(), Some("stone"));
 }

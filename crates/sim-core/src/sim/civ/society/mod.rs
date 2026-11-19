@@ -17,6 +17,8 @@ pub mod relations;
 pub mod relief;
 pub mod settlements;
 pub mod store_thefts;
+pub mod supply;
+pub mod town_roles;
 pub mod trade_routes;
 pub mod tribe_crafts;
 pub mod unrest;

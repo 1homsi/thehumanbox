@@ -70,6 +70,8 @@ export function titleSpacing(kind: LabelKind, scale: number): string {
 }
 
 const SUB_SIZE = 10
+const ROLE_INK = '#5b4a2f'
+
 /** A monospace letter is about this much of its size wide; the warning line is placed without measuring it. */
 const MONO_ADVANCE = 0.6
 
@@ -103,7 +105,7 @@ export function placeSettlementLabels(
       if (widths.size > 4096) widths.clear()
     }
     const titleW = (textWidth + SPACING[kind] * Math.max(0, label.title.length - 1)) * scale
-    const warning = label.alert && label.sub
+    const warning = !!label.sub
     const w = warning ? Math.max(titleW, label.sub.length * SUB_SIZE * MONO_ADVANCE * scale) : titleW
     const titleH = SIZE[kind] * scale + 4 * scale
     // The warning line counts toward the label's box, so two tribes in peril cannot print over each other.
@@ -147,14 +149,14 @@ export function drawSettlementLabels(ctx: Ctx, placed: readonly PlacedLabel[]) {
     ctx.strokeText(p.title, Math.round(p.cx), titleY)
     ctx.fillStyle = hex(INK)
     ctx.fillText(p.title, Math.round(p.cx), titleY)
-    if (p.alert && p.sub) {
+    if (p.sub) {
       const subY = Math.round(top + p.titleH + (p.h - p.titleH) / 2)
       ctx.font = subFont(p.scale)
       ctx.letterSpacing = '0px'
       ctx.lineWidth = p.scale * 3
       ctx.strokeStyle = PARCHMENT_HALO
       ctx.strokeText(p.sub, Math.round(p.cx), subY)
-      ctx.fillStyle = '#8f3428'
+      ctx.fillStyle = p.alert ? '#8f3428' : ROLE_INK
       ctx.fillText(p.sub, Math.round(p.cx), subY)
     }
   }

@@ -148,6 +148,108 @@ describe('caravans on a planned road', () => {
   })
 })
 
+describe('supply caravans on the sim roads', () => {
+  const edgePath = (from: [number, number], to: [number, number]) => {
+    const out: number[] = []
+    const steps = Math.max(Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1]))
+    for (let i = 0; i <= steps; i++) {
+      out.push(from[0] + Math.sign(to[0] - from[0]) * i, from[1] + Math.sign(to[1] - from[1]) * i)
+    }
+    return out
+  }
+  const supply = (tick: number, way: [number, boolean][]) =>
+    world({
+      tick,
+      trade_routes: [],
+      net_edges: [
+        {
+          id: 3,
+          kind: 'road',
+          owner: 'a',
+          dest: 'town',
+          grade: 0,
+          complete: true,
+          from_town: 1,
+          to_town: 2,
+          path: edgePath([2, 2], [12, 2]),
+        },
+        {
+          id: 4,
+          kind: 'road',
+          owner: 'a',
+          dest: 'town',
+          grade: 0,
+          complete: true,
+          from_town: 3,
+          to_town: 2,
+          path: edgePath([12, 12], [12, 2]),
+        },
+      ],
+      caravans: [
+        {
+          id: 9,
+          route_id: 0,
+          sender_lineage: 'a',
+          receiver_lineage: 'a',
+          sender_org_id: '',
+          cargo: 'stone',
+          amount: 12,
+          unit_price: 0,
+          departed_tick: 100,
+          arrives_tick: 200,
+          from: [2, 2],
+          to: [12, 12],
+          way,
+          kind: 'supply',
+        },
+      ],
+    } as Partial<WorldState>)
+
+  it('walk the edges of their way, legs reversed as the sim says, and fly a pennant', () => {
+    const none = { pathOf: () => null } as unknown as TradePathPlanner
+    const { ctx, calls } = recorder()
+    drawTradeNetwork2D(
+      ctx,
+      supply(150, [
+        [3, false],
+        [4, true],
+      ]),
+      bounds,
+      0,
+      'caravans',
+      none,
+    )
+    const [x, y] = caravanTile(calls)
+    expect(Math.abs(x! - 12)).toBeLessThan(0.5)
+    expect(Math.abs(y! - 2)).toBeLessThan(0.5)
+    expect(calls.some((c) => c.op === 'fillRect' && c.fill === '#e9b949')).toBe(true)
+    const late = recorder()
+    drawTradeNetwork2D(
+      late.ctx,
+      supply(175, [
+        [3, false],
+        [4, true],
+      ]),
+      bounds,
+      0,
+      'caravans',
+      none,
+    )
+    const [lx, ly] = caravanTile(late.calls)
+    expect(Math.abs(lx! - 12)).toBeLessThan(0.5)
+    expect(Math.abs(ly! - 7)).toBeLessThan(0.5)
+  })
+
+  it('go straight when their way is not on the map', () => {
+    const none = { pathOf: () => null } as unknown as TradePathPlanner
+    const { ctx, calls } = recorder()
+    drawTradeNetwork2D(ctx, supply(150, [[99, false]]), bounds, 0, 'caravans', none)
+    const [x, y] = caravanTile(calls)
+    expect(x).toBeCloseTo(7, 0)
+    expect(y).toBeCloseTo(7, 0)
+  })
+})
+
 describe('traffic and barriers on a planned road', () => {
   const modern = [
     { lineage_id: 'a', era_name: 'modern' },

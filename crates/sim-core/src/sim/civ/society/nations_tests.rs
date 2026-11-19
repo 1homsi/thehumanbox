@@ -11,6 +11,7 @@ fn town(id: u32, lineage: &str, center: [i32; 2]) -> Town {
         founded_tick: 0,
         planned: false,
         growth: 0,
+        ..Default::default()
     }
 }
 

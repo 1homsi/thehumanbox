@@ -67,6 +67,15 @@ function world(over: Partial<WorldState> = {}): WorldState {
 const bounds = { c0: 0, c1: 100, r0: 0, r1: 60 }
 
 describe('settlement labels without the building painter', () => {
+  it('writes the role of the town under its name when zoomed in', () => {
+    const towns = [{ id: 1, lineage_id: 'a', center: [40, 30], planned: true, role: 'mining' }]
+    const near = collectSettlementLabels(world({ towns } as Partial<WorldState>), bounds, 1.2)
+    expect(near.find((l) => l.title === 'ROK')?.sub).toBe('a mining town')
+    expect(near.find((l) => l.title === 'MALA')?.sub).toBe('')
+    const far = collectSettlementLabels(world({ towns } as Partial<WorldState>), bounds, 0.8)
+    expect(far.find((l) => l.title === 'ROK')?.sub).toBe('')
+  })
+
   it('letters settlement names in capitals, skipping camps and places out of view', () => {
     const labels = collectSettlementLabels(world(), bounds, 1)
     expect(labels.map((l) => l.title)).toEqual(['ROK', 'MALA'])

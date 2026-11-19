@@ -1,9 +1,11 @@
 import { lineageEraTiers } from '../draw-helpers'
-import type { CaravanInfo, TradeRouteInfo, WorldState } from '../../../shared/types'
+import type { CaravanInfo, NetEdgeInfo, TradeRouteInfo, WorldState } from '../../../shared/types'
 import { lineageColor } from '../../../shared/constants'
-import { drawCaravanSprite, drawTraffic } from '../roads'
+import { drawCaravanPennant, drawCaravanSprite, drawTraffic } from '../roads'
 import {
+  buildPath,
   pointAlong,
+  simCells,
   tradePaths,
   type PathPoint,
   type PlannedPath,
@@ -24,6 +26,43 @@ function routeOf(routes: TradeRouteInfo[] | undefined, id: number): TradeRouteIn
   if (!routes) return undefined
   for (let i = 0; i < routes.length; i++) if (routes[i]!.id === id) return routes[i]
   return undefined
+}
+
+const MAX_WAY_PATHS = 256
+const wayPaths = new Map<string, PlannedPath | null>()
+let wayEdgesSrc: WorldState['net_edges'] | symbol = Symbol()
+let wayEdges = new Map<number, NetEdgeInfo>()
+
+export function caravanWayPath(
+  world: WorldState,
+  caravan: CaravanInfo,
+  ox: number,
+  oy: number,
+): PlannedPath | null {
+  if (!caravan.way?.length) return null
+  if (world.net_edges !== wayEdgesSrc) {
+    wayEdgesSrc = world.net_edges
+    wayEdges = new Map()
+    for (const e of world.net_edges ?? []) if (e.kind === 'road') wayEdges.set(e.id, e)
+    wayPaths.clear()
+  }
+  const key = `${ox},${oy}:${caravan.way.map(([id, back]) => (back ? -id : id)).join(',')}`
+  let path = wayPaths.get(key)
+  if (path === undefined) {
+    const { width, height } = world.grid
+    const cells = simCells(caravan.way, wayEdges, ox, oy, width, height)
+    path = cells
+      ? buildPath(
+          cells,
+          width,
+          [caravan.from[0] - ox, caravan.from[1] - oy],
+          [caravan.to[0] - ox, caravan.to[1] - oy],
+        )
+      : null
+    if (wayPaths.size >= MAX_WAY_PATHS) wayPaths.clear()
+    wayPaths.set(key, path)
+  }
+  return path
 }
 
 /** Reused every call, so drawing the network allocates nothing per frame. */
@@ -158,6 +197,14 @@ export function drawTradeNetwork2D(
       x = at.x
       y = at.y
       angle = at.angle
+    } else {
+      const way = caravanWayPath(world, caravan, ox, oy)
+      if (way) {
+        pointAlong(way, progress, false, at)
+        x = at.x
+        y = at.y
+        angle = at.angle
+      }
     }
     if (!isVisible(x, y)) continue
     let slot = caravansInView[seen]
@@ -183,5 +230,6 @@ export function drawTradeNetwork2D(
       TILE,
       cargoColorOf(caravan.cargo),
     )
+    if (caravan.kind && caravan.kind !== 'trade') drawCaravanPennant(ctx, px, py, caravan.kind, TILE)
   }
 }

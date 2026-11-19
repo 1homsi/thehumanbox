@@ -468,6 +468,7 @@ impl Simulation {
                         "from": caravan.from,
                         "to": caravan.to,
                         "way": caravan.way,
+                        "kind": caravan.kind.name(),
                     })
                 })
                 .collect();
@@ -775,6 +776,9 @@ impl Simulation {
                             "lineage_id": town.lineage,
                             "center": town.center,
                             "planned": town.planned,
+                            "role": town.role.name(),
+                            "short": goods_of(town.short),
+                            "spare": goods_of(town.spare),
                         })
                     })
                     .collect();
@@ -1071,4 +1075,13 @@ fn lineage_lore(sim: &Simulation) -> serde_json::Value {
         entry["war_weary"] = json!(war.fallen);
     }
     serde_json::Value::Object(lore)
+}
+
+fn goods_of(mask: u8) -> Vec<&'static str> {
+    crate::sim::civ::society::supply::GOODS
+        .iter()
+        .enumerate()
+        .filter(|&(i, _)| mask & (1 << i) != 0)
+        .map(|(_, g)| *g)
+        .collect()
 }

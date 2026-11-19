@@ -377,7 +377,13 @@
     "caravan": {
       "title": "Karawane",
       "load": "trägt {amount} {cargo}",
-      "route": "von {from} nach {to}"
+      "route": "von {from} nach {to}",
+      "kind": {
+        "supply": "Versorgungskarawane",
+        "relief": "Hilfskarawane",
+        "tribute": "Tributkarawane"
+      },
+      "need": "zu einer Stadt, der es fehlt"
     }
   },
   "terrain": {
@@ -1054,5 +1060,18 @@
     "war": "ein Krieg ist ausgebrochen",
     "famine": "{names} hungern",
     "extinct": "{names} ist ausgestorben"
+  },
+  "town": {
+    "role": {
+      "mixed": "eine Marktstadt",
+      "farming": "eine Bauernstadt",
+      "harbour": "eine Hafenstadt",
+      "mining": "eine Bergbaustadt",
+      "timber": "eine Holzfällerstadt",
+      "trade": "ein Handelsknoten",
+      "capital": "die Hauptstadt"
+    },
+    "short": "knapp an {goods}",
+    "spare": "{goods} übrig"
   }
 }

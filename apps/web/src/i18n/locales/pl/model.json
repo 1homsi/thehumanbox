@@ -399,7 +399,13 @@
     "caravan": {
       "title": "karawana",
       "load": "wiezie {amount} {cargo}",
-      "route": "z {from} do {to}"
+      "route": "z {from} do {to}",
+      "kind": {
+        "supply": "karawana z zaopatrzeniem",
+        "relief": "karawana z pomocą",
+        "tribute": "karawana z daniną"
+      },
+      "need": "do osady, której tego brakuje"
     }
   },
   "terrain": {
@@ -1076,5 +1082,18 @@
     "war": "wybuchła wojna",
     "famine": "{names} głodują",
     "extinct": "{names} wymarło"
+  },
+  "town": {
+    "role": {
+      "mixed": "miasteczko targowe",
+      "farming": "osada rolnicza",
+      "harbour": "miasto portowe",
+      "mining": "osada górnicza",
+      "timber": "osada drwali",
+      "trade": "węzeł handlowy",
+      "capital": "stolica"
+    },
+    "short": "brakuje: {goods}",
+    "spare": "nadmiar: {goods}"
   }
 }

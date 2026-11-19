@@ -380,6 +380,7 @@ mod tests {
             founded_tick: 0,
             planned: false,
             growth: 0,
+            ..Default::default()
         });
         let kept = standing(&mut sim, BuildingKind::Bench, 52, 50, &owner);
         let stray = standing(&mut sim, BuildingKind::Bench, 80, 80, &owner);

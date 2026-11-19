@@ -1,6 +1,7 @@
 import type { WorldState } from '../../../../shared/types'
 import { t } from '../../../../i18n'
 import { PERIL_HELP, remainingLine } from '../../../model/tribe-peril'
+import { townRoleWord } from '../../../model/town-role'
 import type { LabelPresence } from '../../label-presence'
 import { TILE } from '../../../model/palette'
 import {
@@ -18,6 +19,7 @@ import {
  * legacy cluster fallback for old snapshots is left out.
  */
 const NATION_LABEL_LIFT = 4
+const ROLE_ZOOM = 1
 
 export function collectSettlementLabels(
   world: WorldState,
@@ -32,6 +34,10 @@ export function collectSettlementLabels(
   const MARGIN = 6
   const lineageNames = world.lineage_names ?? {}
   const perilBy = new Map((world.tribes_in_peril ?? []).map((p) => [p.lineage_id, p]))
+  const roleAt = new Map<string, string | null>()
+  if (zoom >= ROLE_ZOOM)
+    for (const town of world.towns ?? [])
+      roleAt.set(`${town.center[0]},${town.center[1]}`, townRoleWord(town.role))
   for (const s of settlements) {
     const [cx, cy] = s.town_center ?? s.center
     if (cx - ox < bounds.c0 - MARGIN || cx - ox > bounds.c1 + MARGIN) continue
@@ -54,7 +60,7 @@ export function collectSettlementLabels(
         ? zoom < 0.68
           ? `⚠ ${remainingLine(peril.population)}`
           : `⚠ ${remainingLine(peril.population)} · ${t(PERIL_HELP[peril.cause].reason)}`
-        : '',
+        : (roleAt.get(`${cx},${cy}`) ?? ''),
       major,
       rank,
       alpha: peril ? 1 : fade,

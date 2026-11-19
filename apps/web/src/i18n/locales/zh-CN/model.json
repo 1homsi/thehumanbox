@@ -366,7 +366,13 @@
     "caravan": {
       "title": "商队",
       "load": "正运送{amount}{cargo}",
-      "route": "从{from}前往{to}"
+      "route": "从{from}前往{to}",
+      "kind": {
+        "supply": "补给商队",
+        "relief": "救济商队",
+        "tribute": "贡品商队"
+      },
+      "need": "送往短缺的城镇"
     }
   },
   "terrain": {
@@ -1043,5 +1049,18 @@
     "war": "爆发了战争",
     "famine": "{names}正在挨饿",
     "extinct": "{names}已灭绝"
+  },
+  "town": {
+    "role": {
+      "mixed": "集镇",
+      "farming": "农业镇",
+      "harbour": "港口镇",
+      "mining": "矿业镇",
+      "timber": "林业镇",
+      "trade": "贸易枢纽",
+      "capital": "首都"
+    },
+    "short": "缺{goods}",
+    "spare": "{goods}有余"
   }
 }

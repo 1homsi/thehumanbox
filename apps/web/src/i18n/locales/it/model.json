@@ -377,7 +377,13 @@
     "caravan": {
       "title": "carovana",
       "load": "trasporta {amount} {cargo}",
-      "route": "da {from} a {to}"
+      "route": "da {from} a {to}",
+      "kind": {
+        "supply": "carovana di rifornimenti",
+        "relief": "carovana di soccorso",
+        "tribute": "carovana del tributo"
+      },
+      "need": "verso un borgo che ne è a corto"
     }
   },
   "terrain": {
@@ -1054,5 +1060,18 @@
     "war": "è scoppiata una guerra",
     "famine": "{names} soffre la fame",
     "extinct": "{names} si è estinta"
+  },
+  "town": {
+    "role": {
+      "mixed": "un borgo di mercato",
+      "farming": "un borgo agricolo",
+      "harbour": "un borgo portuale",
+      "mining": "un borgo minerario",
+      "timber": "un borgo di boscaioli",
+      "trade": "un crocevia commerciale",
+      "capital": "la capitale"
+    },
+    "short": "a corto di {goods}",
+    "spare": "{goods} in avanzo"
   }
 }

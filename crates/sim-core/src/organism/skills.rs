@@ -23,6 +23,13 @@ pub enum Skill {
 }
 
 impl Skill {
+    pub fn feeds(self) -> bool {
+        matches!(
+            self,
+            Skill::Foraging | Skill::Fishing | Skill::Hunting | Skill::Farming
+        )
+    }
+
     pub const ALL: [Skill; 9] = [
         Skill::Woodcutting,
         Skill::Quarrying,

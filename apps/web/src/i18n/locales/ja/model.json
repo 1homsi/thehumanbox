@@ -366,7 +366,13 @@
     "caravan": {
       "title": "隊商",
       "load": "{amount} {cargo}を運搬中",
-      "route": "{from}から{to}へ"
+      "route": "{from}から{to}へ",
+      "kind": {
+        "supply": "補給の隊商",
+        "relief": "救援の隊商",
+        "tribute": "貢ぎ物の隊商"
+      },
+      "need": "不足している町へ"
     }
   },
   "terrain": {
@@ -1043,5 +1049,18 @@
     "war": "戦争が始まった",
     "famine": "{names}が飢えている",
     "extinct": "{names}が絶えた"
+  },
+  "town": {
+    "role": {
+      "mixed": "市場町",
+      "farming": "農村",
+      "harbour": "港町",
+      "mining": "鉱山町",
+      "timber": "林業の町",
+      "trade": "交易の要所",
+      "capital": "首都"
+    },
+    "short": "{goods}が不足",
+    "spare": "{goods}に余裕"
   }
 }

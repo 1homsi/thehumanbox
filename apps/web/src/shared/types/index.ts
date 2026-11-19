@@ -226,6 +226,7 @@ export interface CaravanInfo {
   from: [number, number]
   to: [number, number]
   way?: [number, boolean][]
+  kind?: 'trade' | 'relief' | 'tribute' | 'supply'
 }
 
 export interface NetEdgeInfo {
@@ -308,11 +309,16 @@ export interface SettlementInfo {
   town_center?: [number, number] | null
 }
 
+export type TownRole = 'mixed' | 'farming' | 'harbour' | 'mining' | 'timber' | 'trade' | 'capital'
+
 export interface TownInfo {
   id: number
   lineage_id: string
   center: [number, number]
   planned: boolean
+  role?: TownRole
+  short?: string[]
+  spare?: string[]
 }
 
 export interface NationRelationInfo {

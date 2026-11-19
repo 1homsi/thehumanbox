@@ -1322,6 +1322,7 @@ mod tests {
             founded_tick: 0,
             planned: false,
             growth: 0,
+            ..Default::default()
         }
     }
 
