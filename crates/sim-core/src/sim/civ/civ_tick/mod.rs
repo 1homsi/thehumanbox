@@ -109,7 +109,7 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
         forget_vanished_tribes(sim);
     }
     if tick > 0 && tick.is_multiple_of(crate::sim::civ::land::village_roads::ROAD_STEP) {
-        crate::sim::civ::land::village_roads::tick_village_roads(sim);
+        sim.tick_road_net();
     }
     if tick > 0 && tick.is_multiple_of(super::festivals::FESTIVAL_STEP) {
         sim.tick_festivals();

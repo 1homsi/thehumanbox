@@ -145,6 +145,7 @@ pub fn establish_route(sim: &mut Simulation, actor_idx: usize, partner_idx: usiz
         last_dispatch_tick: 0,
         deliveries: 0,
         volume: 0,
+        way: Vec::new(),
     });
 
     let a_name = sim

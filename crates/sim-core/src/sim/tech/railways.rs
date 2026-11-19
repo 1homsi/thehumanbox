@@ -1,9 +1,3 @@
-//! Railways (the industrial age). A busy trade route (one with deliveries, see `civ/society/trade_routes`) gets
-//! a line of track when a tribe that has reached the industrial age stands at one end of it. The track is
-//! rail cells in the road layer (`ROAD_RAIL`), laid along the cheapest walk over the ways people already use
-//! (roads and trodden paths), and each end gets a station raised on open grass near its town's centre.
-//! One train runs on each line, shuttling between the two stations.
-//!
 //! At each station the train unloads, then loads. Grain goes from the stores that hold more to the stores
 //! that hold less. People who are waiting on the platform ride to the other end: each station calls on the
 //! townsfolk who live near it (of its own town) to come and wait for the next train.
@@ -29,8 +23,6 @@ pub(crate) const RAIL_STEP: u64 = 400;
 pub(crate) const TRAIN_STEP_TICKS: u64 = 2;
 /// The era a tribe must have reached to lay track.
 const RAIL_ERA: Era = Era::Industrial;
-/// Deliveries a trade route needs before it counts as busy.
-const BUSY_DELIVERIES: u32 = 3;
 /// Shortest and longest distance between two ends of a line (Chebyshev, in tiles).
 const MIN_RAIL: i32 = 10;
 const MAX_RAIL: i32 = 80;
@@ -46,6 +38,9 @@ const MAX_LINES: usize = 16;
 const PLANS_PER_PASS: usize = 12;
 /// How far from a town's centre its station is raised, in tiles.
 const STATION_RING: i32 = 6;
+const STOP_REACH: i32 = 6;
+const STOP_DWELL_TICKS: u64 = 16;
+const CORRIDOR: i32 = 1;
 /// Ticks a train waits at a station after it arrives.
 const DWELL_TICKS: u64 = 40;
 /// Ticks a train waits when one of its stations is no longer operational.
@@ -77,6 +72,10 @@ pub struct RailLine {
     pub a: [i32; 2],
     pub b: [i32; 2],
     pub path: Vec<[i32; 2]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub road: Option<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub stops: Vec<[i32; 2]>,
 }
 
 fn chebyshev(a: [i32; 2], b: [i32; 2]) -> i32 {
@@ -211,49 +210,80 @@ impl Simulation {
         }
     }
 
-    /// For each busy trade route with a tribe in the industrial age at one end, lays track between the two
-    /// towns. Towns are the centres of the settlements at each end.
     fn plan_rail_lines(&mut self) {
         if self.rail_lines.len() >= MAX_LINES {
             return;
         }
-        let mut routes: Vec<(String, String, [i32; 2], [i32; 2])> = self
-            .trade_routes
-            .iter()
-            .filter(|r| r.deliveries >= BUSY_DELIVERIES)
-            .map(|r| {
-                (
-                    r.lineage_a.clone(),
-                    r.lineage_b.clone(),
-                    self.town_centre(&r.lineage_a, r.a_center),
-                    self.town_centre(&r.lineage_b, r.b_center),
-                )
-            })
-            .collect();
-        routes.sort();
-        let mut plans = 0;
-        for (la, lb, ca, cb) in routes {
-            if self.rail_lines.len() >= MAX_LINES || plans >= PLANS_PER_PASS {
-                break;
+        type Candidate = (
+            std::cmp::Reverse<u32>,
+            u32,
+            String,
+            (String, [i32; 2]),
+            (String, [i32; 2]),
+            Vec<[i32; 2]>,
+        );
+        let town = |id: u32| self.towns.iter().find(|t| t.id == id);
+        let mut candidates: Vec<Candidate> = Vec::new();
+        for edge in &self.road_net.edges {
+            use crate::sim::civ::land::road_net::{Dest, NetKind, RAIL_TRAFFIC};
+            if edge.kind != NetKind::Road
+                || !matches!(edge.dest, Dest::Town | Dest::Partner)
+                || !edge.complete()
+                || edge.grade < 1
+                || edge.traffic < RAIL_TRAFFIC
+            {
+                continue;
             }
-            let (owner, partner, co, cp) = if self.era(&la) >= RAIL_ERA {
-                (la, lb, ca, cb)
-            } else if self.era(&lb) >= RAIL_ERA {
-                (lb, la, cb, ca)
+            let (Some(ta), Some(tb)) = (town(edge.from_town), edge.to_town.and_then(town)) else {
+                continue;
+            };
+            let a = (ta.lineage.clone(), ta.center);
+            let b = (tb.lineage.clone(), tb.center);
+            let (owner, a, b) = if self.era(&a.0) >= RAIL_ERA {
+                (a.0.clone(), a, b)
+            } else if self.era(&b.0) >= RAIL_ERA {
+                (b.0.clone(), b, a)
             } else {
                 continue;
             };
-            if self.rail_connects(&owner, &partner) {
+            candidates.push((
+                std::cmp::Reverse(edge.traffic),
+                edge.id,
+                owner,
+                a,
+                b,
+                edge.path.clone(),
+            ));
+        }
+        candidates.sort();
+        let mut plans = 0;
+        for (_, road, owner, a, b, corridor) in candidates {
+            if self.rail_lines.len() >= MAX_LINES || plans >= PLANS_PER_PASS {
+                break;
+            }
+            let served = self.rail_lines.iter().any(|l| {
+                l.road == Some(road)
+                    || (l.lineage == owner
+                        && chebyshev(l.a, a.1) <= STATION_RING + 3
+                        && chebyshev(l.b, b.1) <= STATION_RING + 3)
+            });
+            if served || (a.0 != b.0 && self.rail_connects(&owner, &b.0)) {
                 continue;
             }
             plans += 1;
-            self.plan_rail_between(&owner, (&owner, co), (&partner, cp));
+            self.plan_rail_between(&owner, (&a.0, a.1), (&b.0, b.1), Some((road, &corridor)));
         }
     }
 
     /// Lays one line from the town of `a` (lineage, centre) to the town of `b`, run by `owner`, if the way is
     /// busy. Returns whether it did.
-    fn plan_rail_between(&mut self, owner: &str, a: (&str, [i32; 2]), b: (&str, [i32; 2])) -> bool {
+    fn plan_rail_between(
+        &mut self,
+        owner: &str,
+        a: (&str, [i32; 2]),
+        b: (&str, [i32; 2]),
+        road: Option<(u32, &[[i32; 2]])>,
+    ) -> bool {
         let built = self.rail_lines.iter().filter(|l| l.lineage == owner).count();
         if built >= MAX_LINES_PER_TRIBE || self.rail_lines.len() >= MAX_LINES {
             return false;
@@ -275,14 +305,31 @@ impl Simulation {
             return false;
         }
         let blocked = |x: i32, y: i32| occupied.contains(&(x, y)) || extra.contains(&(x, y));
-        let cheap = |x: i32, y: i32| self.is_busy_way(x, y);
-        let Some(path) = plan_road_avoiding(&self.grid, sa_stop, sb_stop, &blocked, &cheap, None) else {
+        let corridor: FxHashSet<[i32; 2]> = road
+            .map(|(_, cells)| {
+                cells
+                    .iter()
+                    .flat_map(|&[x, y]| {
+                        (-CORRIDOR..=CORRIDOR)
+                            .flat_map(move |dy| (-CORRIDOR..=CORRIDOR).map(move |dx| [x + dx, y + dy]))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let busy_way = |x: i32, y: i32| {
+            if road.is_some() {
+                corridor.contains(&[x, y])
+            } else {
+                self.is_busy_way(x, y)
+            }
+        };
+        let Some(path) = plan_road_avoiding(&self.grid, sa_stop, sb_stop, &blocked, &busy_way, None) else {
             return false;
         };
         if path.len() > MAX_PATH {
             return false;
         }
-        let busy = path.iter().filter(|p| self.is_busy_way(p[0], p[1])).count();
+        let busy = path.iter().filter(|p| busy_way(p[0], p[1])).count();
         if (busy as f32) < BUSY_SHARE * path.len() as f32 {
             return false;
         }
@@ -298,6 +345,11 @@ impl Simulation {
                 self.grid.road[WorldGrid::idx(x, y)] = ROAD_RAIL;
             }
         }
+        let stops = if road.is_some() {
+            self.raise_stops(owner, [a.0, b.0], [a.1, b.1], &path)
+        } else {
+            Vec::new()
+        };
         let id = self.rail_lines.iter().map(|l| l.id).max().unwrap_or(0) + 1;
         self.rail_lines.push(RailLine {
             id,
@@ -306,6 +358,8 @@ impl Simulation {
             a: sa_stop,
             b: sb_stop,
             path,
+            road: road.map(|(id, _)| id),
+            stops,
         });
         let train = self.next_vehicle_id;
         self.next_vehicle_id += 1;
@@ -336,9 +390,50 @@ impl Simulation {
             now,
             "build",
             &name,
-            "laid a railway to a town on a busy trade route, and a train runs along it",
+            "laid a railway along its busiest road, and a train runs along it",
         );
         true
+    }
+
+    fn raise_stops(
+        &mut self,
+        owner: &str,
+        lineages: [&str; 2],
+        ends: [[i32; 2]; 2],
+        path: &[[i32; 2]],
+    ) -> Vec<[i32; 2]> {
+        let on_line: FxHashSet<[i32; 2]> = path.iter().copied().collect();
+        let towns: Vec<[i32; 2]> = self
+            .towns
+            .iter()
+            .filter(|t| lineages.contains(&t.lineage.as_str()))
+            .map(|t| t.center)
+            .filter(|&c| ends.iter().all(|&e| chebyshev(e, c) > STATION_RING * 2))
+            .collect();
+        let (fw, fh) = BuildingKind::TrainStation.footprint();
+        let mut stops = Vec::new();
+        for centre in towns {
+            let mut near: Vec<(i32, [i32; 2])> = path
+                .iter()
+                .map(|&p| (chebyshev(p, centre), p))
+                .filter(|&(d, _)| d <= STOP_REACH)
+                .collect();
+            near.sort();
+            let occupied = occupied_tiles(self);
+            let site = near.into_iter().find_map(|(_, [px, py])| {
+                let anchor = (px - i32::from(fw) / 2, py - i32::from(fh));
+                let clear = (0..i32::from(fh)).all(|oy| {
+                    (0..i32::from(fw)).all(|ox| !on_line.contains(&[anchor.0 + ox, anchor.1 + oy]))
+                });
+                (clear && fits(self, anchor.0, anchor.1, BuildingKind::TrainStation, &occupied))
+                    .then_some((anchor, [px, py]))
+            });
+            if let Some((anchor, stop)) = site {
+                self.raise_station(owner, anchor);
+                stops.push(stop);
+            }
+        }
+        stops
     }
 
     /// The track cell a train heads for next: the end of its route while it runs, otherwise the first cell
@@ -361,13 +456,6 @@ impl Simulation {
         }
     }
 
-    fn town_centre(&self, lineage: &str, fallback: [i32; 2]) -> [i32; 2] {
-        self.towns
-            .iter()
-            .find(|t| t.lineage == lineage)
-            .map_or(fallback, |t| t.center)
-    }
-
     /// A cell people use: a road or track they built, or a path they have trodden.
     fn is_busy_way(&self, x: i32, y: i32) -> bool {
         self.grid.road_at(x, y) != ROAD_NONE || self.grid.trail_at(x, y, TrailKind::Path) >= BUSY_TRAIL
@@ -383,6 +471,14 @@ impl Simulation {
     /// The anchor of the station a town's trains use, and whether it is new: an operational station of the
     /// owner within reach of the centre, or else the first open site near the centre. `extra` collects the
     /// cells a new station covers so the next search keeps off them.
+    fn stop_is_clear(&self, stop: [i32; 2], occupied: &FxHashSet<(i32, i32)>, extra: &[(i32, i32)]) -> bool {
+        let (x, y) = (stop[0], stop[1]);
+        WorldGrid::in_bounds(x, y)
+            && self.grid.get(x, y).road_ground()
+            && !occupied.contains(&(x, y))
+            && !extra.contains(&(x, y))
+    }
+
     fn station_for(
         &self,
         owner: &str,
@@ -395,6 +491,7 @@ impl Simulation {
                 && b.is_operational()
                 && b.owner_lineage.as_deref() == Some(owner)
                 && chebyshev(stop_of(b), centre) <= STATION_RING
+                && self.stop_is_clear(stop_of(b), occupied, extra)
         }) {
             return Some(((b.x, b.y), false));
         }
@@ -408,7 +505,10 @@ impl Simulation {
                     let (x, y) = (centre[0] + dx, centre[1] + dy);
                     let overlaps = (0..i32::from(fh))
                         .any(|oy| (0..i32::from(fw)).any(|ox| extra.contains(&(x + ox, y + oy))));
-                    if overlaps || !fits(self, x, y, BuildingKind::TrainStation, occupied) {
+                    if overlaps
+                        || !fits(self, x, y, BuildingKind::TrainStation, occupied)
+                        || !self.stop_is_clear(stop_of_anchor((x, y)), occupied, extra)
+                    {
                         continue;
                     }
                     for oy in 0..i32::from(fh) {
@@ -484,6 +584,9 @@ impl Simulation {
                 for id in &self.vehicles[vi].occupants {
                     riders.insert(id.clone(), ((nx, ny), false));
                 }
+                if line.stops.contains(&[nx, ny]) {
+                    self.vehicles[vi].ready_tick = now + STOP_DWELL_TICKS;
+                }
             }
         }
         if riders.is_empty() {
@@ -556,7 +659,8 @@ impl Simulation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sim::civ::trade_routes::TradeRoute;
+    use crate::sim::civ::civ_tick::town::Town;
+    use crate::sim::civ::land::road_net::{Dest, NetEdge, RAIL_TRAFFIC};
     use crate::world::grid::ROAD_TRACK;
     use crate::world::tiles::Tile;
 
@@ -600,21 +704,46 @@ mod tests {
         sim
     }
 
-    fn busy_route(deliveries: u32) -> TradeRoute {
-        TradeRoute {
-            id: 1,
-            lineage_a: OWNER.to_string(),
-            lineage_b: PARTNER.to_string(),
-            a_center: [93, 96],
-            b_center: [150, 96],
-            deliveries,
-            ..Default::default()
+    fn town(id: u32, lineage: &str, center: [i32; 2]) -> Town {
+        Town {
+            id,
+            lineage: lineage.to_string(),
+            center,
+            streets: Vec::new(),
+            founded_tick: 0,
+            planned: false,
+            growth: 0,
         }
+    }
+
+    fn busy_road(sim: &mut Simulation, traffic: u32) -> u32 {
+        sim.towns.push(town(1, OWNER, [93, 96]));
+        sim.towns.push(town(2, PARTNER, [150, 96]));
+        let path: Vec<[i32; 2]> = std::iter::once([93, 96])
+            .chain((97..=100).map(|y| [93, y]))
+            .chain((94..=150).map(|x| [x, 100]))
+            .chain((96..=99).rev().map(|y| [150, y]))
+            .collect();
+        sim.road_net.edges.push(NetEdge {
+            id: 7,
+            owner: OWNER.to_string(),
+            dest: Dest::Partner,
+            from_town: 1,
+            to_town: Some(2),
+            from: [93, 96],
+            to: [150, 96],
+            built: path.len() as u16,
+            path,
+            traffic,
+            grade: 1,
+            ..Default::default()
+        });
+        7
     }
 
     fn plan(sim: &mut Simulation) -> bool {
         sim.tick_count = RAIL_STEP;
-        sim.plan_rail_between(OWNER, (OWNER, [93, 96]), (PARTNER, [150, 96]))
+        sim.plan_rail_between(OWNER, (OWNER, [93, 96]), (PARTNER, [150, 96]), None)
     }
 
     fn run_to(sim: &mut Simulation, until: u64) {
@@ -639,7 +768,7 @@ mod tests {
         let mut sim = two_towns();
         sim.lineage_eras.insert(OWNER.to_string(), Era::Classical);
         sim.lineage_eras.insert(PARTNER.to_string(), Era::Classical);
-        sim.trade_routes.push(busy_route(5));
+        busy_road(&mut sim, RAIL_TRAFFIC * 2);
         sim.tick_count = RAIL_STEP;
         sim.plan_rail_lines();
         assert!(sim.rail_lines.is_empty(), "no railway before the industrial age");
@@ -647,25 +776,34 @@ mod tests {
     }
 
     #[test]
-    fn a_quiet_trade_route_gets_no_track() {
+    fn a_quiet_road_gets_no_track() {
         let mut sim = two_towns();
-        sim.trade_routes.push(busy_route(BUSY_DELIVERIES - 1));
+        busy_road(&mut sim, RAIL_TRAFFIC - 1);
         sim.tick_count = RAIL_STEP;
         sim.plan_rail_lines();
         assert!(
             sim.rail_lines.is_empty(),
-            "a route nobody uses is not worth a railway"
+            "a road nobody uses is not worth a railway"
         );
     }
 
     #[test]
-    fn a_busy_trade_route_gets_stations_track_and_a_train() {
+    fn a_busy_road_gets_stations_track_a_stop_and_a_train() {
         let mut sim = two_towns();
-        sim.trade_routes.push(busy_route(BUSY_DELIVERIES));
+        let road = busy_road(&mut sim, RAIL_TRAFFIC);
+        sim.towns.push(town(3, OWNER, [121, 94]));
         sim.tick_count = RAIL_STEP;
         sim.plan_rail_lines();
-        assert_eq!(sim.rail_lines.len(), 1, "one line along the route");
+        assert_eq!(sim.rail_lines.len(), 1, "one line along the road");
         let line = sim.rail_lines[0].clone();
+        assert_eq!(line.road, Some(road));
+        assert_eq!(line.stops.len(), 1, "a stop at the town on the way");
+        assert!(line.path.contains(&line.stops[0]));
+        let counts = crate::sim::civ::land::road_net::net_counts(&sim);
+        assert_eq!(
+            counts.rail_on_roads, counts.rail_cells,
+            "the track keeps beside the road"
+        );
         assert_eq!(line.lineage, OWNER);
         assert_eq!(line.towns, [OWNER.to_string(), PARTNER.to_string()]);
         assert_eq!(
@@ -683,7 +821,11 @@ mod tests {
                     && b.owner_lineage.as_deref() == Some(OWNER)
             })
             .count();
-        assert_eq!(stations, 2, "a station is raised at each end");
+        assert_eq!(stations, 3, "a station at each end and one at the stop");
+        assert_eq!(
+            crate::sim::tech::networks::network_strays(&sim).stations_without_line,
+            0
+        );
         assert!(line
             .path
             .iter()
@@ -699,7 +841,7 @@ mod tests {
         assert_eq!(trains[0].rail_line, Some(line.id));
         sim.tick_count = RAIL_STEP * 2;
         sim.plan_rail_lines();
-        assert_eq!(sim.rail_lines.len(), 1, "one line to a partner only");
+        assert_eq!(sim.rail_lines.len(), 1, "one line along a road only");
     }
 
     #[test]

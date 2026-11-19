@@ -104,6 +104,7 @@ export type IncomingWorldFrame = Pick<
   volcanoes?: WorldState['volcanoes']
   settlements?: WorldState['settlements']
   towns?: WorldState['towns']
+  net_edges?: WorldState['net_edges']
   vehicles?: WorldState['vehicles']
   carcasses?: WorldState['carcasses']
   festivals?: WorldState['festivals']
@@ -747,11 +748,22 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
 
   // Roads are a full snapshot of the viewport on every static frame: clear, then lay them down.
   let roads = cache?.roads
+  let road_grades = cache?.road_grades
   let road_revision = cache?.road_revision ?? 0
   if (wire.roads) {
     roads = take2D(roads, h, w, 0)
-    for (const [row, col, kind] of wire.roads) {
-      if (row < h && col < w) roads[row][col] = kind
+    let graded = false
+    for (const [row, col, value] of wire.roads) {
+      if (row < h && col < w) {
+        roads[row][col] = value & 0xff
+        if (value > 0xff) graded = true
+      }
+    }
+    road_grades = graded ? take2D(road_grades, h, w, 0) : undefined
+    if (road_grades) {
+      for (const [row, col, value] of wire.roads) {
+        if (row < h && col < w) road_grades[row][col] = value >> 8
+      }
     }
     road_revision++
   }
@@ -775,6 +787,7 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
     fertility,
     hazard,
     roads,
+    road_grades,
     road_revision,
   }
 }

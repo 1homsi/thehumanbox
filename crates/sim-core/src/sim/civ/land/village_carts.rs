@@ -242,6 +242,7 @@ fn run_carts(sim: &mut Simulation) {
                 .and_then(|stop| plan_cart_route(sim, here, stop).map(|r| (r, stop)));
             match route {
                 Some((r, stop)) => {
+                    crate::sim::civ::land::road_net::note_route(sim, &r, 1);
                     sim.vehicles[vi].route = r;
                     sim.vehicles[vi].bound_for = Some((stop[0], stop[1]));
                 }
@@ -264,6 +265,7 @@ fn run_carts(sim: &mut Simulation) {
             .find_map(|field| plan_cart_route(sim, here, field).map(|r| (r, field)));
         match found {
             Some((r, field)) => {
+                crate::sim::civ::land::road_net::note_route(sim, &r, 1);
                 sim.vehicles[vi].route = r;
                 sim.vehicles[vi].bound_for = Some((field[0], field[1]));
             }

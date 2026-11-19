@@ -13,6 +13,13 @@ pub(super) fn mark_caravan_roads(sim: &mut Simulation) {
             }
             let elapsed = tick.saturating_sub(caravan.departed_tick).min(duration);
             let progress = elapsed as f64 / duration as f64;
+            if !caravan.way.is_empty() {
+                if let Some([x, y]) =
+                    crate::sim::civ::land::road_net::point_along(sim, &caravan.way, progress)
+                {
+                    return Some((x, y));
+                }
+            }
             let x = f64::from(caravan.from[0])
                 + (f64::from(caravan.to[0]) - f64::from(caravan.from[0])) * progress;
             let y = f64::from(caravan.from[1])
@@ -47,6 +54,12 @@ pub(super) fn refresh_route_centers(sim: &mut Simulation) {
         {
             route.b_center = second.center;
         }
+    }
+    for i in 0..sim.trade_routes.len() {
+        let (a, b) = (sim.trade_routes[i].a_center, sim.trade_routes[i].b_center);
+        sim.trade_routes[i].way = crate::sim::civ::land::road_net::caravan_way(sim, a, b)
+            .map(|w| w.legs)
+            .unwrap_or_default();
     }
     let active_route_ids: HashSet<u32> = sim.caravans.iter().map(|caravan| caravan.route_id).collect();
     sim.trade_routes.retain(|route| {

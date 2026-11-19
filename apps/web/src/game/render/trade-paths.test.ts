@@ -582,6 +582,50 @@ describe('TradePathPlanner', () => {
     expect(planner.cells.length).toBe(1000)
     expect(planner.stats.planned).toBe(2)
   })
+
+  it('walks the roads the tribes built when the route runs on them, and plans nothing of its own', () => {
+    const grid = open(60, 30)
+    const leg1: number[] = []
+    for (let x = 2; x <= 30; x++) leg1.push(x, 5)
+    const leg2: number[] = []
+    for (let y = 20; y >= 5; y--) leg2.push(50, y)
+    for (let x = 49; x >= 30; x--) leg2.push(x, 5)
+    const edge = (id: number, path: number[]) => ({
+      id,
+      kind: 'road' as const,
+      owner: 'a',
+      dest: 'town',
+      grade: 0,
+      complete: true,
+      from_town: 1,
+      path,
+    })
+    const world = worldWith(grid, [{ id: 1, a: [2, 5], b: [50, 20] }], {
+      net_edges: [edge(7, leg1), edge(8, leg2)],
+    })
+    world.trade_routes![0]!.way = [
+      [7, false],
+      [8, true],
+    ]
+    const planner = new TradePathPlanner()
+    planner.update(world, 1)
+    expect(planner.stats.planned).toBe(0)
+    const path = planner.pathOf(1)!
+    expect(path).not.toBeNull()
+    expect([path.xs[0], path.ys[0]]).toEqual([2, 5])
+    expect([path.xs[path.xs.length - 1], path.ys[path.ys.length - 1]]).toEqual([50, 20])
+    expect(path.cells.length).toBe(29 + 20 + 15)
+    expect(planner.cells.every((c) => c === 0)).toBe(true)
+  })
+
+  it('plans its own way when a leg of the route is not built yet', () => {
+    const grid = open(60, 30)
+    const world = worldWith(grid, [{ id: 1, a: [2, 5], b: [50, 5] }], { net_edges: [] })
+    world.trade_routes![0]!.way = [[7, false]]
+    const planner = new TradePathPlanner()
+    planner.update(world, 1)
+    expect(planner.stats.planned).toBe(1)
+  })
 })
 
 describe('planning the whole world', () => {

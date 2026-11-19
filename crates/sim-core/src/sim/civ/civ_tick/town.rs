@@ -89,7 +89,7 @@ impl Town {
         self.on_plaza(x, y) || self.streets.contains(&[x, y])
     }
 
-    pub(super) fn reserved_tiles(&self) -> Vec<(i32, i32)> {
+    pub(crate) fn reserved_tiles(&self) -> Vec<(i32, i32)> {
         let [cx, cy] = self.center;
         let mut tiles: Vec<(i32, i32)> = (-PLAZA_RADIUS..=PLAZA_RADIUS)
             .flat_map(|dy| (-PLAZA_RADIUS..=PLAZA_RADIUS).map(move |dx| (cx + dx, cy + dy)))
@@ -220,10 +220,18 @@ pub(crate) fn tick_towns(sim: &mut Simulation) {
         .filter(|b| !b.decorative && !b.is_ruined())
         .filter_map(|b| b.town)
         .collect();
-    sim.towns.retain(|town| {
-        homes.contains_key(&town.lineage)
-            && (people.get(&town.id).copied().unwrap_or(0) > 0 || standing.contains(&town.id))
-    });
+    let (kept, dropped): (Vec<Town>, Vec<Town>) =
+        std::mem::take(&mut sim.towns).into_iter().partition(|town| {
+            homes.contains_key(&town.lineage)
+                && (people.get(&town.id).copied().unwrap_or(0) > 0 || standing.contains(&town.id))
+        });
+    sim.towns = kept;
+    let paving: Vec<[i32; 2]> = dropped
+        .iter()
+        .flat_map(|t| t.reserved_tiles())
+        .map(|(x, y)| [x, y])
+        .collect();
+    crate::sim::civ::land::road_net::wear_cells(sim, &paving);
     found_towns(sim, &homes);
     let people = residents(sim, &homes);
     plan_towns(sim, &people);

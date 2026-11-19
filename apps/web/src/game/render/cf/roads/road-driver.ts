@@ -179,6 +179,11 @@ export class RoadDriver implements CfDriver {
     this.sig = sig
     const inMap = (r: number, c: number) => r >= 0 && c >= 0 && r < height && c < width
     const simAt = (r: number, c: number) => (inMap(r, c) ? (roads?.[r]?.[c] ?? 0) : 0)
+    const grades = grid.road_grades
+    const styleAt = (r: number, c: number) => {
+      const grade = grades?.[r]?.[c] ?? 0
+      return grade > 0 ? Math.min(STYLES.length, grade) - 1 : baseStyle
+    }
     const planAt = (r: number, c: number) => (planned && inMap(r, c) ? planned[r * width + c]! : 0)
     const stationSet = this.stations.cells
     const cells: RoadCells = {
@@ -187,7 +192,7 @@ export class RoadDriver implements CfDriver {
       spec: (r, c) => {
         const sim = simAt(r, c)
         const plan = planAt(r, c)
-        return sim === 0 && plan === 0 ? -1 : resolveCell(sim, plan, baseStyle)
+        return sim === 0 && plan === 0 ? -1 : resolveCell(sim, plan, styleAt(r, c))
       },
       joins: (spec, r, c) =>
         ((spec & SPEC_JOIN_SIM) !== 0 && simAt(r, c) !== 0) ||

@@ -198,6 +198,7 @@ pub struct Simulation {
     /// Railway lines between a tribe's stations, each with one train (see `tech/railways.rs`).
     pub rail_lines: Vec<super::tech::railways::RailLine>,
     pub rail_remnants: Vec<super::tech::networks::RailRemnant>,
+    pub road_net: super::civ::land::road_net::RoadNet,
     /// Harvests waiting at their fields for a village cart (see `civ::land::village_carts`).
     pub cart_grain: Vec<super::civ::land::village_carts::CartGrain>,
     /// Each town's plaza and streets (see `civ::civ_tick::town`).
@@ -369,6 +370,7 @@ impl Simulation {
             village_roads: Vec::new(),
             rail_lines: Vec::new(),
             rail_remnants: Vec::new(),
+            road_net: Default::default(),
             cart_grain: Vec::new(),
             towns: Vec::new(),
             next_town_id: 1,

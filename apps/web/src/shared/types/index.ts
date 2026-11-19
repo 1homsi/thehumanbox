@@ -209,6 +209,7 @@ export interface TradeRouteInfo {
   agreement?: boolean
   /** The two tribes are at war, so no caravan passes. */
   embargoed?: boolean
+  way?: [number, boolean][]
 }
 
 export interface CaravanInfo {
@@ -224,6 +225,19 @@ export interface CaravanInfo {
   arrives_tick: number
   from: [number, number]
   to: [number, number]
+  way?: [number, boolean][]
+}
+
+export interface NetEdgeInfo {
+  id: number
+  kind: 'road' | 'power'
+  owner: string
+  dest: string
+  grade: number
+  complete: boolean
+  from_town: number
+  to_town?: number | null
+  path: number[]
 }
 
 interface GovernmentInfo {
@@ -642,6 +656,7 @@ export interface GridState {
   hazard?: number[][]
   /** Road kind per cell (0 none, see `ROAD_TRACK` in the simulation); absent before the first static frame. */
   roads?: number[][]
+  road_grades?: number[][]
   /** Bumped when the road cells change, so the renderer re-reads them only then. */
   road_revision?: number
 }
@@ -784,6 +799,7 @@ export interface WorldState {
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]
   towns?: TownInfo[]
+  net_edges?: NetEdgeInfo[]
   vehicles?: VehicleInfo[]
   /** Prey a predator killed, where birds gather: how long ago, and how much is picked over (0 to 40). */
   carcasses?: CarcassInfo[]
