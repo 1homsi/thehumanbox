@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Worker } from "node:worker_threads";
+import { compactSaveVersion, readCompactSave, unpackWorldSave } from "./save-format";
 
 const MAX_REMOTE_SAVE_BYTES = 256 * 1024 * 1024;
 
@@ -157,6 +158,9 @@ export function validateWorldSaveBytes(bytes: Uint8Array): ValidatedWorldSave {
       `world save exceeds the ${MAX_REMOTE_SAVE_BYTES / 1024 / 1024} MiB safety limit`,
     );
   }
+  const stored = bytes;
+  bytes = unpackWorldSave(stored);
+  if (compactSaveVersion(bytes) !== null) return validateCompactSave(stored, bytes);
 
   let text: string;
   try {
@@ -231,12 +235,38 @@ export function validateWorldSaveBytes(bytes: Uint8Array): ValidatedWorldSave {
   ]);
 
   return {
-    bytes: Buffer.from(bytes),
+    bytes: Buffer.from(stored),
     version,
     tick: save.tick_count,
     seed: save.world_seed,
     tickText,
     seedText,
+  };
+}
+
+function validateCompactSave(stored: Uint8Array, payload: Uint8Array): ValidatedWorldSave {
+  const save = readCompactSave(payload);
+  if (save.version > SUPPORTED_SAVE_SCHEMA_VERSION) {
+    throw new Error(
+      `world save schema v${save.version} is newer than this app supports (v${SUPPORTED_SAVE_SCHEMA_VERSION})`,
+    );
+  }
+  if (BigInt(save.tickText) > MAX_U64 || BigInt(save.seedText) > MAX_U64) {
+    throw new Error("world save has a number outside Rust's u64 range");
+  }
+  if (!save.organismsAreRecords) throw new Error("world save contains an invalid organism record");
+  if (!save.animalsAreRecords) throw new Error("world save contains an invalid animal record");
+  if (save.tiles !== EXPECTED_GRID_TILES && save.tiles !== LEGACY_GRID_TILES) {
+    throw new Error(`world save terrain has ${save.tiles} tiles; expected ${EXPECTED_GRID_TILES}`);
+  }
+  if (!save.tilesInRange) throw new Error("world save terrain contains an invalid tile value");
+  return {
+    bytes: Buffer.from(stored),
+    version: save.version,
+    tick: Number(save.tickText),
+    seed: Number(save.seedText),
+    tickText: save.tickText,
+    seedText: save.seedText,
   };
 }
 

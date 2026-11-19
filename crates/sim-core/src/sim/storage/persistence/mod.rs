@@ -15,6 +15,7 @@ use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 
 mod compact;
+pub mod container;
 mod file_io;
 mod from_save;
 mod organism;
