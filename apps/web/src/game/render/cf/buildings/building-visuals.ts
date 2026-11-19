@@ -22,6 +22,7 @@ export interface BuildingFrameInfo {
   winter: boolean
   /** The local home style at a world tile ('' for none; see homeLandOfBiome). */
   landAt?: (x: number, y: number) => string
+  cultures?: ReadonlyMap<string, number>
 }
 
 /** Construction progress and ruin age are quantised so a site does not bake a cell per tick. */
@@ -71,8 +72,10 @@ export function describeBuilding(b: Building, info: BuildingFrameInfo): Building
   const land = (k === 'Hut' || k === 'House') && tier <= 1 ? (info.landAt?.(b.x, b.y) ?? '') : ''
   const landKey = land ? `|l${land}` : ''
   // A tribe's homes carry its roof colour, so the tint splits their look (and cell) by tribe.
-  const roofTint = roofTintFor(k, b.owner_lineage ?? b.lineage_id ?? '')
-  const tintKey = roofTint ? `|r${tribeTintIndex(b.owner_lineage ?? b.lineage_id ?? '')}` : ''
+  const owner = b.owner_lineage ?? b.lineage_id ?? ''
+  const culture = info.cultures?.get(owner)
+  const roofTint = roofTintFor(k, owner, culture)
+  const tintKey = roofTint ? (culture !== undefined ? `|c${roofTint}` : `|r${tribeTintIndex(owner)}`) : ''
   const base = `${b.kind}|${fw}x${fh}|t${tier}`
   const identity = `${b.id}@${b.x},${b.y}`
   const record: BuildingLike = {

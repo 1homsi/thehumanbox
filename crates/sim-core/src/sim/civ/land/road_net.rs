@@ -1062,7 +1062,16 @@ impl Simulation {
         }
         let mut budget: BTreeMap<String, u32> = labour
             .into_iter()
-            .map(|(l, n)| (l, (n / 3).clamp(MIN_CELLS_PER_PASS, MAX_CELLS_PER_PASS)))
+            .map(|(l, n)| {
+                let cells = (n / 3).clamp(MIN_CELLS_PER_PASS, MAX_CELLS_PER_PASS);
+                let builder = self.ruled_by(&l, crate::sim::civ::society::rulers::RulerTrait::Builder);
+                let cells = if builder {
+                    cells * crate::sim::civ::society::rulers::BUILDER_ROADS
+                } else {
+                    cells
+                };
+                (l, cells)
+            })
             .collect();
         let covered = footprint_cells(self);
         let now = self.tick_count;

@@ -24,6 +24,13 @@ pub struct DiplomacyStats {
     pub protected: u32,
     pub secessions: u32,
     pub civil_wars: u32,
+    pub successions: u32,
+    pub new_dynasties: u32,
+    pub royal_marriages: u32,
+    pub claims_pressed: u32,
+    pub succession_wars: u32,
+    pub faith_converts: u32,
+    pub shared_festivals: u32,
     pub role_changes: u32,
     pub role_buildings: u32,
     pub supply_sent: u32,
@@ -45,6 +52,10 @@ pub struct Diplomacy {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub nations: Vec<Nation>,
     pub next_nation_id: u32,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub claims: Vec<crate::sim::civ::society::rulers::Claim>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub marriages: Vec<crate::sim::civ::society::rulers::RoyalMarriage>,
     #[serde(skip)]
     pub nation_of: BTreeMap<String, u32>,
     #[serde(skip)]
@@ -58,5 +69,7 @@ impl Diplomacy {
             && self.next_war_id == 0
             && self.nations.is_empty()
             && self.next_nation_id == 0
+            && self.claims.is_empty()
+            && self.marriages.is_empty()
     }
 }

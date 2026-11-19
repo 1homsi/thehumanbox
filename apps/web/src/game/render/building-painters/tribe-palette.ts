@@ -18,6 +18,13 @@ export function hashId(id: string): number {
   return h >>> 0
 }
 
+export const CULTURE_ROOF_TINTS = ['tile', 'slate', 'straw', 'plum', 'moss', 'copper'] as const
+
+export function cultureRoof(colour: number): (typeof CULTURE_ROOF_TINTS)[number] {
+  const n = CULTURE_ROOF_TINTS.length
+  return CULTURE_ROOF_TINTS[((Math.trunc(colour) % n) + n) % n]!
+}
+
 /** Index into TRIBE_ROOF_TINTS for a tribe id. */
 export function tribeTintIndex(lineageId: string): number {
   return hashId(lineageId) % TRIBE_ROOF_TINTS.length
@@ -64,8 +71,11 @@ const KIND_ROOF: Record<string, keyof typeof KIND_ROOF_TINTS> = {
 }
 
 /** The roof tint of a building of this kind, or undefined for buildings that keep their own roofs. */
-export function roofTintFor(kind: string, lineageId: string): string | undefined {
-  if (TINTED_HOMES.has(kind)) return lineageId ? TRIBE_ROOF_TINTS[tribeTintIndex(lineageId)] : undefined
+export function roofTintFor(kind: string, lineageId: string, culture?: number): string | undefined {
+  if (TINTED_HOMES.has(kind)) {
+    if (culture !== undefined) return cultureRoof(culture)
+    return lineageId ? TRIBE_ROOF_TINTS[tribeTintIndex(lineageId)] : undefined
+  }
   const use = KIND_ROOF[kind]
   return use ? KIND_ROOF_TINTS[use] : undefined
 }

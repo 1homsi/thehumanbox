@@ -651,6 +651,7 @@ impl Simulation {
         self.tick_land_memory();
         self.tick_migrations();
         self.tick_nations();
+        self.tick_rulers();
         self.tick_wild_food();
         self.check_animal_catches();
 

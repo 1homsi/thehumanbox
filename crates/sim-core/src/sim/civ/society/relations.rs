@@ -21,6 +21,8 @@ pub enum MemoryKind {
     Border,
     LandTaken,
     Tribute,
+    SharedFaith,
+    Festival,
 }
 
 impl MemoryKind {
@@ -39,6 +41,8 @@ impl MemoryKind {
             MemoryKind::Border => "border",
             MemoryKind::LandTaken => "land_taken",
             MemoryKind::Tribute => "tribute",
+            MemoryKind::SharedFaith => "shared_faith",
+            MemoryKind::Festival => "festival",
         }
     }
 
@@ -46,7 +50,8 @@ impl MemoryKind {
         match self {
             MemoryKind::Border => 0.891,
             MemoryKind::Gift => 0.917,
-            MemoryKind::Trade | MemoryKind::Tribute => 0.933,
+            MemoryKind::Trade | MemoryKind::Tribute | MemoryKind::Festival => 0.933,
+            MemoryKind::SharedFaith => 0.95,
             MemoryKind::BattleWon => 0.955,
             MemoryKind::Raid => 0.966,
             MemoryKind::BattleLost => 0.973,
@@ -59,7 +64,8 @@ impl MemoryKind {
 
     fn limit(self) -> f32 {
         match self {
-            MemoryKind::Gift | MemoryKind::BattleWon => 0.15,
+            MemoryKind::Gift | MemoryKind::BattleWon | MemoryKind::Festival => 0.15,
+            MemoryKind::SharedFaith => 0.2,
             MemoryKind::Border => 0.3,
             MemoryKind::Trade | MemoryKind::Peace | MemoryKind::Tribute => 0.35,
             MemoryKind::Marriage | MemoryKind::Aid => 0.4,

@@ -260,6 +260,17 @@
         "peace": "与{name}和平",
         "friendly": "对{name}友好",
         "wary": "提防{name}"
+      },
+      "ruler": "由{house}家族的{name}统治",
+      "generation": "家族第{count}代",
+      "claim": "宣称拥有{name}的王位",
+      "claimPressed": "正在争夺{name}的王位",
+      "trait": {
+        "warlike": "好战",
+        "peaceful": "爱好和平",
+        "diplomat": "善于联姻",
+        "builder": "建设者",
+        "pious": "虔诚"
       }
     },
     "buildings": {

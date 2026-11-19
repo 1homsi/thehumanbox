@@ -260,6 +260,17 @@
         "peace": "{name}と和平",
         "friendly": "{name}と友好的",
         "wary": "{name}を警戒"
+      },
+      "ruler": "{house}家の{name}が治める",
+      "generation": "家の{count}代目",
+      "claim": "{name}の王位を主張",
+      "claimPressed": "{name}への継承権を行使中",
+      "trait": {
+        "warlike": "好戦的",
+        "peaceful": "平和を好む",
+        "diplomat": "縁結び上手",
+        "builder": "建設者",
+        "pious": "信心深い"
       }
     },
     "buildings": {

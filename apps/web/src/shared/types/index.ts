@@ -342,6 +342,19 @@ export interface MigrationInfo {
   departed_tick: number
 }
 
+export interface SovereignInfo {
+  name: string
+  house: string
+  generation: number
+  since: number
+  traits: ('warlike' | 'peaceful' | 'diplomat' | 'builder' | 'pious')[]
+}
+
+export interface ClaimInfo {
+  on: string
+  pressed: boolean
+}
+
 export interface NationRelationInfo {
   with: string
   name: string
@@ -361,6 +374,8 @@ export interface NationInfo {
   founded_tick: number
   cohesion: number
   relations: NationRelationInfo[]
+  sovereign?: SovereignInfo | null
+  claims?: ClaimInfo[]
 }
 
 interface CarcassInfo {

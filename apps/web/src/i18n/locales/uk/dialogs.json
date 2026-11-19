@@ -272,6 +272,17 @@
         "peace": "мир: {name}",
         "friendly": "дружба: {name}",
         "wary": "недовіра: {name}"
+      },
+      "ruler": "править {name} з дому {house}",
+      "generation": "{count}-е покоління дому",
+      "claim": "претендує на трон {name}",
+      "claimPressed": "домагається трону {name}",
+      "trait": {
+        "warlike": "войовничий",
+        "peaceful": "миролюбний",
+        "diplomat": "сват",
+        "builder": "будівничий",
+        "pious": "побожний"
       }
     },
     "buildings": {

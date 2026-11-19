@@ -22,6 +22,7 @@ const TOWN_LAND_REACH: i32 = 14;
 const ABSORB_WHOLE_AT: usize = 12;
 const KEEP_ENDED_WARS: usize = 32;
 const MIN_REASON: f32 = 0.2;
+const CLAIM_REASON: f32 = 0.45;
 const WATER_REACH: i32 = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -33,6 +34,7 @@ pub enum CasusBelli {
     Ambition,
     Faith,
     Independence,
+    Succession,
 }
 
 impl CasusBelli {
@@ -44,6 +46,7 @@ impl CasusBelli {
             CasusBelli::Ambition => "ambition",
             CasusBelli::Faith => "faith",
             CasusBelli::Independence => "independence",
+            CasusBelli::Succession => "succession",
         }
     }
 
@@ -55,6 +58,7 @@ impl CasusBelli {
             CasusBelli::Ambition => "for their chief's glory",
             CasusBelli::Faith => "over the faith",
             CasusBelli::Independence => "for their freedom",
+            CasusBelli::Succession => "to press a claim to the throne",
         }
     }
 }
@@ -130,6 +134,7 @@ pub struct TribeFacts {
     pub faith: Option<(String, ReligionKind)>,
     pub ambition: f32,
     pub centre: (i32, i32),
+    pub claims: Vec<String>,
 }
 
 pub struct WarMinds<'a> {
@@ -172,6 +177,9 @@ impl WarMinds<'_> {
         }
         if fa.water <= 3 && fb.water >= 8 {
             consider(0.45, CasusBelli::Water);
+        }
+        if fa.claims.iter().any(|c| c == b) {
+            consider(CLAIM_REASON, CasusBelli::Succession);
         }
         if fa.ambition >= 0.6 && fa.pop * 4 >= fb.pop * 5 {
             consider(fa.ambition - 0.2, CasusBelli::Ambition);
@@ -251,12 +259,22 @@ impl Simulation {
                 |(_, c)| (c[0], c[1]),
             );
             f.land = self.territory.get(lid).map_or(0, |t| t.len());
+            if self.ruled_by(lid, crate::sim::civ::society::rulers::RulerTrait::Warlike) {
+                f.ambition = (f.ambition + crate::sim::civ::society::rulers::WARLIKE_AMBITION).min(1.0);
+            } else if self.ruled_by(lid, crate::sim::civ::society::rulers::RulerTrait::Peaceful) {
+                f.ambition = (f.ambition - crate::sim::civ::society::rulers::WARLIKE_AMBITION).max(0.0);
+            }
             f.water = self.water_near(f.centre, WATER_REACH);
             f.faith = faiths
                 .get(lid.as_str())
                 .and_then(|m| m.iter().max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(a.0))))
                 .filter(|(_, count)| (**count as usize) * 2 >= f.pop)
                 .and_then(|(r, _)| kinds.get(r).map(|k| (r.to_string(), *k)));
+        }
+        for (holder, on) in self.pressed_claims() {
+            if let Some(f) = facts.get_mut(&holder) {
+                f.claims.push(on);
+            }
         }
         facts
     }
@@ -391,6 +409,10 @@ impl Simulation {
             .wars_by_reason
             .entry(reason.name())
             .or_insert(0) += 1;
+        if reason == CasusBelli::Succession {
+            self.diplomacy.stats.succession_wars += 1;
+            self.drop_claim(a, d);
+        }
         let line = format!(
             "\u{2694}\u{FE0F} The {} declared war on the {} {}{}.",
             self.tribe_name(a),
@@ -668,6 +690,7 @@ impl Simulation {
                     (_, false) => WarOutcome::BorderChange,
                     (CasusBelli::Land | CasusBelli::Water, true) => WarOutcome::BorderChange,
                     (CasusBelli::Revenge | CasusBelli::Faith, true) => WarOutcome::Tribute,
+                    (CasusBelli::Succession, true) => WarOutcome::Absorption,
                     (CasusBelli::Ambition, true) => {
                         if self.living_of(&a).len() * 2 >= self.living_of(&d).len() * 3 {
                             WarOutcome::Absorption

@@ -269,6 +269,17 @@
         "peace": "at peace with {name}",
         "friendly": "friendly with {name}",
         "wary": "wary of {name}"
+      },
+      "ruler": "ruled by {name} of the House of {house}",
+      "generation": "generation {count} of the house",
+      "claim": "claims the throne of {name}",
+      "claimPressed": "pressing a claim on {name}",
+      "trait": {
+        "warlike": "warlike",
+        "peaceful": "peace-loving",
+        "diplomat": "a matchmaker",
+        "builder": "a builder",
+        "pious": "devout"
       }
     },
     "buildings": {

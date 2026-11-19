@@ -64,6 +64,8 @@ export class BuildingsDriver implements CfDriver {
   private tiers = new Map<string, number>()
   /** Bumped when the tier map is rebuilt (the `lineage_eras` object changed), so the frame key sees it. */
   private tiersEpoch = 0
+  private culturesFor: unknown = null
+  private cultures = new Map<string, number>()
   /** The building list the cached look inputs were read from (a new array means the sim sent new data). */
   private buildingsRef: Building[] | null = null
   /** Bumped when the building list is replaced: the frame key must see the new data. */
@@ -104,6 +106,16 @@ export class BuildingsDriver implements CfDriver {
       this.tiers = lineageEraTiers(world.lineage_eras)
       this.tiersEpoch++
     }
+    if (this.culturesFor !== world.nations) {
+      this.culturesFor = world.nations
+      const next = new Map<string, number>()
+      for (const n of world.nations ?? []) for (const m of n.members) next.set(m, n.colour)
+      const same = next.size === this.cultures.size && [...next].every(([k, v]) => this.cultures.get(k) === v)
+      if (!same) {
+        this.cultures = next
+        this.tiersEpoch++
+      }
+    }
     // The sim resends the building list only when a building changed, so a new array is the whole of the
     // per-building change. Re-scan it once for the two looks that age with the tick (ruins crumble, a
     // spaceport's pad empties) instead of rebuilding every building on every frame.
@@ -142,6 +154,7 @@ export class BuildingsDriver implements CfDriver {
       tiers: this.tiers,
       winter,
       landAt: (x, y) => homeLandOfBiome(f.biomes?.[y - f.oy]?.[x - f.ox] ?? 0),
+      cultures: this.cultures,
     }
     const t0 = performance.now()
     // Every look this rebuild hands out stays valid until the next one (see CellAtlas.beginFrame).

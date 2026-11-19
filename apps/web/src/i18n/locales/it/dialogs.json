@@ -260,6 +260,17 @@
         "peace": "in pace con {name}",
         "friendly": "amichevole con {name}",
         "wary": "diffidente verso {name}"
+      },
+      "ruler": "governata da {name} della casata {house}",
+      "generation": "generazione {count} della casata",
+      "claim": "rivendica il trono di {name}",
+      "claimPressed": "fa valere la sua pretesa su {name}",
+      "trait": {
+        "warlike": "bellicoso",
+        "peaceful": "pacifico",
+        "diplomat": "sensale",
+        "builder": "costruttore",
+        "pious": "devoto"
       }
     },
     "buildings": {
