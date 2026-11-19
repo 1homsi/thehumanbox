@@ -174,12 +174,11 @@ pub fn teach(
             if *i == org_idx || !o.alive {
                 return false;
             }
-            let same_lineage = o.lineage_id == org_lineage;
-            let close_enough = (o.x - ox).abs() + (o.y - oy).abs() <= 5.0;
-            let has_less = o.discoveries.len() < disc_count;
-            let bonded =
-                me.friends.contains_key(&o.id) || me.org_trust.get(&o.id).is_some_and(|&v| v >= 0.55);
-            (same_lineage || bonded) && close_enough && (has_less || o.age < 400)
+            (o.x - ox).abs() + (o.y - oy).abs() <= 5.0
+                && (o.discoveries.len() < disc_count || o.age < 400)
+                && (o.lineage_id == org_lineage
+                    || me.friends.contains_key(&o.id)
+                    || me.org_trust.get(&o.id).is_some_and(|&v| v >= 0.55))
         })
         .min_by_key(|(_, o)| o.discoveries.len())
         .map(|(i, _)| i);
@@ -227,16 +226,21 @@ pub fn teach(
         }
     }
 
-    let teacher_vocab = organisms[org_idx].vocabulary.clone();
-    organisms[ti].vocabulary.absorb_from(&teacher_vocab, rng);
+    let (teacher, student) = if org_idx < ti {
+        let (head, tail) = organisms.split_at_mut(ti);
+        (&head[org_idx], &mut tail[0])
+    } else {
+        let (head, tail) = organisms.split_at_mut(org_idx);
+        (&tail[0], &mut head[ti])
+    };
+    student.vocabulary.absorb_from(&teacher.vocabulary, rng);
 
     // Transfer discoveries - elders have higher transmission rate
     let transfer_chance = if is_elder { 0.06 } else { 0.025 };
-    let teacher_disc: Vec<String> = organisms[org_idx].discoveries.iter().cloned().collect();
     let mut learned = Vec::new();
-    for disc in &teacher_disc {
-        if !organisms[ti].discoveries.contains(disc.as_str()) && rng.random::<f32>() < transfer_chance {
-            organisms[ti].discoveries.insert(disc.clone());
+    for disc in teacher.discoveries.iter() {
+        if !student.discoveries.contains(disc.as_str()) && rng.random::<f32>() < transfer_chance {
+            student.discoveries.insert(disc.clone());
             learned.push(disc.clone());
         }
     }

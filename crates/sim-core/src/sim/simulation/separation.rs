@@ -42,7 +42,12 @@ impl Simulation {
             }
             let (xi, yi) = (self.organisms[i].x, self.organisms[i].y);
             index.query_into(xi as i32, yi as i32, 1, &mut near);
-            near.retain(|&j| j > i);
+            let organisms = &self.organisms;
+            near.retain(|&j| {
+                let o = &organisms[j];
+                let (dx, dy) = (xi - o.x, yi - o.y);
+                j > i && o.alive && dx * dx + dy * dy < PERSONAL_SPACE * PERSONAL_SPACE
+            });
             if near.is_empty() {
                 continue;
             }

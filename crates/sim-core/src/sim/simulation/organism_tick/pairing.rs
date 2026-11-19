@@ -36,22 +36,29 @@ impl Simulation {
             // across the entire map, defeating the cluster-breaking
             // work in spawn.rs / friend-seek.
             const MATE_SEEK_MAX_TILES: f32 = 80.0;
-            let target = spatial
-                .ordered_nearby(&self.organisms, ox, oy, MATE_SEEK_MAX_TILES as i32)
-                .map(|(_, o)| o)
-                .filter(|o| {
+            spatial.query_into(
+                ox as i32,
+                oy as i32,
+                MATE_SEEK_MAX_TILES as i32 + 2,
+                f.spatial_buf,
+            );
+            let target = f
+                .spatial_buf
+                .iter()
+                .map(|&i| (i, &self.organisms[i]))
+                .filter(|(_, o)| {
                     o.alive
                         && o.sex != my_sex
                         && o.age > 1000
                         && o.partner_id.is_none()
                         && my_trust.get(&o.id).is_none_or(|&t| t > RIVAL_TRUST)
                 })
-                .map(|o| {
+                .map(|(i, o)| {
                     let dist = (o.x - ox).det_hypot(o.y - oy);
-                    (o, dist)
+                    (i, o, dist)
                 })
-                .filter(|(_, d)| *d <= MATE_SEEK_MAX_TILES)
-                .map(|(o, dist)| {
+                .filter(|(_, _, d)| *d <= MATE_SEEK_MAX_TILES)
+                .map(|(i, o, dist)| {
                     let lineage_att = if o.lineage_id == *my_lid {
                         0.3
                     } else {
@@ -68,11 +75,15 @@ impl Simulation {
                     } else {
                         -1.0
                     };
-                    (o, score)
+                    (i, o, score)
                 })
-                .filter(|(_, s)| *s > 0.0)
-                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
-                .map(|(o, _)| (o.x as i32, o.y as i32));
+                .filter(|(_, _, s)| *s > 0.0)
+                .max_by(|a, b| {
+                    a.2.partial_cmp(&b.2)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                        .then(a.0.cmp(&b.0))
+                })
+                .map(|(_, o, _)| (o.x as i32, o.y as i32));
             if let Some((tx, ty)) = target {
                 let mate_at = crate::world::grid::clamp_to_map(tx, ty);
                 self.organisms[idx].wander_target = Some(mate_at);
@@ -128,9 +139,12 @@ impl Simulation {
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
-            let candidate = spatial
-                .ordered_nearby(&self.organisms, ox, oy, 120)
-                .find(|(i, o)| {
+            spatial.query_into(ox as i32, oy as i32, 122, f.spatial_buf);
+            let candidate = f
+                .spatial_buf
+                .iter()
+                .map(|&i| (i, &self.organisms[i]))
+                .filter(|(i, o)| {
                     *i != idx
                         && o.alive
                         && o.partner_id.is_none()
@@ -143,7 +157,8 @@ impl Simulation {
                             .is_none_or(|&t| t > RIVAL_TRUST)
                         && (o.x - ox).det_hypot(o.y - oy) < 120.0
                 })
-                .map(|(i, _)| i);
+                .map(|(i, _)| i)
+                .min();
             if let Some(ci) = candidate {
                 let cid = self.organisms[ci].id.clone();
                 let cname = self.organisms[ci].name.clone();

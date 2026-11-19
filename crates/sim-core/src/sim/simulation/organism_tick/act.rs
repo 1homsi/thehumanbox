@@ -41,17 +41,20 @@ impl Simulation {
                     self.organisms[idx].health,
                 )
             };
-            movement_reward = movement_step_feedback(&self.grid, ix, iy, action, destination);
-            movement_reward +=
-                movement_momentum_feedback(&self.organisms[idx], &self.grid, (ix, iy), destination);
-            movement_reward += urgent_resource_progress_feedback(&self.organisms[idx], (ix, iy), destination);
+            if !f.dormant {
+                movement_reward = movement_step_feedback(&self.grid, ix, iy, action, destination);
+                movement_reward +=
+                    movement_momentum_feedback(&self.organisms[idx], &self.grid, (ix, iy), destination);
+                movement_reward +=
+                    urgent_resource_progress_feedback(&self.organisms[idx], (ix, iy), destination);
+            }
             if let Some((mx, my)) = destination {
                 action_succeeded = true;
                 self.organisms[idx].x = mx as f32;
                 self.organisms[idx].y = my as f32;
                 self.grid.leave_trail(mx, my, TrailKind::Path, 0.06);
                 self.grid.stamp_pressure(mx, my);
-                let has_farming = self.organisms[idx].discoveries.contains("farm");
+                let has_farming = self.organisms[idx].discoveries.has(Hot::Farm);
                 if has_farming {
                     let fidx = WorldGrid::idx(mx, my);
                     if self.grid.fertility[fidx] < 0.25 {
@@ -63,7 +66,7 @@ impl Simulation {
             let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             if self.grid.get(cx, cy) == Tile::Food {
                 action_succeeded = true;
-                let cooking_bonus = if self.organisms[idx].discoveries.contains("cooking") {
+                let cooking_bonus = if self.organisms[idx].discoveries.has(Hot::Cooking) {
                     let near_fire = [(-1, 0), (1, 0), (0, -1), (0, 1)].iter().any(|&(dx, dy)| {
                         matches!(self.grid.get(cx + dx, cy + dy), Tile::Campfire | Tile::Fire)
                     });

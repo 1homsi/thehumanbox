@@ -56,6 +56,12 @@ hot_discoveries! {
     Torch => "torch",
     Trap => "trap",
     Medicine => "medicine",
+    Farm => "farm",
+    Cooking => "cooking",
+    Antibiotics => "antibiotics",
+    Alchemy => "alchemy",
+    MedicineLore => "medicine_lore",
+    Poultice => "poultice",
 }
 
 /// What an organism has discovered. Reads go through `Deref` to the ordered

@@ -481,6 +481,7 @@ impl Simulation {
             .iter()
             .map(|o| (o.x, o.y, o.infection, o.alive))
             .collect();
+        let contagious = spatial.subset(|j| neighbours[j].3 && neighbours[j].2 >= 0.15);
         let climate = self.climate(self.is_night());
         let tick = self.tick_count;
         let grid = &self.grid;
@@ -504,7 +505,7 @@ impl Simulation {
                 }
                 let mut fell_sick = false;
                 if o.infection < 0.8 || dt > 1 {
-                    spatial.query_into(cx, cy, 2, spatial_buf);
+                    contagious.query_into(cx, cy, 2, spatial_buf);
                 }
                 let water_near = vitals::water_near(grid, cx, cy);
                 let ritual = climate.night && o.discoveries.has(Hot::Ritual);

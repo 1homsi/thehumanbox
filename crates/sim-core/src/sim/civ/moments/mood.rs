@@ -238,35 +238,7 @@ pub(in crate::sim::civ) fn tick_gratitude_sharing(sim: &mut Simulation) {
     if n == 0 {
         return;
     }
-    let givers: Vec<(usize, String, f32, f32, f32, f32)> = sim
-        .organisms
-        .iter()
-        .enumerate()
-        .filter(|(_, o)| o.alive && o.gratitude > 0.5 && o.energy > 0.5)
-        .map(|(i, o)| (i, o.lineage_id.clone(), o.x, o.y, o.energy, o.hydration))
-        .collect();
-    if givers.is_empty() {
-        return;
-    }
-    let mut transfers: Vec<(usize, usize, f32, f32)> = Vec::new();
-    for (gi, lid, gx, gy, ge, gh) in givers.iter() {
-        for (j, o) in sim.organisms.iter().enumerate() {
-            if !o.alive || j == *gi || &o.lineage_id != lid {
-                continue;
-            }
-            if (o.x - gx).abs() + (o.y - gy).abs() > 3.0 {
-                continue;
-            }
-            if o.energy < 0.3 && *ge > 0.55 {
-                transfers.push((*gi, j, 0.05, 0.0));
-                break;
-            }
-            if o.hydration < 0.3 && *gh > 0.55 {
-                transfers.push((*gi, j, 0.0, 0.05));
-                break;
-            }
-        }
-    }
+    let transfers = gratitude_transfers(&sim.organisms);
     for (gi, ri, e, h) in transfers {
         sim.organisms[gi].energy = (sim.organisms[gi].energy - e).max(0.0);
         sim.organisms[gi].hydration = (sim.organisms[gi].hydration - h).max(0.0);
@@ -283,6 +255,76 @@ pub(in crate::sim::civ) fn tick_gratitude_sharing(sim: &mut Simulation) {
             "shared their food with kin",
         );
     }
+}
+
+type Transfer = (usize, usize, f32, f32);
+
+fn gratitude_givers(
+    organisms: &[crate::organism::organism::Organism],
+) -> Vec<(usize, &str, f32, f32, f32, f32)> {
+    organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive && o.gratitude > 0.5 && o.energy > 0.5)
+        .map(|(i, o)| (i, o.lineage_id.as_str(), o.x, o.y, o.energy, o.hydration))
+        .collect()
+}
+
+fn gratitude_transfers(organisms: &[crate::organism::organism::Organism]) -> Vec<Transfer> {
+    let givers = gratitude_givers(organisms);
+    if givers.is_empty() {
+        return Vec::new();
+    }
+    let index = crate::sim::spatial::SpatialIndex::build(organisms, 8);
+    let mut near = Vec::new();
+    let mut transfers = Vec::new();
+    for &(gi, lid, gx, gy, ge, gh) in &givers {
+        index.query_into(gx as i32, gy as i32, 4, &mut near);
+        let first = near
+            .iter()
+            .copied()
+            .filter(|&j| {
+                let o = &organisms[j];
+                o.alive
+                    && j != gi
+                    && (o.x - gx).abs() + (o.y - gy).abs() <= 3.0
+                    && ((o.energy < 0.3 && ge > 0.55) || (o.hydration < 0.3 && gh > 0.55))
+                    && o.lineage_id == lid
+            })
+            .min();
+        if let Some(j) = first {
+            if organisms[j].energy < 0.3 && ge > 0.55 {
+                transfers.push((gi, j, 0.05, 0.0));
+            } else {
+                transfers.push((gi, j, 0.0, 0.05));
+            }
+        }
+    }
+    transfers
+}
+
+#[cfg(test)]
+fn gratitude_transfers_reference(organisms: &[crate::organism::organism::Organism]) -> Vec<Transfer> {
+    let mut transfers = Vec::new();
+    for (gi, lid, gx, gy, ge, gh) in gratitude_givers(organisms) {
+        for (j, o) in organisms.iter().enumerate() {
+            if !o.alive || j == gi || o.lineage_id != lid {
+                continue;
+            }
+            if (o.x - gx).abs() + (o.y - gy).abs() > 3.0 {
+                continue;
+            }
+            if o.energy < 0.3 && ge > 0.55 {
+                transfers.push((gi, j, 0.05, 0.0));
+                break;
+            }
+            if o.hydration < 0.3 && gh > 0.55 {
+                transfers.push((gi, j, 0.0, 0.05));
+                break;
+            }
+        }
+    }
+    transfers
 }
 
 pub(in crate::sim::civ) fn tick_anger_outbursts(sim: &mut Simulation) {
@@ -430,5 +472,52 @@ mod curiosity_tests {
             }
         }
         assert!(south_east > 0, "no target ever landed past the old 600x300 edge");
+    }
+}
+
+#[cfg(test)]
+mod gratitude_tests {
+    use super::*;
+    use crate::organism::organism::Organism;
+    use crate::organism::traits::Traits;
+
+    #[test]
+    fn the_indexed_kin_search_finds_the_same_transfers_as_the_full_scan() {
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let mut roll = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            (state >> 40) as f32 / (1u64 << 24) as f32
+        };
+        let mut found = 0;
+        for round in 0..20 {
+            let mut organisms = Vec::new();
+            for i in 0..400 {
+                let lineage = format!("tribe-{}", (roll() * 3.0) as u32);
+                let x = 100.0 + (roll() * 24.0).floor() + (roll() * 4.0).floor() * 0.25;
+                let y = 80.0 + (roll() * 24.0).floor();
+                let mut o = Organism::new(
+                    format!("o{round}-{i}"),
+                    format!("o{i}"),
+                    x,
+                    y,
+                    0,
+                    String::new(),
+                    lineage,
+                    20_000,
+                    Traits::default(),
+                );
+                o.alive = roll() > 0.1;
+                o.energy = roll();
+                o.hydration = roll();
+                o.gratitude = roll();
+                organisms.push(o);
+            }
+            let fast = gratitude_transfers(&organisms);
+            assert_eq!(fast, gratitude_transfers_reference(&organisms));
+            found += fast.len();
+        }
+        assert!(found > 0);
     }
 }
