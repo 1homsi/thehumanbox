@@ -1,5 +1,7 @@
 use super::*;
 
+const STRUCTURE_SORT_EVERY: u64 = 600;
+
 impl Simulation {
     pub fn tick_n(&mut self, count: u32) {
         for _ in 0..count {
@@ -661,18 +663,26 @@ impl Simulation {
             let mut promote = Vec::new();
             let mut demote = Vec::new();
             let mut to_remove = Vec::new();
+            if self.tick_count.is_multiple_of(STRUCTURE_SORT_EVERY) {
+                self.active_structure_tiles.sort_unstable_by_key(|&(x, y)| (y, x));
+            }
             for &(x, y) in &self.active_structure_tiles {
-                let s = self.grid.structure_at(x, y);
+                if !WorldGrid::in_bounds(x, y) {
+                    to_remove.push((x, y));
+                    continue;
+                }
+                let i = WorldGrid::idx(x, y);
+                let s = self.grid.structure[i];
                 if s <= 0.0 {
                     to_remove.push((x, y));
                     continue;
                 }
                 let ns = (s - decay).max(0.0);
-                *self.grid.structure_at_mut(x, y) = ns;
+                self.grid.structure[i] = ns;
                 if ns == 0.0 {
                     to_remove.push((x, y));
                 }
-                let tile = self.grid.get(x, y);
+                let tile = Tile::from_i8(self.grid.tiles[i]);
                 if ns >= 0.85
                     && matches!(
                         tile,

@@ -36,17 +36,18 @@ pub fn tick_tech_progress(
     // One pass over the living, borrowing every name: a lineage id and its
     // discoveries are copied once per lineage, not once per person.
     struct Tribe<'a> {
-        discoveries: HashSet<&'a str>,
+        discoveries: Vec<u64>,
         members: Vec<usize>,
         seen: Vec<&'a crate::organism::organism::Discoveries>,
     }
     let mut tribes: HashMap<&str, Tribe> = HashMap::default();
+    let mut ids: HashMap<&str, usize> = HashMap::default();
     for (i, org) in organisms.iter().enumerate() {
         if !org.alive {
             continue;
         }
         let tribe = tribes.entry(org.lineage_id.as_str()).or_insert_with(|| Tribe {
-            discoveries: HashSet::default(),
+            discoveries: Vec::new(),
             members: Vec::new(),
             seen: Vec::new(),
         });
@@ -58,20 +59,42 @@ pub fn tick_tech_progress(
             tribe.seen.remove(0);
         }
         tribe.seen.push(&org.discoveries);
-        for d in org.discoveries.iter() {
-            tribe.discoveries.insert(d.as_str());
+        for name in org.discoveries.iter() {
+            let next = ids.len();
+            let id = *ids.entry(name.as_str()).or_insert(next);
+            if tribe.discoveries.len() <= id / 64 {
+                tribe.discoveries.resize(id / 64 + 1, 0);
+            }
+            tribe.discoveries[id / 64] |= 1 << (id % 64);
         }
     }
     // The research loop below changes `organisms`, so the tribes it walks must
     // own their names.
-    let mut tribes: Vec<(String, HashSet<String>, Vec<usize>)> = tribes
+    let mut by_name: Vec<(&str, usize)> = ids.into_iter().collect();
+    by_name.sort_unstable();
+    let mut text = String::new();
+    let spans: Vec<(usize, (usize, usize))> = by_name
+        .iter()
+        .map(|&(name, id)| {
+            let start = text.len();
+            text.push_str(name);
+            (id, (start, text.len()))
+        })
+        .collect();
+    let mut tribes: Vec<(String, Known, Vec<usize>)> = tribes
         .into_iter()
         .map(|(lineage, tribe)| {
-            (
-                lineage.to_string(),
-                tribe.discoveries.into_iter().map(str::to_string).collect(),
-                tribe.members,
-            )
+            let known = spans
+                .iter()
+                .filter(|&&(id, _)| {
+                    tribe
+                        .discoveries
+                        .get(id / 64)
+                        .is_some_and(|w| w & (1 << (id % 64)) != 0)
+                })
+                .map(|&(_, span)| span)
+                .collect();
+            (lineage.to_string(), Known(known), tribe.members)
         })
         .collect();
 
@@ -84,7 +107,11 @@ pub fn tick_tech_progress(
     // further down also drew from `rng`, so the number of draws depended
     // on `max_by`'s internal comparison pattern; that is hoisted out too.)
     tribes.sort_by(|a, b| a.0.cmp(&b.0));
-    let neighbours_farm = farming_neighbours(&tribes, buildings);
+    let farming: Vec<(&str, bool)> = tribes
+        .iter()
+        .map(|(lid, disc, _)| (lid.as_str(), disc.contains(&text, "agriculture")))
+        .collect();
+    let neighbours_farm = farming_neighbours(&farming, buildings);
     let mut owned: HashMap<&str, Vec<&Building>> = HashMap::default();
     for building in buildings.iter().filter(|building| building.is_operational()) {
         if let Some(owner) = building.owner_lineage.as_deref() {
@@ -108,14 +135,14 @@ pub fn tick_tech_progress(
             governments.get(lid),
         );
 
-        let known = index.known(disc);
+        let known = index.known(disc.names(&text));
         for ((i, node), &evidence_kind) in tech.iter().enumerate().zip(evidence_kinds) {
             if known.has(i) {
                 continue;
             }
             if !index.prerequisites[i].iter().all(|&(p, at)| match at {
                 Some(at) => known.has(at),
-                None => disc.contains(p),
+                None => disc.contains(&text, p),
             }) {
                 continue;
             }
@@ -170,7 +197,21 @@ pub fn tick_tech_progress(
             push_event(events, tick, "build", &name, &detail);
         }
 
-        spread_tribal_knowledge(rng, organisms, members, disc, profile.literacy);
+        spread_tribal_knowledge(rng, organisms, members, disc.names(&text), profile.literacy);
+    }
+}
+
+struct Known(Vec<(usize, usize)>);
+
+impl Known {
+    fn names<'a>(&'a self, text: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+        self.0.iter().map(move |&(start, end)| &text[start..end])
+    }
+
+    fn contains(&self, text: &str, name: &str) -> bool {
+        self.0
+            .binary_search_by(|&(start, end)| text[start..end].cmp(name))
+            .is_ok()
     }
 }
 
@@ -178,10 +219,7 @@ pub fn tick_tech_progress(
 /// of a tribe that farms. Farming crosses a border like a fence does not: a neighbour's fields
 /// are seen, and their seed and their tools are traded over the hedge. Walks tribes in sorted
 /// order and only asks whether a dwelling is near, so the same seed gives the same answer.
-fn farming_neighbours(
-    tribes: &[(String, HashSet<String>, Vec<usize>)],
-    buildings: &[Building],
-) -> HashSet<String> {
+fn farming_neighbours(tribes: &[(&str, bool)], buildings: &[Building]) -> HashSet<String> {
     let mut dwellings: std::collections::BTreeMap<&str, Vec<(i32, i32)>> = std::collections::BTreeMap::new();
     for b in buildings {
         if !b.is_operational()
@@ -198,18 +236,18 @@ fn farming_neighbours(
     }
     let farmers: Vec<&str> = tribes
         .iter()
-        .filter(|(_, known, _)| known.contains("agriculture"))
-        .map(|(lid, _, _)| lid.as_str())
+        .filter(|(_, farms)| *farms)
+        .map(|&(lid, _)| lid)
         .collect();
     let mut near = HashSet::default();
-    for (lid, known, _) in tribes {
-        if known.contains("agriculture") {
+    for &(lid, farms) in tribes {
+        if farms {
             continue;
         }
-        let Some(mine) = dwellings.get(lid.as_str()) else {
+        let Some(mine) = dwellings.get(lid) else {
             continue;
         };
-        let touches = farmers.iter().filter(|&&f| f != lid.as_str()).any(|&f| {
+        let touches = farmers.iter().filter(|&&f| f != lid).any(|&f| {
             dwellings.get(f).is_some_and(|theirs| {
                 theirs.iter().any(|&(tx, ty)| {
                     mine.iter()
@@ -218,7 +256,7 @@ fn farming_neighbours(
             })
         });
         if touches {
-            near.insert(lid.clone());
+            near.insert(lid.to_string());
         }
     }
     near
@@ -228,17 +266,14 @@ fn farming_neighbours(
 /// research tick every known discovery may pass to one more member, faster in
 /// a literate tribe. Without this the discoveries that unlock new eras sat
 /// with a handful of people and were lost when they died.
-fn spread_tribal_knowledge(
+fn spread_tribal_knowledge<'a>(
     rng: &mut ChaCha8Rng,
     organisms: &mut [Organism],
     members: &[usize],
-    known: &HashSet<String>,
+    discoveries: impl Iterator<Item = &'a str>,
     literacy: f32,
 ) {
     let chance = 0.02 + literacy.clamp(0.0, 1.0) * 0.10;
-    // Sorted so the RNG draws don't depend on hash-set iteration order.
-    let mut discoveries: Vec<&String> = known.iter().collect();
-    discoveries.sort_unstable();
     let mut learners: Vec<usize> = Vec::new();
     for discovery in discoveries {
         if rng.random::<f32>() >= chance {
@@ -247,13 +282,13 @@ fn spread_tribal_knowledge(
         learners.clear();
         learners.extend(members.iter().copied().filter(|&m| {
             let o = &organisms[m];
-            o.alive && o.age >= 300 && !o.discoveries.contains(discovery.as_str())
+            o.alive && o.age >= 300 && !o.discoveries.contains(discovery)
         }));
         if learners.is_empty() {
             continue;
         }
         let pick = learners[rng.random_range(0..learners.len())];
-        organisms[pick].discoveries.insert(discovery.clone());
+        organisms[pick].discoveries.insert(discovery.to_string());
     }
 }
 
@@ -534,10 +569,10 @@ impl KnownNodes {
 }
 
 impl NodeIndex {
-    fn known(&self, disc: &HashSet<String>) -> KnownNodes {
+    fn known<'a>(&self, disc: impl Iterator<Item = &'a str>) -> KnownNodes {
         let mut bits = vec![0u64; all_tech().len().div_ceil(64)];
         for name in disc {
-            for &i in self.by_name.get(name.as_str()).map_or(&[][..], Vec::as_slice) {
+            for &i in self.by_name.get(name).map_or(&[][..], Vec::as_slice) {
                 bits[i / 64] |= 1 << (i % 64);
             }
         }
@@ -672,17 +707,11 @@ fn tick_tech_progress_reference(
     let mut lineage_ids: Vec<&String> = lineage_discoveries.keys().collect();
     lineage_ids.sort();
     let neighbours_farm = {
-        let mut all: Vec<(String, HashSet<String>, Vec<usize>)> = lineage_discoveries
+        let mut all: Vec<(&str, bool)> = lineage_discoveries
             .iter()
-            .map(|(l, d)| {
-                (
-                    l.clone(),
-                    d.clone(),
-                    lineage_members.get(l).cloned().unwrap_or_default(),
-                )
-            })
+            .map(|(l, d)| (l.as_str(), d.contains("agriculture")))
             .collect();
-        all.sort_by(|a, b| a.0.cmp(&b.0));
+        all.sort_by(|a, b| a.0.cmp(b.0));
         farming_neighbours(&all, buildings)
     };
     for lid in lineage_ids {
@@ -759,7 +788,9 @@ fn tick_tech_progress_reference(
             push_event(events, tick, "build", &name, &detail);
         }
 
-        spread_tribal_knowledge(rng, organisms, members, disc, profile.literacy);
+        let mut sorted: Vec<&str> = disc.iter().map(String::as_str).collect();
+        sorted.sort_unstable();
+        spread_tribal_knowledge(rng, organisms, members, sorted.into_iter(), profile.literacy);
     }
 }
 
@@ -788,11 +819,11 @@ mod tests {
         sim.organisms[members[0]]
             .discoveries
             .insert("printing".to_string());
-        let known: HashSet<String> = ["printing".to_string()].into_iter().collect();
+        let known = ["printing"];
 
         let mut rng = <ChaCha8Rng as rand::SeedableRng>::seed_from_u64(9);
         for _ in 0..200 {
-            spread_tribal_knowledge(&mut rng, &mut sim.organisms, &members, &known, 1.0);
+            spread_tribal_knowledge(&mut rng, &mut sim.organisms, &members, known.into_iter(), 1.0);
         }
         let knowers = members
             .iter()
@@ -1127,12 +1158,8 @@ mod farming_neighbour_tests {
         b
     }
 
-    fn tribe(lineage: &str, farms: bool) -> (String, HashSet<String>, Vec<usize>) {
-        let mut known = HashSet::default();
-        if farms {
-            known.insert("agriculture".to_string());
-        }
-        (lineage.to_string(), known, Vec::new())
+    fn tribe(lineage: &str, farms: bool) -> (&str, bool) {
+        (lineage, farms)
     }
 
     #[test]

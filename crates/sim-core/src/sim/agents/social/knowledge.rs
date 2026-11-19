@@ -162,13 +162,7 @@ pub fn teach(
 
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
-    let friend_ids: crate::hashing::FxHashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
-    let high_trust: crate::hashing::FxHashSet<String> = organisms[org_idx]
-        .org_trust
-        .iter()
-        .filter(|(_, &v)| v >= 0.55)
-        .map(|(k, _)| k.clone())
-        .collect();
+    let me = &organisms[org_idx];
 
     // Knowledge transmits to kin OR named friends OR strong-trust orgs.
     // Previously only same-lineage kin could learn from elders/peers, so
@@ -183,7 +177,8 @@ pub fn teach(
             let same_lineage = o.lineage_id == org_lineage;
             let close_enough = (o.x - ox).abs() + (o.y - oy).abs() <= 5.0;
             let has_less = o.discoveries.len() < disc_count;
-            let bonded = friend_ids.contains(&o.id) || high_trust.contains(&o.id);
+            let bonded =
+                me.friends.contains_key(&o.id) || me.org_trust.get(&o.id).is_some_and(|&v| v >= 0.55);
             (same_lineage || bonded) && close_enough && (has_less || o.age < 400)
         })
         .min_by_key(|(_, o)| o.discoveries.len())

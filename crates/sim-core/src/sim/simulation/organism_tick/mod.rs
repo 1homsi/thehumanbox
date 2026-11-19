@@ -279,6 +279,10 @@ impl Simulation {
                 }) {
                     return true;
                 }
+                if towns[i].is_some_and(|town| !(self.tick_count + u64::from(town)).is_multiple_of(TOWN_STEP))
+                {
+                    return false;
+                }
                 let war_near = ongoing
                     .iter()
                     .any(|b| (b.location.0 - x).abs().max((b.location.1 - y).abs()) <= BATTLE_CALM_REACH);
@@ -392,6 +396,7 @@ impl Simulation {
         s: &Sensed,
         rng: decide::ChoiceRng,
         spatial: &SpatialIndex,
+        hungry: &SpatialIndex,
         buf: &mut Vec<usize>,
     ) -> Choice {
         let o = &self.organisms[s.idx];
@@ -419,7 +424,7 @@ impl Simulation {
             neighbours: (action >= 26 && action != HOLD)
                 .then(|| crate::sim::actions::ctx::near_and_kin(&self.organisms, s.idx, spatial)),
             feeds_kin: (o.energy > 0.82 && tick - o.last_fed_kin >= 180)
-                .then(|| social::pick_food_recipient(s.idx, &self.organisms, spatial, tick, buf).is_some()),
+                .then(|| social::pick_food_recipient(s.idx, &self.organisms, hungry, tick, buf).is_some()),
         };
         Choice {
             action,
@@ -815,6 +820,7 @@ impl Simulation {
         tick_seed: u64,
     ) -> Vec<Option<Choice>> {
         let people = crate::organism::people_index::PeopleIndex::build(&self.organisms);
+        let hungry = spatial.subset(|i| self.organisms[i].energy < social::FOOD_RECIPIENT_ENERGY);
         crate::sim::par::map_with(
             sensed.len(),
             || (Vec::with_capacity(256), Vec::with_capacity(32)),
@@ -825,6 +831,7 @@ impl Simulation {
                         s,
                         decide::choice_rng(tick_seed, s.idx),
                         spatial,
+                        &hungry,
                         nearby,
                     ));
                 }
