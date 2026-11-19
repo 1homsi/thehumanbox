@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use super::nations::Nation;
 use super::relations::Relations;
 use crate::sim::civ::warfare::War;
 
@@ -16,6 +17,13 @@ pub struct DiplomacyStats {
     pub towns_ceded: u32,
     pub raids: u32,
     pub front_battles: u32,
+    pub nations_formed: u32,
+    pub nations_dissolved: u32,
+    pub nations_annexed: u32,
+    pub unions: u32,
+    pub protected: u32,
+    pub secessions: u32,
+    pub civil_wars: u32,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -26,12 +34,21 @@ pub struct Diplomacy {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub wars: Vec<War>,
     pub next_war_id: u32,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub nations: Vec<Nation>,
+    pub next_nation_id: u32,
+    #[serde(skip)]
+    pub nation_of: BTreeMap<String, u32>,
     #[serde(skip)]
     pub stats: DiplomacyStats,
 }
 
 impl Diplomacy {
     pub fn is_empty(&self) -> bool {
-        self.relations.is_empty() && self.wars.is_empty() && self.next_war_id == 0
+        self.relations.is_empty()
+            && self.wars.is_empty()
+            && self.next_war_id == 0
+            && self.nations.is_empty()
+            && self.next_nation_id == 0
     }
 }

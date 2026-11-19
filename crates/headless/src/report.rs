@@ -715,6 +715,35 @@ pub(super) fn print_progress(sim: &Simulation) {
             d.stats.tribute_shipments,
             d.stats.towns_ceded
         );
+        let living: std::collections::BTreeSet<&str> = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive)
+            .map(|o| o.lineage_id.as_str())
+            .collect();
+        let in_nations = living.iter().filter(|l| d.nation_of.contains_key(**l)).count();
+        let sizes: Vec<usize> = d.nations.iter().map(|n| n.members.len()).collect();
+        let mean = if sizes.is_empty() {
+            0.0
+        } else {
+            sizes.iter().sum::<usize>() as f64 / sizes.len() as f64
+        };
+        println!(
+            "Nations at end: nations {}, tribes in nations {}, independent tribes {}, political units {}, mean size {:.2}, largest {}, formed {}, dissolved {}, unions {}, protected {}, annexed {}, secessions {}, civil wars {}",
+            d.nations.len(),
+            in_nations,
+            living.len() - in_nations,
+            d.nations.len() + living.len() - in_nations,
+            mean,
+            sizes.iter().max().copied().unwrap_or(0),
+            d.stats.nations_formed,
+            d.stats.nations_dissolved,
+            d.stats.unions,
+            d.stats.protected,
+            d.stats.nations_annexed,
+            d.stats.secessions,
+            d.stats.civil_wars
+        );
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();

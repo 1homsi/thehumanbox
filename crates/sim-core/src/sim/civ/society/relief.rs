@@ -10,11 +10,11 @@ use crate::sim::world_events::push_event;
 
 const RELIEF_STEP: u64 = DAY_LENGTH / 2;
 const FAMINE_SHARE: f32 = 0.3;
-const SPARE_FOOD: u8 = 2;
+const SPARE_FOOD: u8 = 1;
 const FAMINE_MIN_PEOPLE: usize = 4;
 const DONOR_HUNGRY_MAX: f32 = 0.15;
 const DONOR_MIN_STOCK: u32 = 16;
-const RELIEF_MAX: u32 = 30;
+const RELIEF_MAX: u32 = 40;
 const RELIEF_REACH: i32 = 100;
 const FRIENDLY: f32 = 0.2;
 const TRIBUTE_EVERY_DAYS: u64 = 2;

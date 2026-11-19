@@ -821,3 +821,72 @@ fn static_layers_arrive_every_sixty_ticks_whatever_the_emit_cadence() {
     // 420 ticks emitted every 7: one multiple of 60 lands (420), but the layers come every 63.
     assert_eq!(carried, vec![63, 126, 189, 252, 315, 378]);
 }
+
+#[test]
+fn full_payload_carries_each_nation_with_its_towns_and_relations() {
+    use crate::sim::civ::civ_tick::town::Town;
+    use crate::sim::civ::society::nations::Nation;
+    use crate::sim::civ::society::relations::MemoryKind;
+
+    let mut sim = Simulation::new(46);
+    for (index, org) in sim.organisms.iter_mut().enumerate() {
+        org.alive = index < 6;
+        org.lineage_id = ["east", "west", "far"][index % 3].to_string();
+    }
+    sim.lineage_names.insert("far".into(), "Farfolk".into());
+    sim.towns = ["east", "west", "far"]
+        .iter()
+        .enumerate()
+        .map(|(i, l)| Town {
+            id: i as u32 + 1,
+            lineage: (*l).into(),
+            center: [40 + 30 * i as i32, 60],
+            streets: Vec::new(),
+            founded_tick: 0,
+            planned: false,
+            growth: 0,
+        })
+        .collect();
+    sim.diplomacy.nations.push(Nation {
+        id: 2,
+        name: "Ovarra".into(),
+        capital: 1,
+        ruler: "east".into(),
+        members: vec!["east".into(), "west".into()],
+        colour: 4,
+        founded_tick: 7,
+        cohesion: 0.9,
+    });
+    sim.index_nations();
+    sim.diplomacy
+        .relations
+        .remember("east", "far", MemoryKind::Raid, -0.5, 0);
+
+    let payload = sim.state_json();
+    let nation = payload["nations"][0].as_object().expect("a nation");
+    let keys: std::collections::BTreeSet<&str> = nation.keys().map(String::as_str).collect();
+    let expected: std::collections::BTreeSet<&str> = [
+        "id",
+        "name",
+        "colour",
+        "capital",
+        "capital_at",
+        "ruler",
+        "members",
+        "towns",
+        "founded_tick",
+        "cohesion",
+        "relations",
+    ]
+    .into_iter()
+    .collect();
+    assert_eq!(keys, expected);
+    assert_eq!(nation["name"].as_str(), Some("Ovarra"));
+    assert_eq!(nation["colour"].as_u64(), Some(4));
+    assert_eq!(nation["capital_at"], serde_json::json!([40, 60]));
+    assert_eq!(nation["towns"], serde_json::json!([1, 2]));
+    let relation = &nation["relations"][0];
+    assert_eq!(relation["with"].as_str(), Some("far"));
+    assert_eq!(relation["name"].as_str(), Some("Farfolk"));
+    assert!(relation["opinion"].as_f64().is_some_and(|o| o < -0.2));
+}

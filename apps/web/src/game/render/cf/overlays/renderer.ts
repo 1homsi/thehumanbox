@@ -18,6 +18,7 @@ import { paintPower } from './paint-power'
 import { paintEraFlourish } from './paint-era-flourish'
 import { EraWatch } from '../../../model/era-flourish'
 import { paintArtworks } from './paint-artworks'
+import { paintNationBorders } from './paint-nations'
 import {
   paintClouds,
   paintFireGlow,
@@ -168,6 +169,8 @@ export class CfOverlayRenderer {
   private outlineRevision = -2
   private outlineStructure: unknown = null
   private territoryRef: unknown = null
+  private nationsRef: unknown = null
+  private townsRef: unknown = null
   private contestedKey = ''
   private groundKey = ''
   private stillKey = ''
@@ -741,7 +744,12 @@ export class CfOverlayRenderer {
     const key = `${viewFlags.territory ? 1 : 0}|${f.focus}|${outline ? 1 : 0}`
     // Grids that do not count their revisions are read once per frame, as before.
     const structureRevision = world.grid.structure_revision ?? world.frame_id
-    if (key === this.staticKey && world.territory === this.territoryRef) {
+    if (
+      key === this.staticKey &&
+      world.territory === this.territoryRef &&
+      world.nations === this.nationsRef &&
+      world.towns === this.townsRef
+    ) {
       if (
         !outline ||
         (this.outlineRevision === structureRevision && this.outlineStructure === world.grid.structure)
@@ -750,10 +758,13 @@ export class CfOverlayRenderer {
     }
     this.staticKey = key
     this.territoryRef = world.territory
+    this.nationsRef = world.nations
+    this.townsRef = world.towns
     this.outlineRevision = structureRevision
     this.outlineStructure = world.grid.structure ?? null
     this.groundStatic.begin({ zoom: f.zoom, dpr: f.dpr })
     const ctx = this.groundStatic.asContext()
+    paintNationBorders(ctx, world)
     if (viewFlags.territory) paintTerritoryBorders(ctx, world, f.focus)
     if (outline) {
       const structure = world.grid.structure!

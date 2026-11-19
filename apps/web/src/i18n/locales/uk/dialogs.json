@@ -258,6 +258,22 @@
       "pair": "{a} і {b}",
       "treaty": "договір"
     },
+    "nations": {
+      "heading": "Держави",
+      "empty": "Держав ще немає",
+      "capital": "столиця {name}",
+      "towns": "міст: {count}",
+      "cohesion": "згуртованість {percent}%",
+      "relation": {
+        "war": "війна: {name}",
+        "allied": "союз: {name}",
+        "vassal": "{name} платить данину",
+        "overlord": "платить данину: {name}",
+        "peace": "мир: {name}",
+        "friendly": "дружба: {name}",
+        "wary": "недовіра: {name}"
+      }
+    },
     "buildings": {
       "heading": "Будівлі",
       "empty": "Ще нічого не збудовано"

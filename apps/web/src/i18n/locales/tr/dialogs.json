@@ -246,6 +246,22 @@
       "pair": "{a} ve {b}",
       "treaty": "antlaşma"
     },
+    "nations": {
+      "heading": "Uluslar",
+      "empty": "Henüz ulus yok",
+      "capital": "başkent {name}",
+      "towns": "kasaba: {count}",
+      "cohesion": "birlik %{percent}",
+      "relation": {
+        "war": "savaşta: {name}",
+        "allied": "müttefik: {name}",
+        "vassal": "{name} haraç ödüyor",
+        "overlord": "haraç ödüyor: {name}",
+        "peace": "barış: {name}",
+        "friendly": "dostça: {name}",
+        "wary": "tedirgin: {name}"
+      }
+    },
     "buildings": {
       "heading": "Yapılar",
       "empty": "Henüz hiçbir şey inşa edilmedi"

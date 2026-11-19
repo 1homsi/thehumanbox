@@ -246,6 +246,22 @@
       "pair": "{a} 与 {b}",
       "treaty": "条约"
     },
+    "nations": {
+      "heading": "国家",
+      "empty": "尚无国家",
+      "capital": "首都 {name}",
+      "towns": "{count} 座城镇",
+      "cohesion": "凝聚力 {percent}%",
+      "relation": {
+        "war": "与{name}交战",
+        "allied": "与{name}结盟",
+        "vassal": "{name}进贡",
+        "overlord": "向{name}进贡",
+        "peace": "与{name}和平",
+        "friendly": "对{name}友好",
+        "wary": "提防{name}"
+      }
+    },
     "buildings": {
       "heading": "建筑",
       "empty": "尚未建造任何建筑"

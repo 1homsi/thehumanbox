@@ -779,6 +779,7 @@ impl Simulation {
                     })
                     .collect();
                 obj.insert("towns".to_string(), serde_json::Value::Array(towns_json));
+                obj.insert("nations".to_string(), self.nations_json());
                 let edges_json: Vec<serde_json::Value> = self
                     .road_net
                     .edges

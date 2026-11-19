@@ -246,6 +246,22 @@
       "pair": "{a} 및 {b}",
       "treaty": "조약"
     },
+    "nations": {
+      "heading": "국가",
+      "empty": "아직 국가가 없습니다",
+      "capital": "수도 {name}",
+      "towns": "마을 {count}개",
+      "cohesion": "결속 {percent}%",
+      "relation": {
+        "war": "{name}와(과) 전쟁 중",
+        "allied": "{name}와(과) 동맹",
+        "vassal": "{name}이(가) 조공을 바침",
+        "overlord": "{name}에 조공을 바침",
+        "peace": "{name}와(과) 평화",
+        "friendly": "{name}에 우호적",
+        "wary": "{name}을(를) 경계"
+      }
+    },
     "buildings": {
       "heading": "건물",
       "empty": "아직 지어진 건물이 없습니다"

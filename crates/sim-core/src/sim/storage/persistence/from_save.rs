@@ -424,6 +424,7 @@ impl Simulation {
         crate::sim::civ::trade_routes::repair_loaded_state(&mut sim);
         crate::sim::civ::civ_tick::town::settle_loaded_towns(&mut sim);
         sim.seed_relations_from_treaties();
+        sim.index_nations();
         sim
     }
 

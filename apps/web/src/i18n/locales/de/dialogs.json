@@ -246,6 +246,25 @@
       "pair": "{a} & {b}",
       "treaty": "Vertrag"
     },
+    "nations": {
+      "heading": "Nationen",
+      "empty": "Noch keine Nationen",
+      "capital": "Hauptstadt {name}",
+      "towns": {
+        "one": "{count} Stadt",
+        "other": "{count} Städte"
+      },
+      "cohesion": "Zusammenhalt {percent} %",
+      "relation": {
+        "war": "im Krieg mit {name}",
+        "allied": "verbündet mit {name}",
+        "vassal": "{name} zahlt Tribut",
+        "overlord": "zahlt Tribut an {name}",
+        "peace": "in Frieden mit {name}",
+        "friendly": "freundlich zu {name}",
+        "wary": "misstrauisch gegenüber {name}"
+      }
+    },
     "buildings": {
       "heading": "Gebäude",
       "empty": "Noch nichts gebaut"

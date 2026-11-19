@@ -89,3 +89,54 @@ describe('CivStatsModal names people as the player named them', () => {
     expect(trade).not.toContain('Bo-GEN')
   })
 })
+
+describe('CivStatsModal nations', () => {
+  it('lists each nation with its colour, capital, member tribes, towns and its standing with others', () => {
+    const world = {
+      ...worldWithRenamedLeader(),
+      lineage_names: { L: 'Lions', M: 'Moths' },
+      settlements: [
+        { lineage_id: 'L', name: 'Lionhold', tier: 3, population: 20, building_count: 4, capacity: 0 },
+      ],
+      nations: [
+        {
+          id: 3,
+          name: 'Ovarra',
+          colour: 1,
+          capital: 7,
+          capital_at: [10, 10],
+          ruler: 'L',
+          members: ['L', 'M'],
+          towns: [7, 8],
+          founded_tick: 100,
+          cohesion: 0.8,
+          relations: [
+            { with: 'n:4', name: 'Kezeria', opinion: -0.6, status: 'war' },
+            { with: 'X', name: 'Xan', opinion: 0.01, status: '' },
+          ],
+        },
+      ],
+    }
+    const host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root?.render(<CivStatsModal world={world as unknown as WorldState} onClose={() => {}} />))
+    const row = document.querySelector('.civ-nation')
+    expect(row?.textContent).toContain('Ovarra')
+    expect(row?.textContent).toContain(t('dialogs.civ.nations.capital', { name: 'Lionhold' }))
+    expect(row?.textContent).toContain('Lions, Moths')
+    expect(row?.textContent).toContain(t('dialogs.civ.nations.towns', { count: '2' }))
+    expect(row?.textContent).toContain(t('dialogs.civ.nations.relation.war', { name: 'Kezeria' }))
+    expect(row?.textContent).not.toContain('Xan')
+    expect((row?.querySelector('.civ-nation-swatch') as HTMLElement | null)?.style.background).not.toBe('')
+  })
+
+  it('says so when there are no nations yet', () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root?.render(<CivStatsModal world={worldWithRenamedLeader()} onClose={() => {}} />))
+    const empties = [...document.querySelectorAll('.civ-empty')].map((el) => el.textContent)
+    expect(empties).toContain(t('dialogs.civ.nations.empty'))
+  })
+})

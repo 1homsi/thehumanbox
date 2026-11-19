@@ -231,7 +231,7 @@ impl Simulation {
                 &crate::sim::warfare::WarMinds {
                     relations: &self.diplomacy.relations,
                     facts: &facts,
-                    sides: &crate::sim::warfare::NO_SIDES,
+                    sides: &self.diplomacy.nation_of,
                     at_war: &at_war,
                 },
                 &mut reasons,
@@ -255,7 +255,7 @@ impl Simulation {
                 &crate::sim::warfare::WarMinds {
                     relations: &self.diplomacy.relations,
                     facts: &facts,
-                    sides: &crate::sim::warfare::NO_SIDES,
+                    sides: &self.diplomacy.nation_of,
                     at_war: &at_war,
                 },
                 &mut reasons,
@@ -628,6 +628,7 @@ impl Simulation {
         self.tick_war_weariness();
         self.tick_relations();
         self.tick_relief();
+        self.tick_nations();
         self.tick_wild_food();
         self.check_animal_catches();
 

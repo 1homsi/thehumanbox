@@ -13,6 +13,7 @@ import { getBuildingState } from '../../game/model/building-state'
 import { calendarAt } from '../../game/model/calendar'
 import { formatNumber, t, type MessageKey } from '../../i18n'
 import { buildingKindWord, goodWord, moonPhaseWord, seasonWord, treatyWord } from '../sim-words'
+import { nationColour, relationTone, type RelationTone } from '../../game/model/nations'
 
 interface Props {
   world: WorldState
@@ -81,6 +82,18 @@ function hasEnterableBuilding(world: WorldState, kinds: ReadonlySet<string>, lin
   // suppresses that legacy path.
   return matching.length === 0 || matching.some((building) => getBuildingState(building).isOperational)
 }
+
+const RELATION_KEY: Record<RelationTone, MessageKey> = {
+  war: 'dialogs.civ.nations.relation.war',
+  allied: 'dialogs.civ.nations.relation.allied',
+  vassal: 'dialogs.civ.nations.relation.vassal',
+  overlord: 'dialogs.civ.nations.relation.overlord',
+  peace: 'dialogs.civ.nations.relation.peace',
+  friendly: 'dialogs.civ.nations.relation.friendly',
+  wary: 'dialogs.civ.nations.relation.wary',
+}
+
+const SHOWN_RELATIONS = 3
 
 const TAVERN_BUILDINGS = new Set(['tavern'])
 const TEMPLE_BUILDINGS = new Set(['temple', 'cathedral', 'shrine', 'mosque', 'synagogue', 'pagoda'])
@@ -165,6 +178,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
   const headlines = world.headlines ?? []
   const battles = world.battles ?? []
   const treaties = world.treaties ?? []
+  const nations = world.nations ?? []
   const campaignHistory = world.lineage_strategy_history ?? []
   const tradeRoutes = world.trade_routes ?? []
   const caravans = world.caravans ?? []
@@ -758,6 +772,54 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                 </span>
               </div>
             ))}
+          </section>
+
+          <section className="civ-section">
+            <h3>{t('dialogs.civ.nations.heading')}</h3>
+            {nations.length === 0 && <div className="civ-empty">{t('dialogs.civ.nations.empty')}</div>}
+            {nations.map((nation) => {
+              const capital =
+                world.settlements?.find((s) => s.lineage_id === nation.ruler)?.name ??
+                lineageById(nation.ruler)
+              const ties = nation.relations
+                .map((relation) => ({ relation, tone: relationTone(relation) }))
+                .filter(
+                  (row): row is { relation: typeof row.relation; tone: RelationTone } => row.tone !== null,
+                )
+                .slice(0, SHOWN_RELATIONS)
+              return (
+                <div key={nation.id} className="civ-row civ-nation">
+                  <span className="civ-row-head">
+                    <span
+                      className="civ-nation-swatch"
+                      style={{ background: nationColour(nation.colour) }}
+                      aria-hidden="true"
+                    />
+                    {nation.name}
+                  </span>
+                  <span className="civ-row-sub">
+                    {t('dialogs.civ.nations.capital', { name: capital })} ·{' '}
+                    {nation.members.map(lineageById).join(', ')}
+                  </span>
+                  <span className="civ-row-tag">
+                    {t('dialogs.civ.nations.towns', { count: formatNumber(nation.towns.length) })}
+                  </span>
+                  <span className="civ-row-tag">
+                    {t('dialogs.civ.nations.cohesion', {
+                      percent: formatNumber(Math.round(nation.cohesion * 100)),
+                    })}
+                  </span>
+                  {ties.map(({ relation, tone }) => (
+                    <span
+                      key={relation.with}
+                      className={`civ-row-tag civ-nation-tie civ-nation-tie--${tone}`}
+                    >
+                      {t(RELATION_KEY[tone], { name: relation.name })}
+                    </span>
+                  ))}
+                </div>
+              )
+            })}
           </section>
 
           <section className="civ-section">

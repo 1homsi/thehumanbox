@@ -258,6 +258,22 @@
       "pair": "{a} & {b}",
       "treaty": "traktat"
     },
+    "nations": {
+      "heading": "Narody",
+      "empty": "Na razie brak narodów",
+      "capital": "stolica {name}",
+      "towns": "miasta: {count}",
+      "cohesion": "spójność {percent}%",
+      "relation": {
+        "war": "wojna: {name}",
+        "allied": "sojusz: {name}",
+        "vassal": "{name} płaci trybut",
+        "overlord": "trybut dla: {name}",
+        "peace": "pokój: {name}",
+        "friendly": "przyjaźń: {name}",
+        "wary": "nieufność: {name}"
+      }
+    },
     "buildings": {
       "heading": "Budynki",
       "empty": "Nic jeszcze nie zbudowano"
