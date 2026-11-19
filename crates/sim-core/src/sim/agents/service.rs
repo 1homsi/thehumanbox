@@ -52,7 +52,7 @@ impl Simulation {
     /// On the day of service, at midday: the priest leads, and half the fit adults walk to the temple to join.
     pub(crate) fn assign_service(&mut self, idx: usize) {
         let tick = self.tick_count;
-        if tick % 60 != idx as u64 % 60 || (tick / DAY_LENGTH) % WEEK_DAYS != SERVICE_DAY {
+        if !self.on_minute(60, idx as u64) || (tick / DAY_LENGTH) % WEEK_DAYS != SERVICE_DAY {
             return;
         }
         let phase = (tick % DAY_LENGTH) as f32 / DAY_LENGTH as f32;

@@ -17,7 +17,7 @@ const WELL: f32 = 0.5;
 
 const UNITS_EVERY: u64 = 8;
 
-const WAR_REACH: i32 = 80;
+const WAR_REACH: i32 = 48;
 
 const HAMLET: i32 = 32;
 
@@ -52,6 +52,12 @@ pub(crate) struct CalmMap {
     pub(crate) towns: HashSet<u32>,
     hot: Vec<(i32, i32)>,
     busy: HashSet<String>,
+    foes: HashMap<String, Vec<(i32, i32)>>,
+}
+
+fn at_front(foes: &HashMap<String, Vec<(i32, i32)>>, lineage: &str, p: (i32, i32)) -> bool {
+    foes.get(lineage)
+        .is_some_and(|list| list.iter().any(|&f| chebyshev(f, p) <= WAR_REACH))
 }
 
 impl CalmMap {
@@ -81,20 +87,18 @@ impl Simulation {
                 ]
             })
             .collect();
-        let near_front = |t: &crate::sim::civ::civ_tick::town::Town| {
-            fronts
-                .iter()
-                .filter(|(side, _)| *side == t.lineage)
-                .any(|(_, foe)| {
-                    self.towns.iter().any(|e| {
-                        e.lineage == *foe
-                            && chebyshev((e.center[0], e.center[1]), (t.center[0], t.center[1])) <= WAR_REACH
-                    })
-                })
-        };
-        let mut busy: std::collections::BTreeSet<String> =
+        let mut foes: HashMap<String, Vec<(i32, i32)>> = HashMap::default();
+        for (side, foe) in &fronts {
+            let list = foes.entry(side.to_string()).or_default();
+            list.extend(
+                self.towns
+                    .iter()
+                    .filter(|e| e.lineage == *foe)
+                    .map(|e| (e.center[0], e.center[1])),
+            );
+        }
+        let busy: std::collections::BTreeSet<String> =
             self.festivals.iter().map(|f| f.lineage_id.clone()).collect();
-        let warring: Vec<String> = fronts.iter().map(|(side, _)| side.to_string()).collect();
         let mut hot: Vec<(i32, i32)> = self
             .battles
             .iter()
@@ -124,17 +128,19 @@ impl Simulation {
         let towns: HashSet<u32> = self
             .towns
             .iter()
-            .filter(|t| !busy.contains(&t.lineage) && !near_front(t))
+            .filter(|t| {
+                !busy.contains(&t.lineage) && !at_front(&foes, &t.lineage, (t.center[0], t.center[1]))
+            })
             .filter(|t| {
                 hot.iter()
                     .all(|&h| chebyshev(h, (t.center[0], t.center[1])) > EVENT_REACH)
             })
             .map(|t| t.id)
             .collect();
-        busy.extend(warring);
         let map = CalmMap {
             towns,
             hot,
+            foes,
             busy: busy.into_iter().collect(),
         };
         self.calm_towns = Some(map);
@@ -169,8 +175,7 @@ impl Simulation {
                     && o.energy >= WELL
                     && o.hydration >= WELL
                     && !riders.contains(o.id.as_str())
-                    && o.routine
-                        .is_some_and(|r| matches!(r.activity_at(phase), Activity::Sleep | Activity::Meal));
+                    && o.routine.is_some_and(|r| r.activity_at(phase) != Activity::Work);
                 unit.filter(|_| settled)
             })
             .collect()
@@ -206,6 +211,13 @@ impl Simulation {
                     None if calm.busy.contains(&o.lineage_id) => None,
                     None => {
                         let (cx, cy) = (home.0.div_euclid(HAMLET), home.1.div_euclid(HAMLET));
+                        if at_front(
+                            &calm.foes,
+                            &o.lineage_id,
+                            (cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2),
+                        ) {
+                            return None;
+                        }
                         let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
                         let quiet = *cells.entry(id).or_insert_with(|| {
                             calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2))
@@ -233,6 +245,10 @@ impl Simulation {
                 _ => Tier::Own,
             })
             .collect()
+    }
+
+    pub(crate) fn on_minute(&self, every: u64, phase: u64) -> bool {
+        due(self.tick_count, self.turn_dt.max(1), every, phase)
     }
 
     pub(super) fn turn_gap(&self, idx: usize) -> u64 {

@@ -36,6 +36,7 @@ impl Simulation {
             );
         }
 
+        self.turn_dt = f.dt;
         self.keep_routine(idx);
         // Children keep close to their mother and play near home; elders sit by the fire after dark.
         if !f.dormant
@@ -141,6 +142,7 @@ impl Simulation {
             && self.organisms[idx].age > 1000
             && self.organisms[idx].traits.social_tendency > 0.15;
 
+        self.turn_dt = 1;
         f.is_unpartnered_adult = is_unpartnered_adult;
         f.tc = tc;
     }

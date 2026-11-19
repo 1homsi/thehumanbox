@@ -37,6 +37,7 @@ pub struct Routine {
     pub school: Option<(i32, i32)>,
     pub festival: Option<(i32, i32)>,
     pub centre: Option<(i32, i32)>,
+    pub water: Option<(i32, i32)>,
 }
 
 pub fn season_of(tick: u64) -> u8 {
@@ -51,10 +52,11 @@ const AT_PLACE: i32 = 2;
 const WORK_REACH: i32 = 26;
 const PLAY_OUT: i32 = 6;
 const IN_CROWD: i32 = 3;
-const SIP: f32 = 0.5;
-const FETCH_WATER: f32 = 0.42;
+const SIP: f32 = 0.7;
+const FETCH_WATER: f32 = 0.55;
 const WATER_WALK: f32 = 24.0;
 const WATER_LOOK: i32 = 14;
+const WATER_HOME_REACH: i32 = 40;
 
 const WORKDAY: (u64, u64, u64, u64) = (60, 270, 330, 420);
 
@@ -217,7 +219,18 @@ impl Simulation {
             school,
             festival,
             centre,
+            water: self.water_near_home(home),
         }
+    }
+
+    fn water_near_home(&self, home: (i32, i32)) -> Option<(i32, i32)> {
+        use crate::world::tiles::Tile;
+        (1..=WATER_HOME_REACH).find_map(|r| {
+            let ring = (-r..=r).flat_map(move |d| [(d, -r), (d, r), (-r, d), (r, d)]);
+            ring.map(|(dx, dy)| (home.0 + dx, home.1 + dy))
+                .filter(|&(x, y)| matches!(self.grid.get(x, y), Tile::Water | Tile::Ice))
+                .min_by_key(|&(x, y)| ((x - home.0).abs() + (y - home.1).abs(), x, y))
+        })
     }
 
     fn usual_work_spot(&self, idx: usize, home: (i32, i32)) -> Option<(i32, i32)> {
@@ -292,18 +305,7 @@ impl Simulation {
         (tile.walkable() && !self.grid.is_wet(tile, x, y)).then_some(action)
     }
 
-    pub(crate) fn routine_step(&self, idx: usize) -> Option<RoutineStep> {
-        let o = &self.organisms[idx];
-        let r = o.routine.as_ref()?;
-        if r.group == Group::Infant || o.journey.is_some() || o.mounted_vehicle.is_some() {
-            return None;
-        }
-        let tick = self.tick_count;
-        let phase = tick % DAY_LENGTH;
-        let here = (o.x as i32, o.y as i32);
-        if o.water_ticks > 0 || self.grid.is_wet(self.grid.get(here.0, here.1), here.0, here.1) {
-            return None;
-        }
+    fn water_stop(&self, o: &crate::organism::organism::Organism, here: (i32, i32)) -> Option<RoutineStep> {
         if o.hydration < SIP
             && (self.grid.water_beside(here.0, here.1).is_some()
                 || self.grid.ice_beside(here.0, here.1).is_some())
@@ -324,7 +326,8 @@ impl Simulation {
             )
             .filter(|&t| ((t.0 - here.0).abs() + (t.1 - here.1).abs()) as f32 <= WATER_WALK)
             .filter(|&t| !o.route.borrow().recently_blocked(t))
-            .or_else(|| o.nearest_visible(&self.grid, crate::world::tiles::Tile::Water, WATER_LOOK));
+            .or_else(|| o.nearest_visible(&self.grid, crate::world::tiles::Tile::Water, WATER_LOOK))
+            .or_else(|| o.routine.and_then(|r| r.water));
             if let Some(t) = water {
                 return self.dry_step(o, t).map(|action| RoutineStep {
                     action,
@@ -332,7 +335,39 @@ impl Simulation {
                 });
             }
         }
-        let activity = r.activity_at(phase);
+        None
+    }
+
+    pub(crate) fn routine_step(&self, idx: usize) -> Option<RoutineStep> {
+        let o = &self.organisms[idx];
+        let r = o.routine.as_ref()?;
+        if r.group == Group::Infant || o.mounted_vehicle.is_some() {
+            return None;
+        }
+        let tick = self.tick_count;
+        let phase = tick % DAY_LENGTH;
+        let here = (o.x as i32, o.y as i32);
+        if o.water_ticks > 0 || self.grid.is_wet(self.grid.get(here.0, here.1), here.0, here.1) {
+            let goal = {
+                let route = o.route.borrow();
+                (route.next < route.steps.len()).then_some(route.goal)
+            };
+            return goal.filter(|&g| g != here).map(|g| RoutineStep {
+                action: o.toward(g, &self.grid),
+                thought: None,
+            });
+        }
+        if o.journey.is_some() {
+            return self.water_stop(o, here);
+        }
+        if let Some(step) = self.water_stop(o, here) {
+            return Some(step);
+        }
+        let activity = if self.weather.kind >= 2 {
+            Activity::Sleep
+        } else {
+            r.activity_at(phase)
+        };
         let fresh = phase == 0 || r.activity_at(phase - 1) != activity;
         let thought = fresh.then(|| setting_out(activity));
         if activity == Activity::Meal {
@@ -408,6 +443,7 @@ mod tests {
             school: None,
             festival: None,
             centre: Some((12, 12)),
+            water: None,
         }
     }
 
@@ -451,6 +487,24 @@ mod tests {
         r.festival = Some((40, 40));
         assert_eq!(r.activity_at(450), Activity::Festival);
         assert_eq!(r.place_of(Activity::Festival), Some((40, 40)));
+    }
+
+    #[test]
+    fn a_household_draws_water_from_the_nearest_well_or_river() {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(3);
+        for x in 60..=140 {
+            for y in 60..=140 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.grid.set(130, 100, Tile::Water);
+        sim.grid.set(100, 88, Tile::Water);
+        assert_eq!(sim.water_near_home((100, 100)), Some((100, 88)));
+        sim.grid.set(100, 88, Tile::Grass);
+        assert_eq!(sim.water_near_home((100, 100)), Some((130, 100)));
+        sim.grid.set(130, 100, Tile::Grass);
+        assert_eq!(sim.water_near_home((100, 100)), None);
     }
 
     #[test]

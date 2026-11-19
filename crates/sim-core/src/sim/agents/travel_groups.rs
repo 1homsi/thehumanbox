@@ -17,7 +17,7 @@ impl Simulation {
     /// An idle adult near a tribe's leader on a journey falls in behind them and travels to the same place.
     pub(crate) fn fall_in_behind_leader(&mut self, idx: usize, spatial: &SpatialIndex) {
         let tick = self.tick_count;
-        if tick % 20 != idx as u64 % 20 {
+        if !self.on_minute(20, idx as u64) {
             return;
         }
         {

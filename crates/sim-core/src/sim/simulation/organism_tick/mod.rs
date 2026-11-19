@@ -129,7 +129,7 @@ pub(crate) struct PendingLearn {
     animal_near: bool,
 }
 
-const LOD_EVERY: u64 = 32;
+const LOD_EVERY: u64 = 64;
 
 const LORE_EVERY: u64 = 60;
 
@@ -188,6 +188,12 @@ const BATTLE_CALM_REACH: i32 = 20;
 
 const HOLD: usize = usize::MAX;
 
+const FORD_PATIENCE: u32 = 8;
+
+const FORD_DEPTH: f32 = 0.18;
+
+const STORM_SHELTER: f32 = 0.5;
+
 const CHALLENGE_COOLDOWN: u64 = 80;
 
 const DORMANT_CHALLENGE_PER_MILLE: u64 = 3;
@@ -227,7 +233,7 @@ impl Simulation {
                     return false;
                 }
                 if !self.lod
-                    || storm
+                    || (storm && !weathering_storm(o, &self.grid))
                     || match towns[i] {
                         None => (self.tick_count + i as u64).is_multiple_of(LOD_EVERY),
                         Some(town) => {
@@ -244,7 +250,7 @@ impl Simulation {
                     || o.hydration < 0.35
                     || o.health < 0.6
                     || o.infection > 0.3
-                    || o.water_ticks > 0
+                    || (o.water_ticks > 0 && !fording(o, &self.grid))
                     || o.mounted_vehicle.is_some()
                     || riders.contains(o.id.as_str())
                     || o.last_action.is_none()
@@ -606,45 +612,22 @@ fn lore_known(names: &[&str], discoveries: &std::collections::BTreeSet<String>) 
     known
 }
 
+fn weathering_storm(o: &Organism, grid: &WorldGrid) -> bool {
+    o.routine.is_some() && vitals::shelter_strength(grid, o.x as i32, o.y as i32) >= STORM_SHELTER
+}
+
+fn fording(o: &Organism, grid: &WorldGrid) -> bool {
+    let route = o.route.borrow();
+    o.water_ticks <= FORD_PATIENCE
+        && route.steps.len() > route.next
+        && grid.depth_at(o.x as i32, o.y as i32) <= FORD_DEPTH
+}
+
 fn stirs_others(action: usize) -> bool {
     matches!(action, 10 | 11 | 21)
 }
 
 pub(super) const DORMANT_ROUTINE_EVERY: u64 = 8;
-
-struct Yield {
-    energy: f32,
-    hydration: f32,
-    goods: [u8; 4],
-}
-
-impl Yield {
-    fn of(o: &Organism) -> Self {
-        Yield {
-            energy: o.energy,
-            hydration: o.hydration,
-            goods: [o.inv_food, o.inv_water, o.inv_wood, o.inv_stone],
-        }
-    }
-
-    fn repeat(&self, o: &mut Organism, times: u64) {
-        let times = times as f32;
-        o.energy = (o.energy + (o.energy - self.energy).max(0.0) * times).min(1.0);
-        o.hydration = (o.hydration + (o.hydration - self.hydration).max(0.0) * times).min(1.0);
-        for (k, before) in self.goods.into_iter().enumerate() {
-            let now = [o.inv_food, o.inv_water, o.inv_wood, o.inv_stone][k];
-            let more = (f32::from(now.saturating_sub(before)) * times) as u32;
-            let add = o.carry_room().min(more).min(u32::from(u8::MAX)) as u8;
-            let slot = match k {
-                0 => &mut o.inv_food,
-                1 => &mut o.inv_water,
-                2 => &mut o.inv_wood,
-                _ => &mut o.inv_stone,
-            };
-            *slot = slot.saturating_add(add);
-        }
-    }
-}
 
 fn upkeep_roll(tick: u64, idx: usize) -> f32 {
     let mut z = tick.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ (idx as u64).wrapping_add(0xD1B5_4A32_D192_ED03);
@@ -893,11 +876,12 @@ impl Simulation {
         let f_holds = choice.action == HOLD;
         f.plan = choice.plan.take();
         if !f_holds {
-            let before = Yield::of(&self.organisms[f.idx]);
             self.org_apply_choice(&mut f, choice);
             self.org_act(&mut f);
-            if f.dt > 1 && f.action >= 8 {
-                before.repeat(&mut self.organisms[f.idx], f.dt - 1);
+            if f.action >= 8 {
+                for _ in 1..f.dt {
+                    self.org_act(&mut f);
+                }
             }
         } else if let Some(thought) = choice.thought.as_deref() {
             self.organisms[f.idx].think(thought, self.tick_count);

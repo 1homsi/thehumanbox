@@ -26,7 +26,7 @@ impl Simulation {
     /// walk over to listen.
     pub(crate) fn assign_speech(&mut self, idx: usize) {
         let tick = self.tick_count;
-        if tick % 60 != idx as u64 % 60 || (tick / DAY_LENGTH) % SPEECH_DAYS != SPEECH_DAY {
+        if !self.on_minute(60, idx as u64) || (tick / DAY_LENGTH) % SPEECH_DAYS != SPEECH_DAY {
             return;
         }
         let phase = (tick % DAY_LENGTH) as f32 / DAY_LENGTH as f32;

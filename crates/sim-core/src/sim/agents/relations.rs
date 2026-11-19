@@ -40,7 +40,7 @@ impl Simulation {
     /// An idle person with a rival within three tiles steps away from them.
     pub(crate) fn keep_away_from_rivals(&mut self, idx: usize, org_idx_by_id: &FxHashMap<String, usize>) {
         let tick = self.tick_count;
-        if tick % 10 != idx as u64 % 10 {
+        if !self.on_minute(10, idx as u64) {
             return;
         }
         {
@@ -81,7 +81,7 @@ impl Simulation {
     /// An idle person with a friend a little way off walks over to them now and then.
     pub(crate) fn walk_to_a_friend(&mut self, idx: usize, org_idx_by_id: &FxHashMap<String, usize>) {
         let tick = self.tick_count;
-        if tick % 200 != idx as u64 % 200 {
+        if !self.on_minute(200, idx as u64) {
             return;
         }
         {

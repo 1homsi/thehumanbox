@@ -273,7 +273,7 @@ impl Simulation {
     /// In the working hours, sends a free, fit person without a workshop out to work.
     pub(crate) fn assign_daily_work(&mut self, idx: usize) {
         let tick = self.tick_count;
-        let on_schedule = tick % 60 == (idx as u64 + 30) % 60;
+        let on_schedule = self.on_minute(60, idx as u64 + 30);
         // A field can ripen between check-ins; someone working it notices at
         // once instead of standing over a ripe crop until the next one.
         let in_the_fields = self.organisms[idx]

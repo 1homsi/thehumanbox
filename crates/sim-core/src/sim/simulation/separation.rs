@@ -75,7 +75,9 @@ impl Simulation {
 
     fn walkable_at(&self, x: f32, y: f32) -> bool {
         let (tx, ty) = (x as i32, y as i32);
-        WorldGrid::in_bounds(tx, ty) && self.grid.get(tx, ty).walkable()
+        WorldGrid::in_bounds(tx, ty)
+            && self.grid.get(tx, ty).walkable()
+            && !self.grid.is_wet(self.grid.get(tx, ty), tx, ty)
     }
 }
 

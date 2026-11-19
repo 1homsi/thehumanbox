@@ -119,7 +119,7 @@ impl Simulation {
             }
             return;
         }
-        if !may_play || tick % 120 != idx as u64 % 120 {
+        if !may_play || !self.on_minute(120, idx as u64) {
             return;
         }
         let mate = spatial
@@ -149,7 +149,7 @@ impl Simulation {
     /// Children who gather there learn a little from them (see `teach_by_the_fire`).
     fn sit_by_the_fire(&mut self, idx: usize, spatial: &SpatialIndex) {
         let tick = self.tick_count;
-        if tick % 90 == idx as u64 % 90 {
+        if self.on_minute(90, idx as u64) {
             let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             if let Some(fire) = self.organisms[idx].nearest_visible(&self.grid, Tile::Campfire, FIRE_REACH) {
                 if chebyshev(here, fire) > 1 && self.set_outing_target(idx, fire) {
@@ -157,7 +157,7 @@ impl Simulation {
                 }
             }
         }
-        if tick % 30 == idx as u64 % 30 {
+        if self.on_minute(30, idx as u64) {
             self.teach_by_the_fire(idx, spatial);
         }
     }

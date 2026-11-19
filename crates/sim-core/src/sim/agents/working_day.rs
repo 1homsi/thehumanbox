@@ -80,7 +80,7 @@ impl Simulation {
     /// Sends an idle, fit adult to work in the morning, or home to eat at midday, depending on the hour.
     pub(crate) fn assign_working_day(&mut self, idx: usize) {
         let tick = self.tick_count;
-        if tick % 60 != idx as u64 % 60 {
+        if !self.on_minute(60, idx as u64) {
             return;
         }
         let phase = (tick % DAY_LENGTH) as f32 / DAY_LENGTH as f32;

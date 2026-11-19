@@ -316,6 +316,7 @@ impl Simulation {
             evening_places: Default::default(),
             calm_towns: None,
             lod_units: Vec::new(),
+            turn_dt: 1,
             lod: true,
             followed: None,
             school_places: Default::default(),
