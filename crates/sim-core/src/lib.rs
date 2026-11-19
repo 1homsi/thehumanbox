@@ -54,13 +54,20 @@ fn stamp_frame(frame: &mut FramePayload, frame_id: u32, now_ms: f64, full: bool)
 #[cfg(target_arch = "wasm32")]
 mod wasm_facade {
     use super::{frame_is_complete, stamp_frame};
-    use crate::sim::persistence::SaveState;
+    use crate::sim::persistence::{SaveState, SaveWriter};
     use crate::sim::simulation::Simulation;
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(js_namespace = Date)]
+        fn now() -> f64;
+    }
+
+    #[wasm_bindgen]
     pub struct Sim {
         inner: Simulation,
+        save: Option<SaveWriter>,
     }
 
     #[wasm_bindgen]
@@ -69,12 +76,14 @@ mod wasm_facade {
         pub fn new(seed: u64) -> Sim {
             Sim {
                 inner: Simulation::new(seed),
+                save: None,
             }
         }
 
         pub fn blank(seed: u64) -> Sim {
             Sim {
                 inner: Simulation::new_blank(seed),
+                save: None,
             }
         }
 
@@ -96,6 +105,7 @@ mod wasm_facade {
             };
             Ok(Sim {
                 inner: Simulation::from_save(terrain_seed, state),
+                save: None,
             })
         }
 
@@ -142,8 +152,28 @@ mod wasm_facade {
                 .expect("frame payload msgpack serialization cannot fail")
         }
 
-        pub fn serialize(&self) -> Vec<u8> {
+        pub fn serialize(&mut self) -> Vec<u8> {
+            self.save = None;
             self.inner.to_save_state().to_bytes()
+        }
+
+        #[wasm_bindgen(js_name = serializeBegin)]
+        pub fn serialize_begin(&mut self) {
+            self.save = Some(self.inner.to_save_state().into_writer());
+        }
+
+        #[wasm_bindgen(js_name = serializeChunk)]
+        pub fn serialize_chunk(&mut self, budget_ms: f64) -> Option<Vec<u8>> {
+            let Some(writer) = self.save.as_mut() else {
+                return Some(Vec::new());
+            };
+            let started = now();
+            while !writer.write(4) {
+                if now() - started >= budget_ms {
+                    return None;
+                }
+            }
+            self.save.take().map(SaveWriter::finish)
         }
 
         /// Runs a player command and returns its outcome as JSON: `{"applied", "code", "count", "name"}`.

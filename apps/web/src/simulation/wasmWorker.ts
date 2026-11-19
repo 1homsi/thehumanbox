@@ -86,6 +86,7 @@ const COMMAND_FULL_FRAME_MS = 250
 const COMMAND_SAVE_DEBOUNCE_MS = 1_500
 const FULL_FRAME_SPACING = 10
 const SAVE_SPACING = 20
+const SAVE_SLICE_MS = 8
 const MIGRATION_DELAY_MS = 20_000
 const MIGRATION_PAUSE_MS = 2_000
 const LOCK_WAIT_MS = 4_000
@@ -412,6 +413,33 @@ function scheduleRecoveryMigration() {
   }, MIGRATION_DELAY_MS)
 }
 
+function serializeAtOnce(running: SimInstance): Uint8Array | null {
+  const startedAt = performance.now()
+  const blob = guarded(null, () => running.serialize())
+  lastSaveAt = performance.now()
+  lastSaveCostMs = lastSaveAt - startedAt
+  return blob
+}
+
+async function serializeBetweenTicks(running: SimInstance): Promise<Uint8Array | null> {
+  let sliceAt = performance.now()
+  if (!guarded(false, () => (running.serializeBegin(), true))) return null
+  let blockedMs = performance.now() - sliceAt
+  for (;;) {
+    if (urgentPersist) return null
+    sliceAt = performance.now()
+    const blob = guarded<Uint8Array | null | undefined>(null, () => running.serializeChunk(SAVE_SLICE_MS))
+    blockedMs += performance.now() - sliceAt
+    if (blob !== undefined) {
+      lastSaveAt = performance.now()
+      lastSaveCostMs = blockedMs
+      return blob
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    if (sim !== running || simFailed) return null
+  }
+}
+
 async function persist(urgent = false): Promise<boolean> {
   if (!sim || !storageReady) return false
   if (urgent) urgentPersist = true
@@ -427,15 +455,16 @@ async function persist(urgent = false): Promise<boolean> {
         persistAgain = false
         const quick = urgentPersist
         urgentPersist = false
-        const running = sim
+        const running: SimInstance | null = sim
         if (!running) return false
         const tick = guarded(null, () => Number(running.tickCount()))
         if (tick === null) return false
         post({ type: 'saving', tick })
-        const serializeStartedAt = performance.now()
-        const blob = guarded(null, () => running.serialize())
-        lastSaveAt = performance.now()
-        lastSaveCostMs = lastSaveAt - serializeStartedAt
+        const blob = quick ? serializeAtOnce(running) : await serializeBetweenTicks(running)
+        if (!blob && sim && !simFailed && (sim !== running || urgentPersist)) {
+          persistAgain = true
+          continue
+        }
         if (!blob) return false
         if (blob.byteLength === 0) throw new Error('simulation produced an empty save')
         const savedAt = Date.now()

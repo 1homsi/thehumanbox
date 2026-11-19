@@ -164,16 +164,28 @@ pub(crate) mod q_table {
         static READING: RefCell<Option<(Vec<String>, bool)>> = const { RefCell::new(None) };
     }
 
+    pub(crate) struct Writing(Option<(FxHashMap<String, u32>, bool)>);
+
+    impl Writing {
+        pub(crate) fn new(keys: &[String], wide: bool) -> Self {
+            let index = keys
+                .iter()
+                .enumerate()
+                .map(|(i, k)| (k.clone(), i as u32))
+                .collect();
+            Writing(Some((index, wide)))
+        }
+
+        pub(crate) fn run<R>(&mut self, f: impl FnOnce() -> R) -> R {
+            WRITING.with_borrow_mut(|w| *w = self.0.take());
+            let out = f();
+            self.0 = WRITING.with_borrow_mut(Option::take);
+            out
+        }
+    }
+
     pub(crate) fn writing_with<R>(keys: &[String], wide: bool, f: impl FnOnce() -> R) -> R {
-        let index = keys
-            .iter()
-            .enumerate()
-            .map(|(i, k)| (k.clone(), i as u32))
-            .collect();
-        WRITING.with_borrow_mut(|w| *w = Some((index, wide)));
-        let out = f();
-        WRITING.with_borrow_mut(|w| *w = None);
-        out
+        Writing::new(keys, wide).run(f)
     }
 
     pub(crate) fn reading_with(keys: Vec<String>, wide: bool) {

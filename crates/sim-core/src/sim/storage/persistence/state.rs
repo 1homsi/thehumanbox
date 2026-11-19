@@ -98,6 +98,76 @@ pub(crate) struct WaterUseSave {
     pub(super) count: u32,
 }
 
+pub struct SaveWriter {
+    rest: Option<SaveState>,
+    keys: Vec<String>,
+    head: Vec<u8>,
+    body: Vec<u8>,
+    tail: Vec<u8>,
+    organisms: std::vec::IntoIter<OrgSave>,
+    writing: compact::q_table::Writing,
+}
+
+impl SaveWriter {
+    pub fn write(&mut self, count: usize) -> bool {
+        if let Some(rest) = self.rest.take() {
+            self.write_rest(rest);
+            return self.organisms.len() == 0;
+        }
+        let body = &mut self.body;
+        let organisms = &mut self.organisms;
+        self.writing.run(|| {
+            for org in organisms.by_ref().take(count) {
+                rmp_serde::encode::write_named(body, &org).expect("a save state always encodes");
+            }
+        });
+        self.organisms.len() == 0
+    }
+
+    fn write_rest(&mut self, mut rest: SaveState) {
+        let keys = std::mem::take(&mut self.keys);
+        self.writing = compact::q_table::Writing::new(&keys, false);
+        let mut out = compact::MAGIC.to_vec();
+        self.writing.run(|| {
+            rmp_serde::encode::write_named(&mut out, &(&keys, &rest)).expect("a save state always encodes");
+        });
+        let marker = b"\xa9organisms\x90";
+        let mut found = out.windows(marker.len()).enumerate().filter(|(_, w)| w == marker);
+        let Some(at) = (match (found.next(), found.next()) {
+            (Some((at, _)), None) => Some(at + marker.len() - 1),
+            _ => None,
+        }) else {
+            rest.organisms = std::mem::take(&mut self.organisms).collect();
+            self.head = rest.to_bytes();
+            return;
+        };
+        self.tail = out.split_off(at + 1);
+        out.truncate(at);
+        self.head = out;
+        let n = self.organisms.len();
+        match u32::try_from(n) {
+            Ok(n) if n < 16 => self.body.push(0x90 | n as u8),
+            Ok(n) if n <= u32::from(u16::MAX) => {
+                self.body.push(0xdc);
+                self.body.extend_from_slice(&(n as u16).to_be_bytes());
+            }
+            _ => {
+                self.body.push(0xdd);
+                self.body.extend_from_slice(&(n as u32).to_be_bytes());
+            }
+        }
+    }
+
+    pub fn finish(mut self) -> Vec<u8> {
+        while !self.write(usize::MAX) {}
+        let mut out = self.head;
+        out.reserve(self.body.len() + self.tail.len());
+        out.extend_from_slice(&self.body);
+        out.extend_from_slice(&self.tail);
+        out
+    }
+}
+
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SaveState {
@@ -280,7 +350,7 @@ impl SaveState {
         self.encode(compact::MAGIC_V1, true)
     }
 
-    fn encode(&self, magic: &[u8; 8], wide: bool) -> Vec<u8> {
+    fn q_keys(&self) -> Vec<String> {
         let mut seen = crate::hashing::FxHashSet::default();
         let mut keys: Vec<String> = Vec::new();
         for o in &self.organisms {
@@ -290,11 +360,30 @@ impl SaveState {
                 }
             }
         }
+        keys
+    }
+
+    fn encode(&self, magic: &[u8; 8], wide: bool) -> Vec<u8> {
+        let keys = self.q_keys();
         let mut out = magic.to_vec();
         compact::q_table::writing_with(&keys, wide, || {
             rmp_serde::encode::write_named(&mut out, &(&keys, self)).expect("a save state always encodes");
         });
         out
+    }
+
+    pub fn into_writer(mut self) -> SaveWriter {
+        let keys = self.q_keys();
+        let organisms = std::mem::take(&mut self.organisms);
+        SaveWriter {
+            rest: Some(self),
+            writing: compact::q_table::Writing::new(&[], false),
+            keys,
+            head: Vec::new(),
+            body: Vec::new(),
+            tail: Vec::new(),
+            organisms: organisms.into_iter(),
+        }
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
