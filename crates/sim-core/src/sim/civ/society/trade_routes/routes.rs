@@ -52,8 +52,9 @@ pub(super) fn settlement_endpoints(
     if first_lineage.is_empty() || second_lineage.is_empty() || first_lineage == second_lineage {
         return None;
     }
-    endpoints_in(
-        &settlements::at_town_centres(sim, settlements::snapshots_this_tick(sim).to_vec()),
+    town_endpoints(
+        sim,
+        &settlements::snapshots_this_tick(sim),
         first_lineage,
         second_lineage,
     )
@@ -70,28 +71,29 @@ pub(super) fn settlement_endpoints_now(
     if first_lineage.is_empty() || second_lineage.is_empty() || first_lineage == second_lineage {
         return None;
     }
-    endpoints_in(
-        &settlements::at_town_centres(sim, settlements::snapshots(sim)),
-        first_lineage,
-        second_lineage,
-    )
+    town_endpoints(sim, &settlements::snapshots(sim), first_lineage, second_lineage)
 }
 
-fn endpoints_in(
+fn town_endpoints(
+    sim: &Simulation,
     snapshots: &[settlements::SettlementSnapshot],
     first_lineage: &str,
     second_lineage: &str,
 ) -> Option<([i32; 2], [i32; 2])> {
-    let first = snapshots
-        .iter()
-        .find(|settlement| settlement.lineage_id == first_lineage && settlement.tier >= 1)?;
-    let second = snapshots
-        .iter()
-        .find(|settlement| settlement.lineage_id == second_lineage && settlement.tier >= 1)?;
-    if !valid_world_point(first.center) || !valid_world_point(second.center) {
+    let centre = |lineage: &str| {
+        let settlement = snapshots
+            .iter()
+            .find(|settlement| settlement.lineage_id == lineage && settlement.tier >= 1)?;
+        Some(
+            crate::sim::civ::civ_tick::town::main_town(sim, lineage)
+                .map_or(settlement.center, |town| town.center),
+        )
+    };
+    let (first, second) = (centre(first_lineage)?, centre(second_lineage)?);
+    if !valid_world_point(first) || !valid_world_point(second) {
         return None;
     }
-    Some((first.center, second.center))
+    Some((first, second))
 }
 
 pub fn establish_route(sim: &mut Simulation, actor_idx: usize, partner_idx: usize) -> bool {

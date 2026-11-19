@@ -11,6 +11,7 @@ const SENT_OUTSIDE_THE_DOCK: &[(&str, &str)] = &[
     ("teach", "the tribe card"),
     ("rename_tribe", "the tribe card"),
     ("rename_person", "the rename form"),
+    ("follow", "the follow button on a person's card"),
     ("guide", "the tribe card"),
     ("composite", "mod actions"),
 ];

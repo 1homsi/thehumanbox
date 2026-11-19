@@ -211,6 +211,26 @@ fn residents(sim: &Simulation, homes: &HomesByLineage) -> HashMap<u32, usize> {
     out
 }
 
+fn residents_of(sim: &Simulation, lineage: &str) -> HashMap<u32, usize> {
+    let towns: Vec<&Town> = sim.towns.iter().filter(|t| t.lineage == lineage).collect();
+    let mut out: HashMap<u32, usize> = HashMap::default();
+    for o in sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.lineage_id == lineage)
+    {
+        let home = [o.home_x as i32, o.home_y as i32];
+        if let Some(t) = towns
+            .iter()
+            .filter(|t| chebyshev(t.center, home) <= ABANDON_REACH)
+            .min_by_key(|t| (chebyshev(t.center, home), t.id))
+        {
+            *out.entry(t.id).or_insert(0) += 1;
+        }
+    }
+    out
+}
+
 pub(crate) fn tick_towns(sim: &mut Simulation) {
     let homes = homes_by_lineage(sim);
     let people = residents(sim, &homes);
@@ -602,8 +622,7 @@ pub(crate) fn town_for(sim: &Simulation, lineage: &str, kind: BuildingKind) -> O
     if mine.len() <= 1 {
         return mine.first().copied();
     }
-    let homes = homes_by_lineage(sim);
-    let people = residents(sim, &homes);
+    let people = residents_of(sim, lineage);
     let score = |i: usize| -> i64 {
         let t = &sim.towns[i];
         let residents = people.get(&t.id).copied().unwrap_or(0) as i64;

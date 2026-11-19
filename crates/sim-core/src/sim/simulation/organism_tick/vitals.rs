@@ -47,7 +47,8 @@ impl Simulation {
         }
 
         if self.organisms[idx].carrying > 0 {
-            self.organisms[idx].carrying -= 1;
+            let spent = self.organisms[idx].carrying.min(f.dt.min(255) as u32);
+            self.organisms[idx].carrying -= spent;
             if self.organisms[idx].carrying == 0 {
                 self.organisms[idx].carrying_type = 0;
             }
@@ -132,10 +133,8 @@ impl Simulation {
             let climate = self.climate(night);
             drain_and_eat(
                 &mut self.organisms[idx],
-                &self.grid,
+                water_near(&self.grid, cx, cy),
                 &climate,
-                cx,
-                cy,
                 shelter_strength,
             );
             self.apply_water_fatigue(idx, cx, cy);
@@ -149,7 +148,9 @@ impl Simulation {
             );
         }
 
-        if self.organisms[idx].inv_water >= 2 && self.tick_count % 7 == (idx as u64 % 7) {
+        if self.organisms[idx].inv_water >= 2
+            && crate::sim::simulation::town_lod::due(self.tick_count, f.dt, 7, idx as u64)
+        {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let lid = &self.organisms[idx].lineage_id;
             ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
@@ -196,7 +197,7 @@ impl Simulation {
             }
         }
 
-        if night && self.tick_count % 17 == (idx as u64 % 17) {
+        if night && crate::sim::simulation::town_lod::due(self.tick_count, f.dt, 17, idx as u64) {
             let (sx, sy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let near_fire = (-2i32..=2).any(|ddx| {
                 (-2i32..=2)
@@ -267,7 +268,9 @@ impl Simulation {
             }
         }
 
-        if self.organisms[idx].energy > 0.75 && self.tick_count % 5 == (idx as u64 % 5) {
+        if self.organisms[idx].energy > 0.75
+            && crate::sim::simulation::town_lod::due(self.tick_count, f.dt, 5, idx as u64)
+        {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let lid = &self.organisms[idx].lineage_id;
             ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
@@ -329,7 +332,9 @@ impl Simulation {
         if self.organisms[idx].discoveries.has(Hot::Trap) {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_trail = self.grid.detect_trail(cx2, cy2, TrailKind::Food, 3);
-            if food_trail > 0.45 && self.rng.random::<f32>() < 0.0025 {
+            if food_trail > 0.45
+                && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.0025, f.dt)
+            {
                 self.organisms[idx].energy = (self.organisms[idx].energy + 0.14).min(1.0);
                 self.organisms[idx].think("trap caught something", self.tick_count);
                 let name = self.organisms[idx].name.clone();
@@ -351,7 +356,9 @@ impl Simulation {
                 Biome::Volcanic => 0.00020,
                 _ => 0.00012,
             };
-            if self.organisms[idx].infection < 0.05 && self.rng.random::<f32>() < pathogen_rate {
+            if self.organisms[idx].infection < 0.05
+                && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(pathogen_rate, f.dt)
+            {
                 self.organisms[idx].infection = 0.35 * (1.0 - self.organisms[idx].traits.resilience * 0.4);
             }
         }
@@ -390,6 +397,7 @@ impl Simulation {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct Climate {
     pub(super) night: bool,
     heat_thirst: f32,
@@ -397,6 +405,12 @@ pub(super) struct Climate {
     hunger: f32,
     season_temp: f32,
     tick: u64,
+}
+
+impl Climate {
+    pub(super) fn at(self, tick: u64) -> Self {
+        Climate { tick, ..self }
+    }
 }
 
 pub(super) fn shelter_strength(grid: &WorldGrid, cx: i32, cy: i32) -> f32 {
@@ -447,16 +461,11 @@ fn drain_mult(shelter: f32) -> f32 {
     }
 }
 
-pub(super) fn drain_and_eat(
-    o: &mut Organism,
-    grid: &WorldGrid,
-    climate: &Climate,
-    cx: i32,
-    cy: i32,
-    shelter: f32,
-) {
-    let water_near =
-        (-4i32..=4).any(|ddx| (-4i32..=4).any(|ddy| grid.get(cx + ddx, cy + ddy) == Tile::Water));
+pub(super) fn water_near(grid: &WorldGrid, cx: i32, cy: i32) -> bool {
+    (-4i32..=4).any(|ddx| (-4i32..=4).any(|ddy| grid.get(cx + ddx, cy + ddy) == Tile::Water))
+}
+
+pub(super) fn drain_and_eat(o: &mut Organism, water_near: bool, climate: &Climate, shelter: f32) {
     let hydration_mult = if water_near { 0.5 } else { 1.0 };
     o.energy = (o.energy - 0.0022 * drain_mult(shelter) * climate.heat_tire * climate.hunger).max(0.0);
     o.hydration = (o.hydration - 0.0014 * hydration_mult * climate.heat_thirst).max(0.0);
@@ -533,8 +542,14 @@ pub(super) fn ritual_comfort(o: &mut Organism, grid: &WorldGrid, night: bool) {
         return;
     }
     let (cx, cy) = (o.x as i32, o.y as i32);
-    let near_fire =
-        (-3i32..=3).any(|ddx| (-3i32..=3).any(|ddy| grid.get(cx + ddx, cy + ddy) == Tile::Campfire));
+    ritual_warmth(o, campfire_near(grid, cx, cy));
+}
+
+pub(super) fn campfire_near(grid: &WorldGrid, cx: i32, cy: i32) -> bool {
+    (-3i32..=3).any(|ddx| (-3i32..=3).any(|ddy| grid.get(cx + ddx, cy + ddy) == Tile::Campfire))
+}
+
+pub(super) fn ritual_warmth(o: &mut Organism, near_fire: bool) {
     if near_fire {
         o.comfort = (o.comfort + 0.003).min(1.0);
         o.loneliness = (o.loneliness - 0.005).max(0.0);

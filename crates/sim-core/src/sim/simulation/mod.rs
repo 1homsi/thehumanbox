@@ -39,6 +39,7 @@ mod separation;
 mod strategy;
 mod territory;
 mod tick;
+mod town_lod;
 mod tribe_chronicle;
 mod types;
 pub(crate) mod wary_game;
@@ -171,6 +172,10 @@ pub struct Simulation {
     pub goals: crate::sim::goals::GoalBook,
     /// Where each tribe gathers this evening (runtime; worked out at dusk).
     pub(crate) evening_places: std::collections::BTreeMap<String, (i32, i32)>,
+    pub(crate) calm_towns: Option<town_lod::CalmMap>,
+    pub(crate) lod_units: Vec<Option<u32>>,
+    pub lod: bool,
+    pub(crate) followed: Option<String>,
     /// Where each tribe's children go to school this hour (runtime; empty outside school hours).
     pub(crate) school_places: std::collections::BTreeMap<String, (i32, i32)>,
     /// The recently dead, newest last: who died and when (runtime).
@@ -356,6 +361,10 @@ impl Simulation {
             festival_last: HashMap::default(),
             goals: Default::default(),
             evening_places: Default::default(),
+            calm_towns: None,
+            lod_units: Vec::new(),
+            lod: true,
+            followed: None,
             school_places: Default::default(),
             fallen: VecDeque::new(),
             revive_cooldown: HashMap::default(),

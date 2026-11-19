@@ -2,6 +2,8 @@ use super::*;
 use crate::math::DetMath;
 use crate::sim::agents::relations::RIVAL_TRUST;
 
+const MATE_SEEK_EVERY: u64 = 16;
+
 impl Simulation {
     /// Partnership and family: friend-seeking, courtship and conversation, partners, and reproduction.
     pub(super) fn org_pairing(&mut self, f: &mut OrgFrame<'_>) {
@@ -17,6 +19,7 @@ impl Simulation {
             && self.organisms[idx].attracted_to.is_none()
             && self.organisms[idx].wander_target.is_none()
             && self.organisms[idx].loneliness > 0.20
+            && (!f.dormant || crate::sim::simulation::town_lod::due(tc, f.dt, MATE_SEEK_EVERY, idx as u64))
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
@@ -121,7 +124,7 @@ impl Simulation {
 
         if is_unpartnered_adult
             && self.organisms[idx].attracted_to.is_none()
-            && self.rng.random::<f32>() < 0.012
+            && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.012, f.dt)
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
@@ -162,7 +165,10 @@ impl Simulation {
                     let o = &self.organisms[i];
                     o.alive && (o.x - ox).det_hypot(o.y - oy) < reach
                 });
-                if partner_close && attraction_age >= 150 && self.rng.random::<f32>() < 0.08 {
+                if partner_close
+                    && attraction_age >= 150
+                    && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.08, f.dt)
+                {
                     if let Some(pi) = org_idx_by_id
                         .get(&aid)
                         .copied()
@@ -232,8 +238,8 @@ impl Simulation {
 
         // The id is copied only when the check passes; the checks run in the same order as before, so the draws match.
         if self.organisms[idx].partner_id.is_some()
-            && tc % 19 == (idx as u64 % 19)
-            && self.rng.random::<f32>() < 0.0018
+            && crate::sim::simulation::town_lod::due(tc, f.dt, 19, idx as u64)
+            && self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.0018, f.dt)
         {
             if let Some(pid) = self.organisms[idx].partner_id.clone() {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
@@ -269,7 +275,7 @@ impl Simulation {
         }
 
         {
-            let spread_check = tc % 29 == (idx as u64 % 29);
+            let spread_check = crate::sim::simulation::town_lod::due(tc, f.dt, 29, idx as u64);
             if spread_check {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let chat_target: Option<usize> = {
@@ -315,7 +321,7 @@ impl Simulation {
                     } else {
                         "chat"
                     };
-                    if self.rng.random::<f32>() < 0.004 {
+                    if self.rng.random::<f32>() < crate::sim::simulation::town_lod::chance(0.004, f.dt) {
                         let (conv_a, conv_b) = courtship::generate_conversation_pair(
                             &self.organisms[idx],
                             &self.organisms[ci],

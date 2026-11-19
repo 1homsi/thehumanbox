@@ -54,6 +54,7 @@ const IN_CROWD: i32 = 3;
 const SIP: f32 = 0.5;
 const FETCH_WATER: f32 = 0.42;
 const WATER_WALK: f32 = 24.0;
+const WATER_LOOK: i32 = 14;
 
 const WORKDAY: (u64, u64, u64, u64) = (60, 270, 330, 420);
 
@@ -322,7 +323,8 @@ impl Simulation {
                 urgency,
             )
             .filter(|&t| ((t.0 - here.0).abs() + (t.1 - here.1).abs()) as f32 <= WATER_WALK)
-            .filter(|&t| !o.route.borrow().recently_blocked(t));
+            .filter(|&t| !o.route.borrow().recently_blocked(t))
+            .or_else(|| o.nearest_visible(&self.grid, crate::world::tiles::Tile::Water, WATER_LOOK));
             if let Some(t) = water {
                 return self.dry_step(o, t).map(|action| RoutineStep {
                     action,

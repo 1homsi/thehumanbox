@@ -124,6 +124,10 @@ impl PhysicsEngine {
         }
     }
 
+    pub fn fire_tiles(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        self.active_fire_tiles.iter().copied()
+    }
+
     pub fn register_fire(&mut self, x: i32, y: i32) {
         self.active_fire_tiles.insert((x, y));
     }

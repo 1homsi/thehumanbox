@@ -70,6 +70,7 @@ export type SandboxCommand =
   | { cmd: 'merge_tribes'; ax: number; ay: number; bx: number; by: number }
   | { cmd: 'split_tribe'; x: number; y: number; radius?: number }
   | { cmd: 'rename_person'; id: string; name: string }
+  | { cmd: 'follow'; id?: string }
   | { cmd: 'tame'; x: number; y: number; radius?: number }
   | { cmd: 'family'; x: number; y: number }
   | { cmd: 'teleport'; x: number; y: number; radius?: number }

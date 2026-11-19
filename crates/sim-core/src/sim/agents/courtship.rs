@@ -424,14 +424,14 @@ fn concept_gloss(concept: &str) -> &'static str {
 }
 
 fn pick_concept_and_word<'a>(
-    vocab: &'a crate::hashing::FxHashMap<String, String>,
+    vocab: &'a crate::organism::vocabulary::Vocabulary,
     concepts: &[&'a str],
     rng: &mut impl Rng,
 ) -> (&'a str, &'a str) {
     for _ in 0..8 {
         let c = concepts[rng.random_range(0..concepts.len())];
-        if let Some(w) = vocab.get(c) {
-            return (c, w.as_str());
+        if let Some(w) = vocab.word(c) {
+            return (c, w);
         }
     }
     (concepts.first().copied().unwrap_or("~"), "~")
@@ -462,10 +462,8 @@ fn utterance_with_meaning(
     // (now-positional) slots directly. `words`, not `as_hashmap`: this
     // map feeds the conversation prompt, which must never see the
     // reserved `__thb_last_used` clock blob as if it were a word.
-    let v = speaker.vocabulary.words();
-    let lv = listener.vocabulary.words();
-    let v = &v;
-    let lv = &lv;
+    let v = &speaker.vocabulary;
+    let lv = &listener.vocabulary;
 
     match mood {
         0 => {
