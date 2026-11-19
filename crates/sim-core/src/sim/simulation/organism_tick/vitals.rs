@@ -276,9 +276,9 @@ impl Simulation {
             ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
                 i != idx
                     && o.alive
-                    && o.lineage_id == *lid
                     && o.energy < 0.30
                     && (o.x - sx).abs() + (o.y - sy).abs() < 2.5
+                    && o.lineage_id == *lid
             });
             let recipient = spatial_buf
                 .iter()
