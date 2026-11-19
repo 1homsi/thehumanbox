@@ -256,8 +256,8 @@ impl Organism {
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
-                        && o.lineage_id == self.lineage_id
                         && o.infection < 0.10
+                        && o.lineage_id == self.lineage_id
                 })
                 .filter(|o| (o.x - self.x).abs() + (o.y - self.y).abs() <= 4.0)
                 .map(|o| (o.x, o.y))
@@ -347,8 +347,8 @@ impl Organism {
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
-                        && o.lineage_id == self.lineage_id
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
+                        && o.lineage_id == self.lineage_id
                 })
                 .find(|o| matches!(grid.get(o.x as i32, o.y as i32), Tile::Water));
             if let Some(k) = kin_at_water {
@@ -435,8 +435,8 @@ impl Organism {
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
-                        && o.lineage_id == self.lineage_id
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
+                        && o.lineage_id == self.lineage_id
                 })
                 .map(|o| (o.x as i32, o.y as i32))
                 .filter(|&at| matches!(grid.get(at.0, at.1), Tile::Food) && open(at))
@@ -783,8 +783,8 @@ impl Organism {
             let kin_nearby = nearby_people().any(|o| {
                 !std::ptr::eq(o, self)
                     && o.alive
-                    && o.lineage_id == self.lineage_id
                     && (o.x - self.x).abs() + (o.y - self.y).abs() <= 8.0
+                    && o.lineage_id == self.lineage_id
             });
             let play_prob = if kin_nearby { 0.04 } else { 0.015 };
             if rng.random::<f32>() < play_prob * self.traits.curiosity {
@@ -806,8 +806,8 @@ impl Organism {
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
-                        && o.lineage_id == self.lineage_id
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
+                        && o.lineage_id == self.lineage_id
                 })
                 .count();
             if near_fire
@@ -841,9 +841,9 @@ impl Organism {
             let hungry_kin_nearby = nearby_people().any(|o| {
                 !std::ptr::eq(o, self)
                     && o.alive
-                    && o.lineage_id == self.lineage_id
                     && o.energy < 0.30
                     && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
+                    && o.lineage_id == self.lineage_id
             });
             if hungry_kin_nearby {
                 if let Some(f) = self.nearest_visible(grid, Tile::Food, 12) {
@@ -1094,8 +1094,8 @@ impl Organism {
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
-                        && o.lineage_id == self.lineage_id
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
+                        && o.lineage_id == self.lineage_id
                 })
                 .count();
 
@@ -1152,9 +1152,9 @@ impl Organism {
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
-                        && o.lineage_id == self.lineage_id
                         && o.fear_level > 0.55
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 8.0
+                        && o.lineage_id == self.lineage_id
                 })
                 .count();
             if kin_afraid >= 1 && self.inv_wood > 0 && rng.random::<f32>() < 0.10 {
@@ -1185,8 +1185,8 @@ impl Organism {
                 !std::ptr::eq(o, self)
                     && o.alive
                     && o.age < 500
-                    && o.lineage_id == self.lineage_id
                     && (o.x - self.x).abs() + (o.y - self.y).abs() <= 4.0
+                    && o.lineage_id == self.lineage_id
             });
             if kid_kin && self.energy > 0.5 && rng.random::<f32>() < 0.06 {
                 set_thought!("playing with the kids");
