@@ -67,6 +67,20 @@ function world(over: Partial<WorldState> = {}): WorldState {
 const bounds = { c0: 0, c1: 100, r0: 0, r1: 60 }
 
 describe('settlement labels without the building painter', () => {
+  it('letters the ruins of abandoned towns with how far they have fallen, until grass covers them', () => {
+    const ruins = [
+      { id: 7, name: 'Wagepu', center: [50, 20], stage: 'foundations', abandoned_tick: 0 },
+      { id: 8, name: 'Lupif', center: [30, 40], stage: 'overgrown', abandoned_tick: 0 },
+    ]
+    const near = collectSettlementLabels(world({ ruins } as Partial<WorldState>), bounds, 1)
+    const ruin = near.find((l) => l.key === 'ruin:7')
+    expect(ruin?.title).toBe('RUINS OF THE WAGEPU')
+    expect(ruin?.sub).toBe('only foundations left')
+    expect(near.some((l) => l.key === 'ruin:8')).toBe(false)
+    const far = collectSettlementLabels(world({ ruins } as Partial<WorldState>), bounds, 0.5)
+    expect(far.some((l) => l.key === 'ruin:7')).toBe(false)
+  })
+
   it('writes the role of the town under its name when zoomed in', () => {
     const towns = [
       { id: 1, lineage_id: 'a', center: [40, 30], planned: true, role: 'mining' },

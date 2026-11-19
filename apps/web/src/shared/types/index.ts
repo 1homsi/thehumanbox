@@ -321,6 +321,27 @@ export interface TownInfo {
   spare?: string[]
 }
 
+export interface RuinInfo {
+  id: number
+  name: string
+  center: [number, number]
+  stage: 'empty' | 'ruined' | 'foundations' | 'overgrown'
+  abandoned_tick: number
+}
+
+export interface MigrationInfo {
+  id: number
+  lineage_id: string
+  host: string
+  cause: 'famine' | 'war'
+  people: number
+  members: string[]
+  from: [number, number]
+  to: [number, number]
+  path: number[]
+  departed_tick: number
+}
+
 export interface NationRelationInfo {
   with: string
   name: string
@@ -826,6 +847,8 @@ export interface WorldState {
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]
   towns?: TownInfo[]
+  ruins?: RuinInfo[]
+  migrations?: MigrationInfo[]
   nations?: NationInfo[]
   net_edges?: NetEdgeInfo[]
   vehicles?: VehicleInfo[]

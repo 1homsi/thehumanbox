@@ -398,6 +398,26 @@ pub(crate) fn caravan_way(sim: &Simulation, from: [i32; 2], to: [i32; 2]) -> Opt
     })
 }
 
+pub(crate) fn cells_along(sim: &Simulation, legs: &[(u32, bool)]) -> Vec<[i32; 2]> {
+    let mut out: Vec<[i32; 2]> = Vec::new();
+    for &(id, reverse) in legs {
+        let Some(edge) = sim.road_net.edge(id) else {
+            return Vec::new();
+        };
+        let cells: Box<dyn Iterator<Item = &[i32; 2]>> = if reverse {
+            Box::new(edge.path.iter().rev())
+        } else {
+            Box::new(edge.path.iter())
+        };
+        for &cell in cells {
+            if out.last() != Some(&cell) {
+                out.push(cell);
+            }
+        }
+    }
+    out
+}
+
 pub(crate) fn point_along(sim: &Simulation, legs: &[(u32, bool)], progress: f64) -> Option<[i32; 2]> {
     let paths: Vec<(&[[i32; 2]], bool)> = legs
         .iter()

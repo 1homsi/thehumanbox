@@ -250,6 +250,36 @@ describe('supply caravans on the sim roads', () => {
   })
 })
 
+describe('refugees on the road', () => {
+  it('leave a trail of their colour along their way and a flag where they are going', () => {
+    const { ctx, calls } = recorder()
+    const w = world({
+      trade_routes: [],
+      caravans: [],
+      migrations: [
+        {
+          id: 1,
+          lineage_id: 'a',
+          host: 'b',
+          cause: 'famine',
+          people: 3,
+          members: [],
+          from: [2, 2],
+          to: [12, 2],
+          path: [2, 2, 3, 2, 4, 2, 5, 2, 6, 2, 7, 2, 8, 2, 9, 2, 10, 2, 11, 2, 12, 2],
+          departed_tick: 0,
+        },
+      ],
+    } as Partial<WorldState>)
+    drawTradeNetwork2D(ctx, w, bounds, 0, 'caravans', planner)
+    const dots = calls.filter(
+      (c) => c.op === 'fillRect' && c.args[2] === Math.round(TILE * 0.25) && c.fill !== '#3b2a1a',
+    )
+    expect(dots.length).toBe(4)
+    expect(calls.some((c) => c.op === 'fillRect' && c.fill === '#e9b949')).toBe(true)
+  })
+})
+
 describe('traffic and barriers on a planned road', () => {
   const modern = [
     { lineage_id: 'a', era_name: 'modern' },

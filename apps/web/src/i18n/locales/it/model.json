@@ -1073,5 +1073,13 @@
     },
     "short": "a corto di {goods}",
     "spare": "{goods} in avanzo"
+  },
+  "ruin": {
+    "title": "rovine dei {name}",
+    "stage": {
+      "empty": "abbandonata",
+      "ruined": "crollata",
+      "foundations": "restano solo le fondamenta"
+    }
   }
 }

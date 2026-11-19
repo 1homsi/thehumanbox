@@ -105,6 +105,8 @@ export type IncomingWorldFrame = Pick<
   volcanoes?: WorldState['volcanoes']
   settlements?: WorldState['settlements']
   towns?: WorldState['towns']
+  ruins?: WorldState['ruins']
+  migrations?: WorldState['migrations']
   nations?: WorldState['nations']
   net_edges?: WorldState['net_edges']
   vehicles?: WorldState['vehicles']

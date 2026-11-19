@@ -1073,5 +1073,13 @@
     },
     "short": "manque de {goods}",
     "spare": "{goods} en surplus"
+  },
+  "ruin": {
+    "title": "ruines des {name}",
+    "stage": {
+      "empty": "abandonnée",
+      "ruined": "effondrée",
+      "foundations": "il ne reste que les fondations"
+    }
   }
 }

@@ -1,5 +1,5 @@
 import type { WorldState } from '../../../../shared/types'
-import { t } from '../../../../i18n'
+import { t, type MessageKey } from '../../../../i18n'
 import { PERIL_HELP, remainingLine } from '../../../model/tribe-peril'
 import { townRoleWord } from '../../../model/town-role'
 import type { LabelPresence } from '../../label-presence'
@@ -20,6 +20,12 @@ import {
  */
 const NATION_LABEL_LIFT = 4
 const ROLE_ZOOM = 1
+const RUIN_ZOOM = 0.9
+const RUIN_STAGES: Record<'empty' | 'ruined' | 'foundations', MessageKey> = {
+  empty: 'model.ruin.stage.empty',
+  ruined: 'model.ruin.stage.ruined',
+  foundations: 'model.ruin.stage.foundations',
+}
 
 export function collectSettlementLabels(
   world: WorldState,
@@ -69,6 +75,25 @@ export function collectSettlementLabels(
       alert: !!peril,
     })
   }
+  if (zoom >= RUIN_ZOOM)
+    for (const ruin of world.ruins ?? []) {
+      if (ruin.stage === 'overgrown') continue
+      const [cx, cy] = ruin.center
+      if (cx - ox < bounds.c0 - MARGIN || cx - ox > bounds.c1 + MARGIN) continue
+      if (cy - oy < bounds.r0 - MARGIN || cy - oy > bounds.r1 + MARGIN) continue
+      out.push({
+        key: `ruin:${ruin.id}`,
+        x: (cx - ox) * TILE,
+        y: (cy - oy) * TILE,
+        title: t('model.ruin.title', { name: ruin.name }).toUpperCase(),
+        sub: t(RUIN_STAGES[ruin.stage]),
+        major: false,
+        rank: 1,
+        alpha: 0.7,
+        priority: ruin.id % 1000,
+        alert: false,
+      })
+    }
   for (const nation of world.nations ?? []) {
     if (!nation.capital_at) continue
     const [cx, cy] = nation.capital_at

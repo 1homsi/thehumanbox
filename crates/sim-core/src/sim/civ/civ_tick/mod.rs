@@ -127,7 +127,7 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
         sim.tick_tribe_peril();
     }
     if tick > 0 && tick.is_multiple_of(900) {
-        tick_deforestation(sim);
+        crate::sim::civ::land::land_memory::tick_forests(sim);
     }
     if tick.is_multiple_of(800) {
         tick_diplomacy(sim);

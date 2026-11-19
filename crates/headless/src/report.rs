@@ -761,6 +761,35 @@ pub(super) fn print_progress(sim: &Simulation) {
             grades[1],
             grades[2]
         );
+        let land = &sim.land.stats;
+        let mut stages = [0usize; 4];
+        for ruin in &sim.land.ruins {
+            stages[usize::from(ruin.stage(sim.tick_count)).min(3)] += 1;
+        }
+        println!(
+            "Land at end: forest cleared {}, regrown {}, cleared waiting {}, belt fields {}, towns abandoned {}, ruins [empty {} ruined {} foundations {}], ruins resettled {}, ruins overgrown {}",
+            land.forest_cleared,
+            land.forest_regrown,
+            sim.land.cleared.len(),
+            land.belt_fields,
+            land.towns_abandoned,
+            stages[0],
+            stages[1],
+            stages[2],
+            land.ruins_resettled,
+            land.ruins_overgrown
+        );
+        println!(
+            "Migration at end: groups famine {} war {}, refugees {}, welcomed {} ({} people), turned away {}, made camp {}, on the road {}",
+            land.migrations[0],
+            land.migrations[1],
+            land.refugees,
+            land.welcomed,
+            land.people_welcomed,
+            land.turned_away,
+            land.settled,
+            sim.land.migrations.len()
+        );
         let living: std::collections::BTreeSet<&str> = sim
             .organisms
             .iter()

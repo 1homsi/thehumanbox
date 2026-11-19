@@ -1073,5 +1073,13 @@
     },
     "short": "le falta {goods}",
     "spare": "le sobra {goods}"
+  },
+  "ruin": {
+    "title": "ruinas de los {name}",
+    "stage": {
+      "empty": "vacía",
+      "ruined": "derrumbada",
+      "foundations": "solo quedan los cimientos"
+    }
   }
 }

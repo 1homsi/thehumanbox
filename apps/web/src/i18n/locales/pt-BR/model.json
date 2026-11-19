@@ -1073,5 +1073,13 @@
     },
     "short": "falta {goods}",
     "spare": "sobra {goods}"
+  },
+  "ruin": {
+    "title": "ruínas dos {name}",
+    "stage": {
+      "empty": "vazia",
+      "ruined": "desabada",
+      "foundations": "restam só os alicerces"
+    }
   }
 }

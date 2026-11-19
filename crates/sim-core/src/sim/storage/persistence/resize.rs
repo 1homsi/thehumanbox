@@ -205,6 +205,7 @@ fn shift_coordinates(s: &mut SaveState, dx: i32, dy: i32) {
         shift_array(&mut remnant.at, dx, dy);
     }
     s.road_net.shift(dx, dy);
+    s.land.shift(dx, dy);
     for grain in &mut s.cart_grain {
         shift_array(&mut grain.at, dx, dy);
     }

@@ -937,3 +937,39 @@ fn full_payload_carries_each_town_role_and_what_it_lacks_and_spares() {
     assert_eq!(caravan["kind"].as_str(), Some("supply"));
     assert_eq!(caravan["cargo"].as_str(), Some("stone"));
 }
+
+#[test]
+fn full_payload_carries_ruins_by_stage_and_refugees_on_the_road() {
+    use crate::sim::civ::land::land_memory::TownRuin;
+    use crate::sim::civ::society::migration::{Migration, MigrationCause};
+    use crate::sim::cosmos::DAY_LENGTH;
+
+    let mut sim = Simulation::new(48);
+    sim.tick_count = 25 * DAY_LENGTH;
+    sim.land.ruins.push(TownRuin {
+        id: 3,
+        name: "Wagepu".into(),
+        center: [40, 60],
+        ..Default::default()
+    });
+    let walker = sim.organisms[0].id.clone();
+    sim.land.migrations.push(Migration {
+        id: 1,
+        lineage: "east".into(),
+        cause: MigrationCause::War,
+        members: vec![walker, "gone".into()],
+        host: "west".into(),
+        from: [10, 10],
+        to: [12, 10],
+        path: vec![[10, 10], [11, 10], [12, 10]],
+        ..Default::default()
+    });
+    let payload = sim.state_json();
+    let ruin = &payload["ruins"][0];
+    assert_eq!(ruin["stage"].as_str(), Some("foundations"));
+    assert_eq!(ruin["name"].as_str(), Some("Wagepu"));
+    let migration = &payload["migrations"][0];
+    assert_eq!(migration["cause"].as_str(), Some("war"));
+    assert_eq!(migration["people"].as_u64(), Some(1));
+    assert_eq!(migration["path"], serde_json::json!([10, 10, 11, 10, 12, 10]));
+}

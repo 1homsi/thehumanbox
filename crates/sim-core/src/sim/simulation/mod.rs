@@ -205,6 +205,7 @@ pub struct Simulation {
     pub rail_lines: Vec<super::tech::railways::RailLine>,
     pub rail_remnants: Vec<super::tech::networks::RailRemnant>,
     pub road_net: super::civ::land::road_net::RoadNet,
+    pub land: super::civ::land::land_memory::LandMemory,
     pub diplomacy: super::civ::society::diplomacy::Diplomacy,
     /// Harvests waiting at their fields for a village cart (see `civ::land::village_carts`).
     pub cart_grain: Vec<super::civ::land::village_carts::CartGrain>,
@@ -394,6 +395,7 @@ impl Simulation {
             rail_lines: Vec::new(),
             rail_remnants: Vec::new(),
             road_net: Default::default(),
+            land: Default::default(),
             diplomacy: Default::default(),
             cart_grain: Vec::new(),
             towns: Vec::new(),

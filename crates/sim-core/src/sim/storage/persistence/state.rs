@@ -249,6 +249,11 @@ pub struct SaveState {
     pub(super) road_net: crate::sim::civ::land::road_net::RoadNet,
     #[serde(
         default,
+        skip_serializing_if = "crate::sim::civ::land::land_memory::LandMemory::is_empty"
+    )]
+    pub(super) land: crate::sim::civ::land::land_memory::LandMemory,
+    #[serde(
+        default,
         skip_serializing_if = "crate::sim::civ::society::diplomacy::Diplomacy::is_empty"
     )]
     pub(super) diplomacy: crate::sim::civ::society::diplomacy::Diplomacy,

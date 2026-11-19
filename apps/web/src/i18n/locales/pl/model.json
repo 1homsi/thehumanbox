@@ -1095,5 +1095,13 @@
     },
     "short": "brakuje: {goods}",
     "spare": "nadmiar: {goods}"
+  },
+  "ruin": {
+    "title": "ruiny {name}",
+    "stage": {
+      "empty": "opuszczone",
+      "ruined": "zawalone",
+      "foundations": "zostały tylko fundamenty"
+    }
   }
 }
