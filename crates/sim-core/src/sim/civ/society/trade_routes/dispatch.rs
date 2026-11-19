@@ -207,6 +207,7 @@ pub(super) fn dispatch_cargo_on_route_index(
     else {
         return false;
     };
+    let centre = to;
     // A town with a working market takes its caravans at the market, not at the town centre.
     let to = market_square(sim, &receiver_lineage).unwrap_or(to);
     if !valid_world_point(from) || !valid_world_point(to) {
@@ -218,11 +219,39 @@ pub(super) fn dispatch_cargo_on_route_index(
 
     // A caravan on a road makes better time: a route that runs entirely on road takes
     // `CARAVAN_ROAD_HASTE` less time than the same distance over open ground.
-    let open_ticks = manhattan_distance(from, to)
-        .saturating_mul(4)
-        .clamp(60, MAX_CARAVAN_TRAVEL_TICKS);
-    let on_road = f64::from(sim.grid.road_share(from, to)) * CARAVAN_ROAD_HASTE;
+    let way = crate::sim::civ::land::road_net::caravan_way(sim, from, centre);
+    let (walk, on_road) = match &way {
+        Some(way) => (
+            way.walk.max(manhattan_distance(from, to)),
+            CARAVAN_ROAD_HASTE + CARAVAN_GRADE_HASTE * f64::from(way.grade),
+        ),
+        None => (
+            manhattan_distance(from, to),
+            f64::from(sim.grid.road_share(from, to)) * CARAVAN_ROAD_HASTE,
+        ),
+    };
+    let open_ticks = walk.saturating_mul(4).clamp(60, MAX_CARAVAN_TRAVEL_TICKS);
     let travel_ticks = ((open_ticks as f64) * (1.0 - on_road)).round() as u64;
+    let straight = f64::from(from[0] - centre[0]).hypot(f64::from(from[1] - centre[1]));
+    match &way {
+        Some(way) => {
+            sim.road_net.stats.caravans_on_roads += 1;
+            sim.road_net.stats.caravan_path += way.length;
+            sim.road_net.stats.caravan_straight += straight;
+            for edge in sim
+                .road_net
+                .edges
+                .iter_mut()
+                .filter(|e| way.legs.iter().any(|&(id, _)| id == e.id))
+            {
+                edge.traffic = edge
+                    .traffic
+                    .saturating_add(crate::sim::civ::land::road_net::CARAVAN_TRAFFIC);
+                edge.last_used = sim.tick_count;
+            }
+        }
+        None => sim.road_net.stats.caravans_off_roads += 1,
+    }
     let era = sim
         .lineage_eras
         .get(&actor_lineage)
@@ -244,6 +273,7 @@ pub(super) fn dispatch_cargo_on_route_index(
         arrives_tick: sim.tick_count.saturating_add(travel_ticks),
         from,
         to,
+        way: way.map(|w| w.legs).unwrap_or_default(),
         dispatch_state: String::new(),
     });
 

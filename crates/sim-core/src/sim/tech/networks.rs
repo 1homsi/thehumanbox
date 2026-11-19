@@ -124,7 +124,11 @@ fn kept_in_use(kind: BuildingKind) -> bool {
 
 pub(crate) fn orphans(sim: &Simulation) -> FxHashMap<u32, f32> {
     let mut out = FxHashMap::default();
-    let ends: Vec<[i32; 2]> = sim.rail_lines.iter().flat_map(|l| [l.a, l.b]).collect();
+    let ends: Vec<[i32; 2]> = sim
+        .rail_lines
+        .iter()
+        .flat_map(|l| [l.a, l.b].into_iter().chain(l.stops.iter().copied()))
+        .collect();
     let powered = powered_lineages(sim);
     let living = living_lineages(sim);
     let towns: FxHashMap<u32, &crate::sim::civ::civ_tick::town::Town> =
@@ -202,7 +206,10 @@ pub fn network_strays(sim: &Simulation) -> NetworkStrays {
         .enumerate()
         .filter(|&(i, &r)| r == ROAD_RAIL && !owned.contains(&i))
         .count();
-    let ends: Vec<[i32; 2]> = live.iter().flat_map(|l| [l.a, l.b]).collect();
+    let ends: Vec<[i32; 2]> = live
+        .iter()
+        .flat_map(|l| [l.a, l.b].into_iter().chain(l.stops.iter().copied()))
+        .collect();
     let powered = powered_lineages(sim);
     let standing = |kind: BuildingKind| {
         sim.buildings
@@ -407,6 +414,7 @@ mod tests {
             let unowned = unowned_infrastructure(&sim);
             assert!(unowned.is_empty(), "seed {seed}: {unowned:?}");
             assert_eq!(network_strays(&sim).stray_rail, 0, "seed {seed}");
+            assert_eq!(network_strays(&sim).ways_under_buildings, 0, "seed {seed}");
         }
     }
 

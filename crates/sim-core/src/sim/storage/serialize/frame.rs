@@ -116,6 +116,21 @@ impl Simulation {
             include_static,
             include_terrain,
         );
+        if let Some(roads) = grid_json.roads.as_mut() {
+            let grades = self.road_net.grades();
+            if !grades.is_empty() {
+                for cell in roads.iter_mut() {
+                    let x = grid_json.origin_x + i32::from(cell[1]);
+                    let y = grid_json.origin_y + i32::from(cell[0]);
+                    if !crate::world::grid::WorldGrid::in_bounds(x, y) {
+                        continue;
+                    }
+                    if let Some(&grade) = grades.get(&crate::world::grid::WorldGrid::idx(x, y)) {
+                        cell[2] |= u16::from(grade) << 8;
+                    }
+                }
+            }
+        }
         // The structure layer wears a little every tick but only a few dozen cells change their
         // percent, so a hot frame sends just those; full and periodic static frames carry the
         // whole layer (which also heals a client that dropped a frame). The deep full a joiner is
@@ -420,6 +435,7 @@ impl Simulation {
                         "last_dispatch_tick": route.last_dispatch_tick,
                         "deliveries": route.deliveries,
                         "volume": route.volume,
+                        "way": route.way,
                         "agreement": crate::sim::civ::trade_routes::route_has_agreement(
                             self,
                             &route.lineage_a,
@@ -451,6 +467,7 @@ impl Simulation {
                         "arrives_tick": caravan.arrives_tick,
                         "from": caravan.from,
                         "to": caravan.to,
+                        "way": caravan.way,
                     })
                 })
                 .collect();
@@ -762,6 +779,27 @@ impl Simulation {
                     })
                     .collect();
                 obj.insert("towns".to_string(), serde_json::Value::Array(towns_json));
+                let edges_json: Vec<serde_json::Value> = self
+                    .road_net
+                    .edges
+                    .iter()
+                    .filter(|edge| edge.built > 0)
+                    .map(|edge| {
+                        let path: Vec<i32> = edge.built_cells().iter().flat_map(|&[x, y]| [x, y]).collect();
+                        json!({
+                            "id": edge.id,
+                            "kind": edge.kind,
+                            "owner": edge.owner,
+                            "dest": edge.dest.name(),
+                            "grade": edge.grade,
+                            "complete": edge.complete(),
+                            "from_town": edge.from_town,
+                            "to_town": edge.to_town,
+                            "path": path,
+                        })
+                    })
+                    .collect();
+                obj.insert("net_edges".to_string(), serde_json::Value::Array(edges_json));
 
                 let gov_json: Vec<serde_json::Value> = self
                     .governments

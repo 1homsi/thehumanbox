@@ -13,6 +13,7 @@ pub(super) const MAX_PAYMENT_PER_DELIVERY: u32 = 250;
 pub(super) const MAX_CARAVAN_TRAVEL_TICKS: u64 = 1_200;
 /// The share of travel time a caravan saves on a route that is all road (see `dispatch`).
 pub(super) const CARAVAN_ROAD_HASTE: f64 = 0.35;
+pub(super) const CARAVAN_GRADE_HASTE: f64 = 0.05;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -26,6 +27,8 @@ pub struct TradeRoute {
     pub last_dispatch_tick: u64,
     pub deliveries: u32,
     pub volume: u64,
+    #[serde(skip)]
+    pub way: Vec<(u32, bool)>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -43,6 +46,8 @@ pub struct Caravan {
     pub arrives_tick: u64,
     pub from: [i32; 2],
     pub to: [i32; 2],
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub way: Vec<(u32, bool)>,
     /// Q-learning state captured by the simulation immediately after action
     /// 288 successfully queues this caravan. It belongs in local saves so a
     /// reload cannot erase delayed credit, but it is deliberately omitted

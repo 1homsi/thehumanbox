@@ -99,6 +99,25 @@ describe('power network', () => {
     for (const [a, b] of wirePairs(p)) expect(a[0] === b[0] || a[1] === b[1]).toBe(true)
   })
 
+  it('follows a road that runs on the diagonal, and a power line the simulation laid', () => {
+    const diagonal: [number, number][] = []
+    for (let i = 0; i <= 12; i++) diagonal.push([i, 5 + i])
+    const buildings = [at(1, 'power_plant', 0, 1), at(2, 'house', 12, 18)]
+    expect(plan(grid(diagonal), buildings).drops.length / 3).toBe(2)
+    const lines = new Set(diagonal.map(([c, r]) => r * W + c))
+    const p = powerNetwork({
+      roads: grid([]),
+      width: W,
+      height: H,
+      ox: 0,
+      oy: 0,
+      buildings,
+      tiers: tiers(5),
+      lines,
+    })
+    expect(p.drops.length / 3).toBe(2)
+  })
+
   it('follows rail and bridges as well as roads', () => {
     const roads = grid(row(5, 0, 30), 3)
     roads[5][15] = 2

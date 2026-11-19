@@ -3,7 +3,7 @@
 // the cheapest walk over open ground, round water, rock and buildings, keeping to roads already there.
 // A planned route is a list of tiles, so it is drawn as tile roads that join the village roads.
 
-import type { WorldState } from '../../shared/types'
+import type { NetEdgeInfo, WorldState } from '../../shared/types'
 import { TILE_ID } from '../model/terrain-ids'
 import { eraTier } from '../model/era-tier'
 import { ROAD_BRIDGE, ROAD_CANAL, ROAD_RAIL, ROAD_TRACK } from './cf/roads/road-art'
@@ -393,6 +393,7 @@ interface Entry {
   path: PlannedPath | null
   /** Terrain generation this was planned in; an older one is shown until it is replanned. */
   gen: number
+  sim?: boolean
 }
 
 const MAX_ROUTES = 160
@@ -419,6 +420,7 @@ export class TradePathPlanner {
   private terrainRevision = -1
   private gen = 0
   private routesSrc: WorldState['trade_routes'] | symbol = Symbol()
+  private edgesSrc: WorldState['net_edges'] | symbol = Symbol()
   private routesHash = NaN
   private erasSrc: WorldState['lineage_eras'] | symbol = Symbol()
   private buildingsSrc: WorldState['buildings'] | symbol = Symbol()
@@ -471,7 +473,11 @@ export class TradePathPlanner {
       this.erasSrc = world.lineage_eras
       this.tiers = tiersOf(world.lineage_eras)
     }
-    if (world.trade_routes !== this.routesSrc || erasChanged) {
+    const edgesChanged = world.net_edges !== this.edgesSrc
+    if (edgesChanged) {
+      this.edgesSrc = world.net_edges
+      dirty = this.readRoutes(world) || dirty
+    } else if (world.trade_routes !== this.routesSrc || erasChanged) {
       this.routesSrc = world.trade_routes
       // A frame often carries the same routes in a new array: do nothing for those.
       const hash = hashRoutes(world.trade_routes)
@@ -500,6 +506,7 @@ export class TradePathPlanner {
     this.cells = new Uint8Array(width * height)
     this.blocked = new Uint8Array(width * height)
     this.routesSrc = Symbol()
+    this.edgesSrc = Symbol()
     this.routesHash = NaN
     this.buildingsSrc = Symbol()
     this.buildingsSig = NaN
@@ -522,6 +529,8 @@ export class TradePathPlanner {
     const out: RouteRef[] = []
     const seen = new Set<string>()
     let changed = false
+    const edges = new Map<number, NetEdgeInfo>()
+    for (const e of world.net_edges ?? []) if (e.kind === 'road' && e.complete) edges.set(e.id, e)
     for (const r of world.trade_routes ?? []) {
       if (out.length >= MAX_ROUTES) break
       if (!Number.isFinite(r.a_center[0]) || !Number.isFinite(r.a_center[1])) continue
@@ -529,8 +538,21 @@ export class TradePathPlanner {
       const a: [number, number] = [r.a_center[0] - this.originX, r.a_center[1] - this.originY]
       const b: [number, number] = [r.b_center[0] - this.originX, r.b_center[1] - this.originY]
       if (!this.inGrid(a) || !this.inGrid(b)) continue
-      const key = `${a[0]},${a[1]}|${b[0]},${b[1]}`
       const tier = Math.max(this.tiers.get(r.lineage_a) ?? 0, this.tiers.get(r.lineage_b) ?? 0)
+      const cells = r.way?.length
+        ? simCells(r.way, edges, this.originX, this.originY, this.width, this.height)
+        : null
+      if (cells) {
+        const key = `sim:${r.way!.map(([id, back]) => (back ? -id : id)).join(',')}:${cells.length}`
+        out.push({ id: r.id, key, a, b, tier })
+        seen.add(key)
+        if (!this.entries.has(key)) {
+          this.entries.set(key, { path: buildPath(cells, this.width, a, b), gen: this.gen, sim: true })
+          changed = true
+        }
+        continue
+      }
+      const key = `${a[0]},${a[1]}|${b[0]},${b[1]}`
       out.push({ id: r.id, key, a, b, tier })
       seen.add(key)
       if (!this.entries.has(key)) this.enqueue(key)
@@ -586,8 +608,9 @@ export class TradePathPlanner {
     // Roads laid before a building went up: plan the ones it now stands on again, keep the rest.
     let changed = false
     for (const route of this.routes) {
-      const path = this.entries.get(route.key)?.path
-      if (!path) continue
+      const entry = this.entries.get(route.key)
+      const path = entry?.path
+      if (!path || entry.sim) continue
       if (path.cells.some((c) => blocked[c])) {
         this.enqueue(route.key)
         changed = true
@@ -617,7 +640,7 @@ export class TradePathPlanner {
       const key = this.queue.shift()!
       this.queued.delete(key)
       const route = this.routes.find((r) => r.key === key)
-      if (!route) continue
+      if (!route || this.entries.get(key)?.sim) continue
       const t1 = performance.now()
       const cells = planRoute(grid, route.a, route.b)
       const previous = this.entries.get(key)
@@ -666,11 +689,37 @@ export class TradePathPlanner {
         noWay++
         continue
       }
+      if (entry.sim) continue
       this.stamp(route, entry.path.cells)
     }
     this.stats.routes = this.routes.length
     this.stats.noWay = noWay
   }
+}
+
+function simCells(
+  way: readonly [number, boolean][],
+  edges: ReadonlyMap<number, NetEdgeInfo>,
+  ox: number,
+  oy: number,
+  width: number,
+  height: number,
+): Int32Array | null {
+  const out: number[] = []
+  for (const [id, back] of way) {
+    const e = edges.get(id)
+    if (!e) return null
+    const n = e.path.length / 2
+    for (let k = 0; k < n; k++) {
+      const i = back ? n - 1 - k : k
+      const x = e.path[2 * i]! - ox
+      const y = e.path[2 * i + 1]! - oy
+      if (x < 0 || y < 0 || x >= width || y >= height) return null
+      const cell = y * width + x
+      if (out[out.length - 1] !== cell) out.push(cell)
+    }
+  }
+  return out.length > 0 ? Int32Array.from(out) : null
 }
 
 /** Whether two planned routes run over the same cells (both null: neither found a way). */
@@ -690,6 +739,7 @@ function hashRoutes(routes: WorldState['trade_routes']): number {
     h = Math.imul(h ^ (r.b_center[0] * 4099 + r.b_center[1]), 0xc2b2ae35)
     for (let i = 0; i < r.lineage_a.length; i++) h = Math.imul(h ^ r.lineage_a.charCodeAt(i), 0x27d4eb2f)
     for (let i = 0; i < r.lineage_b.length; i++) h = Math.imul(h ^ r.lineage_b.charCodeAt(i), 0x165667b1)
+    for (const [id, back] of r.way ?? []) h = Math.imul(h ^ (back ? -id : id), 0x2545f491)
   }
   return h
 }

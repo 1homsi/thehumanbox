@@ -74,11 +74,12 @@ export interface PowerInput {
   oy: number
   buildings: readonly Building[]
   tiers: ReadonlyMap<string, number>
+  lines?: ReadonlySet<number>
 }
 
 const EMPTY: PowerPlan = { poles: [], wires: [], drops: [] }
-const STEP_C = [0, 1, 0, -1]
-const STEP_R = [-1, 0, 1, 0]
+const STEP_C = [0, 1, 0, -1, 1, 1, -1, -1]
+const STEP_R = [-1, 0, 1, 0, -1, 1, 1, -1]
 
 function makeScratch(size: number) {
   return {
@@ -108,7 +109,7 @@ interface Site {
 }
 
 export function powerNetwork(input: PowerInput): PowerPlan {
-  const { roads, width, height, ox, oy, buildings, tiers } = input
+  const { roads, width, height, ox, oy, buildings, tiers, lines } = input
   if (!roads || width <= 0 || height <= 0) return EMPTY
   const powered = new Set<string>()
   const live: { b: Building; lineage: string; kind: string }[] = []
@@ -135,7 +136,11 @@ export function powerNetwork(input: PowerInput): PowerPlan {
   sites.sort((a, b) => a.id - b.id)
 
   const lineAt = (c: number, r: number) =>
-    c >= 0 && r >= 0 && c < width && r < height && isLine(roads[r]?.[c] ?? 0)
+    c >= 0 &&
+    r >= 0 &&
+    c < width &&
+    r < height &&
+    (isLine(roads[r]?.[c] ?? 0) || (lines?.has(r * width + c) ?? false))
   const access = (s: Site): number => {
     let best = -1
     let bestD = DROP_REACH + 1
@@ -169,10 +174,11 @@ export function powerNetwork(input: PowerInput): PowerPlan {
     const v = order[head]
     const r = Math.floor(v / width)
     const c = v - r * width
-    for (let k = 0; k < 4; k++) {
+    for (let k = 0; k < STEP_C.length; k++) {
       const nc = c + STEP_C[k]
       const nr = r + STEP_R[k]
       if (!lineAt(nc, nr)) continue
+      if (k >= 4 && (lineAt(nc, r) || lineAt(c, nr))) continue
       const u = nr * width + nc
       if (dist[u] >= 0) continue
       dist[u] = dist[v] + 1
@@ -243,6 +249,7 @@ export function powerNetwork(input: PowerInput): PowerPlan {
 
 interface PlanCache {
   roads: unknown
+  edges: unknown
   revision: number
   buildings: unknown
   buildingKey: string
@@ -288,6 +295,7 @@ export function powerPlanOf(world: WorldState): PowerPlan {
   if (
     prev &&
     prev.roads === roads &&
+    prev.edges === world.net_edges &&
     prev.revision === revision &&
     prev.buildingKey === buildingKey &&
     prev.eraKey === eraKey &&
@@ -305,9 +313,37 @@ export function powerPlanOf(world: WorldState): PowerPlan {
     oy: grid.origin_y ?? 0,
     buildings,
     tiers: lineageEraTiers(world.lineage_eras),
+    lines: powerLines(world),
   })
-  cache = { roads, revision, buildings, buildingKey, eras: world.lineage_eras, eraKey, frame, plan }
+  cache = {
+    roads,
+    edges: world.net_edges,
+    revision,
+    buildings,
+    buildingKey,
+    eras: world.lineage_eras,
+    eraKey,
+    frame,
+    plan,
+  }
   return plan
+}
+
+function powerLines(world: WorldState): Set<number> | undefined {
+  const grid = world.grid
+  const ox = grid.origin_x ?? 0
+  const oy = grid.origin_y ?? 0
+  let out: Set<number> | undefined
+  for (const e of world.net_edges ?? []) {
+    if (e.kind !== 'power') continue
+    out ??= new Set<number>()
+    for (let i = 0; i + 1 < e.path.length; i += 2) {
+      const c = e.path[i]! - ox
+      const r = e.path[i + 1]! - oy
+      if (c >= 0 && r >= 0 && c < grid.width && r < grid.height) out.add(r * grid.width + c)
+    }
+  }
+  return out
 }
 
 export function paintPower(ctx: Ctx, f: CfFrame): void {

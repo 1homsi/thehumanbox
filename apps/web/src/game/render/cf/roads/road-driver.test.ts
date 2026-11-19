@@ -206,6 +206,23 @@ describe('road driver with planned trade routes', () => {
     expect(drawn(l)).toEqual(new Set(['4,3', '5,3']))
   })
 
+  it('draws each road of the network in its own grade, and the rest in the era style', () => {
+    const roads = Array.from({ length: H }, () => Array(W).fill(0))
+    const grades = Array.from({ length: H }, () => Array(W).fill(0))
+    for (let x = 2; x <= 8; x++) roads[3]![x] = ROAD_TRACK
+    for (let x = 2; x <= 8; x++) roads[7]![x] = ROAD_TRACK
+    for (let x = 2; x <= 8; x++) grades[7]![x] = 3
+    for (let x = 2; x <= 8; x++) roads[9]![x] = ROAD_TRACK
+    for (let x = 2; x <= 8; x++) grades[9]![x] = 1
+    const w = world({ trade_routes: [] }, roads)
+    w.grid.road_grades = grades
+    const a = atlas()
+    new RoadDriver(layer(), a, new TradePathPlanner()).update(frame(w))
+    expect(a.get(roadCellKey('cobble', ROAD_E | ROAD_W))).toBeDefined()
+    expect(a.get(roadCellKey('paved', ROAD_E | ROAD_W))).toBeDefined()
+    expect(a.get(roadCellKey('track', ROAD_E | ROAD_W))).toBeDefined()
+  })
+
   it('keeps the rail where a route crosses it: the crossing joins only its own road', () => {
     const roads = Array.from({ length: H }, () => Array(W).fill(0))
     for (let r = 0; r < H; r++) roads[r]![20] = ROAD_RAIL

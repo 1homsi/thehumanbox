@@ -197,13 +197,14 @@ fn shift_coordinates(s: &mut SaveState, dx: i32, dy: i32) {
     for rail in &mut s.rail_lines {
         shift_array(&mut rail.a, dx, dy);
         shift_array(&mut rail.b, dx, dy);
-        for p in &mut rail.path {
+        for p in rail.path.iter_mut().chain(rail.stops.iter_mut()) {
             shift_array(p, dx, dy);
         }
     }
     for remnant in &mut s.rail_remnants {
         shift_array(&mut remnant.at, dx, dy);
     }
+    s.road_net.shift(dx, dy);
     for grain in &mut s.cart_grain {
         shift_array(&mut grain.at, dx, dy);
     }

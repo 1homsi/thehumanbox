@@ -1,32 +1,14 @@
-//! Villages lay roads. A tribe that knows how to build roads (`road_building`) links its villages to
-//! the nearest well, field or other village within reach, along the cheapest walk over open ground.
-//! Each new link is one chronicle line.
-//!
-//! Bounded so the map does not fill with roads: one new link per tribe and at most two per pass, a
-//! tribe holds at most `MAX_LINKS_PER_TRIBE` links, and the world at most `MAX_LINKS`.
-
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::sim::civ::settlements::{self, SettlementSnapshot};
 use crate::sim::simulation::Simulation;
-use crate::sim::tech::buildings::BuildingKind;
 use crate::world::grid::{WorldGrid, ROAD_BRIDGE, ROAD_NONE, ROAD_TRACK};
 use crate::world::tiles::Tile;
 
 /// Ticks between road passes.
 pub const ROAD_STEP: u64 = 300;
-/// Tier of a village (see `settlements::TIER_NAMES`: wilderness, camp, hamlet, village, ...).
-const VILLAGE_TIER: u8 = 3;
-/// How far a village will reach for another village, in tiles.
-const VILLAGE_REACH: i32 = 40;
-/// How far a village reaches for its own wells and fields.
-const NEAR_REACH: i32 = 24;
-const MAX_LINKS_PER_TRIBE: usize = 12;
-const MAX_LINKS: usize = 240;
-const MAX_LINKS_PER_PASS: usize = 2;
 /// Padding around a link's bounding box that the search may use (a detour round a ridge or a lake).
 const SEARCH_PAD: i32 = 32;
 /// Most cells one search may expand.
@@ -40,76 +22,17 @@ pub struct VillageRoad {
     pub to: [i32; 2],
 }
 
-/// Where a village may link to next, and what the chronicle calls it.
-struct Goal {
-    point: [i32; 2],
-    label: String,
-    distance: i32,
-}
-
 fn chebyshev(a: [i32; 2], b: [i32; 2]) -> i32 {
     (a[0] - b[0]).abs().max((a[1] - b[1]).abs())
 }
 
 /// Lineages with at least one living member who knows how to build roads.
-fn lineages_that_build_roads(sim: &Simulation) -> HashSet<String> {
+pub(crate) fn lineages_that_build_roads(sim: &Simulation) -> HashSet<String> {
     sim.organisms
         .iter()
         .filter(|o| o.alive && o.discoveries.contains("road_building"))
         .map(|o| o.lineage_id.clone())
         .collect()
-}
-
-fn already_linked(sim: &Simulation, a: [i32; 2], b: [i32; 2]) -> bool {
-    sim.village_roads
-        .iter()
-        .any(|r| (r.from == a && r.to == b) || (r.from == b && r.to == a))
-}
-
-/// The nearest point this village should link to: its own operational wells and fields, and the
-/// centre of another village in reach. Points already linked are skipped.
-fn next_goal(
-    sim: &Simulation,
-    village: &SettlementSnapshot,
-    villages: &[SettlementSnapshot],
-) -> Option<Goal> {
-    let mut best: Option<Goal> = None;
-    let mut consider = |point: [i32; 2], label: String, reach: i32| {
-        let distance = chebyshev(village.center, point);
-        if distance == 0 || distance > reach || already_linked(sim, village.center, point) {
-            return;
-        }
-        let better = match &best {
-            None => true,
-            Some(current) => (distance, &label) < (current.distance, &current.label),
-        };
-        if better {
-            best = Some(Goal {
-                point,
-                label,
-                distance,
-            });
-        }
-    };
-    for building in sim.buildings.iter() {
-        if building.kind == BuildingKind::Well
-            && building.is_operational()
-            && building.owner_lineage.as_deref() == Some(village.lineage_id.as_str())
-        {
-            consider([building.x, building.y], "the well".to_string(), NEAR_REACH);
-        }
-    }
-    for farm in sim.farms.iter().filter(|f| f.owner_lineage == village.lineage_id) {
-        consider([farm.x, farm.y], "the fields".to_string(), NEAR_REACH);
-    }
-    for other in villages
-        .iter()
-        .filter(|v| v.lineage_id != village.lineage_id || v.center != village.center)
-    {
-        let label = format!("the village of {}", other.name);
-        consider(other.center, label, VILLAGE_REACH);
-    }
-    best
 }
 
 /// Cheapest walk from `from` to `to` over open ground, as the cells after `from` up to and including
@@ -169,6 +92,32 @@ pub fn plan_road_avoiding(
     cheap: &dyn Fn(i32, i32) -> bool,
     water: Option<u32>,
 ) -> Option<Vec<[i32; 2]>> {
+    let step = |nx: i32, ny: i32, _: i32, _: i32, target: bool| {
+        if !(target || grid.get(nx, ny).road_ground() || grid.road_at(nx, ny) == ROAD_TRACK) {
+            return None;
+        }
+        if !target && blocked(nx, ny) {
+            return None;
+        }
+        Some(if cheap(nx, ny) { 1 } else { 2 })
+    };
+    let way = Way {
+        step: &step,
+        bridge: water.map(|per_tile| (per_tile, Some(2))),
+        weight: 1,
+    };
+    plan_way(grid, from, to, &way)
+}
+
+pub(crate) type StepCost<'a> = dyn Fn(i32, i32, i32, i32, bool) -> Option<u32> + 'a;
+
+pub(crate) struct Way<'a> {
+    pub step: &'a StepCost<'a>,
+    pub bridge: Option<(u32, Option<u32>)>,
+    pub weight: u32,
+}
+
+pub(crate) fn plan_way(grid: &WorldGrid, from: [i32; 2], to: [i32; 2], way: &Way) -> Option<Vec<[i32; 2]>> {
     let x0 = from[0].min(to[0]) - SEARCH_PAD;
     let y0 = from[1].min(to[1]) - SEARCH_PAD;
     let x1 = from[0].max(to[0]) + SEARCH_PAD;
@@ -177,12 +126,13 @@ pub fn plan_road_avoiding(
     let h = (y1 - y0 + 1) as usize;
     let index = |x: i32, y: i32| ((y - y0) as usize) * w + (x - x0) as usize;
     let inside = |x: i32, y: i32| x >= x0 && x <= x1 && y >= y0 && y <= y1;
+    let guess = |x: i32, y: i32| chebyshev([x, y], to) as u32 * way.weight;
     let mut cost = vec![u32::MAX; w * h];
     let mut parent = vec![usize::MAX; w * h];
     let mut frontier = BinaryHeap::new();
     let start = index(from[0], from[1]);
     cost[start] = 0;
-    frontier.push(Reverse((chebyshev(from, to) as u32, 0u32, from[0], from[1])));
+    frontier.push(Reverse((guess(from[0], from[1]), 0u32, from[0], from[1])));
     let mut expanded = 0;
     while let Some(Reverse((_, g, x, y))) = frontier.pop() {
         if cost[index(x, y)] != g {
@@ -217,7 +167,7 @@ pub fn plan_road_avoiding(
         // From dry ground, each of the four straight ways is looked along: across at most `MAX_SPAN` tiles of
         // water to the first dry tile beyond, which is reached in one step that carries the whole span. Water is
         // never a place the search stands on, so no span can turn over the water or be cut short.
-        if let Some(per_tile) = water {
+        if let Some((per_tile, landing)) = way.bridge {
             for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
                 let mut k = 1;
                 while k <= MAX_SPAN as i32 + 1 {
@@ -225,20 +175,19 @@ pub fn plan_road_avoiding(
                     if !inside(nx, ny) || !WorldGrid::in_bounds(nx, ny) {
                         break;
                     }
-                    let tile = grid.get(nx, ny);
-                    if tile == Tile::Water {
+                    if grid.get(nx, ny) == Tile::Water {
                         k += 1;
                         continue;
                     }
-                    let lands = [nx, ny] == to || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK;
-                    if k >= 2 && lands && ([nx, ny] == to || !blocked(nx, ny)) {
-                        let next = g + per_tile * (k as u32 - 1) + 2;
+                    let target = [nx, ny] == to;
+                    let lands = (way.step)(nx, ny, nx - dx, ny - dy, target);
+                    if let (true, Some(land)) = (k >= 2, lands) {
+                        let next = g + per_tile * (k as u32 - 1) + landing.unwrap_or(land);
                         let idx = index(nx, ny);
                         if next < cost[idx] {
                             cost[idx] = next;
                             parent[idx] = index(x, y);
-                            let h = chebyshev([nx, ny], to) as u32;
-                            frontier.push(Reverse((next + h, next, nx, ny)));
+                            frontier.push(Reverse((next + guess(nx, ny), next, nx, ny)));
                         }
                     }
                     break;
@@ -254,22 +203,15 @@ pub fn plan_road_avoiding(
                 if !inside(nx, ny) || !WorldGrid::in_bounds(nx, ny) {
                     continue;
                 }
-                let target = [nx, ny] == to;
-                let tile = grid.get(nx, ny);
-                if !(target || tile.road_ground() || grid.road_at(nx, ny) == ROAD_TRACK) {
+                let Some(step) = (way.step)(nx, ny, x, y, [nx, ny] == to) else {
                     continue;
-                }
-                if !target && blocked(nx, ny) {
-                    continue;
-                }
-                let step = if cheap(nx, ny) { 1 } else { 2 };
+                };
                 let next = g + step;
                 let idx = index(nx, ny);
                 if next < cost[idx] {
                     cost[idx] = next;
                     parent[idx] = index(x, y);
-                    let h = chebyshev([nx, ny], to) as u32;
-                    frontier.push(Reverse((next + h, next, nx, ny)));
+                    frontier.push(Reverse((next + guess(nx, ny), next, nx, ny)));
                 }
             }
         }
@@ -277,6 +219,7 @@ pub fn plan_road_avoiding(
     None
 }
 
+#[cfg(test)]
 /// Mark each cell of `path` as a road where the ground takes one. Returns how many cells changed.
 fn lay(grid: &mut WorldGrid, path: &[[i32; 2]], built: &dyn Fn(i32, i32) -> bool) -> usize {
     let mut changed = 0;
@@ -291,6 +234,7 @@ fn lay(grid: &mut WorldGrid, path: &[[i32; 2]], built: &dyn Fn(i32, i32) -> bool
     changed
 }
 
+#[cfg(test)]
 /// Lays a bridge on each water cell of `path`. Returns how many cells changed.
 fn lay_bridges(grid: &mut WorldGrid, path: &[[i32; 2]]) -> usize {
     let mut changed = 0;
@@ -301,74 +245,6 @@ fn lay_bridges(grid: &mut WorldGrid, path: &[[i32; 2]]) -> usize {
         }
     }
     changed
-}
-
-/// One road pass: the villages of tribes that know roads each reach for their nearest link.
-pub(crate) fn tick_village_roads(sim: &mut Simulation) {
-    if sim.village_roads.len() >= MAX_LINKS {
-        return;
-    }
-    let knowing = lineages_that_build_roads(sim);
-    let snapshots = settlements::at_town_centres(sim, settlements::snapshots(sim));
-    let villages: Vec<SettlementSnapshot> =
-        snapshots.into_iter().filter(|s| s.tier >= VILLAGE_TIER).collect();
-    let standing: crate::hashing::FxHashSet<(i32, i32)> = sim
-        .buildings
-        .iter()
-        .flat_map(|b| {
-            let (w, h) = b.footprint();
-            (b.y..b.y + i32::from(h)).flat_map(move |y| (b.x..b.x + i32::from(w)).map(move |x| (x, y)))
-        })
-        .collect();
-    let mut laid = 0;
-    for village in villages.iter().filter(|v| knowing.contains(&v.lineage_id)) {
-        if laid >= MAX_LINKS_PER_PASS || sim.village_roads.len() >= MAX_LINKS {
-            break;
-        }
-        let built = sim
-            .village_roads
-            .iter()
-            .filter(|r| r.lineage == village.lineage_id)
-            .count();
-        if built >= MAX_LINKS_PER_TRIBE {
-            continue;
-        }
-        let Some(goal) = next_goal(sim, village, &villages) else {
-            continue;
-        };
-        // A link with no dry way is bridged over the water between the two, when the water is narrow.
-        let (path, bridged) = match plan_road(&sim.grid, village.center, goal.point) {
-            Some(path) => (path, false),
-            None => match plan_bridge(&sim.grid, village.center, goal.point) {
-                Some(path) => (path, true),
-                None => continue,
-            },
-        };
-        let cells = lay(&mut sim.grid, &path, &|x, y| standing.contains(&(x, y)))
-            + if bridged {
-                lay_bridges(&mut sim.grid, &path)
-            } else {
-                0
-            };
-        if cells == 0 {
-            continue;
-        }
-        sim.village_roads.push(VillageRoad {
-            lineage: village.lineage_id.clone(),
-            from: village.center,
-            to: goal.point,
-        });
-        let line = if bridged {
-            format!(
-                "The people of {} built a bridge on the way to {}.",
-                village.name, goal.label
-            )
-        } else {
-            format!("The people of {} laid a road to {}.", village.name, goal.label)
-        };
-        sim.headlines.push_back((sim.tick_count, line));
-        laid += 1;
-    }
 }
 
 #[cfg(test)]

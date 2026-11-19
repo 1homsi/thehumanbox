@@ -670,6 +670,29 @@ pub(super) fn print_progress(sim: &Simulation) {
             "Network strays at end: stray rail cells {}, stations with no line {}, substations with no grid {}, ways under buildings {}",
             strays.stray_rail, strays.stations_without_line, strays.substations_without_grid, strays.ways_under_buildings
         );
+        let net = sim::civ::land::road_net::net_counts(sim);
+        println!(
+            "Road network at end: edges {}, complete {}, road {}, paved {}, power {}, connecting cells {}, building cells {}, street cells {}, wearing cells {}, old village road cells {}, stub cells {}, rail cells {}, rail laid on roads {}, of it beside its road {}",
+            net.edges,
+            net.complete,
+            net.graded,
+            net.paved,
+            net.power,
+            net.connecting_cells,
+            net.building_cells,
+            net.street_cells,
+            net.wearing_cells,
+            net.old_road_cells,
+            net.stub_cells,
+            net.rail_cells,
+            net.upgraded_rail_cells,
+            net.rail_on_roads
+        );
+        let stats = sim.road_net.stats;
+        println!(
+            "Caravan ways at end: on roads {}, off roads {}, path length {:.0}, straight {:.0}",
+            stats.caravans_on_roads, stats.caravans_off_roads, stats.caravan_path, stats.caravan_straight
+        );
     }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();

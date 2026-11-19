@@ -196,6 +196,7 @@ fn load_repair_rejects_unsafe_ids_points_and_per_route_overflow() {
             } else {
                 valid_route.b_center
             },
+            way: Vec::new(),
             dispatch_state: "state".repeat(600),
         })
         .collect();
@@ -238,6 +239,7 @@ fn load_repair_drops_future_and_unbounded_caravan_clocks() {
         arrives_tick,
         from,
         to,
+        way: Vec::new(),
         dispatch_state: String::new(),
     };
     sim.caravans = vec![caravan(1, 50, 100), caravan(2, 101, 110), caravan(3, 0, u64::MAX)];
@@ -276,6 +278,7 @@ fn snow_holds_caravans_back_on_the_road() {
         arrives_tick: 200,
         from: [10, 10],
         to: [40, 10],
+        way: Vec::new(),
         dispatch_state: String::new(),
     });
     sim.tick_count = 150;
