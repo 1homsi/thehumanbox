@@ -37,7 +37,8 @@ export function collectSettlementLabels(
   const roleAt = new Map<string, string | null>()
   if (zoom >= ROLE_ZOOM)
     for (const town of world.towns ?? [])
-      roleAt.set(`${town.center[0]},${town.center[1]}`, townRoleWord(town.role))
+      if (town.role && town.role !== 'mixed')
+        roleAt.set(`${town.center[0]},${town.center[1]}`, townRoleWord(town.role))
   for (const s of settlements) {
     const [cx, cy] = s.town_center ?? s.center
     if (cx - ox < bounds.c0 - MARGIN || cx - ox > bounds.c1 + MARGIN) continue

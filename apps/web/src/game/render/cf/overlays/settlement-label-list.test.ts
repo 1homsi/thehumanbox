@@ -68,7 +68,10 @@ const bounds = { c0: 0, c1: 100, r0: 0, r1: 60 }
 
 describe('settlement labels without the building painter', () => {
   it('writes the role of the town under its name when zoomed in', () => {
-    const towns = [{ id: 1, lineage_id: 'a', center: [40, 30], planned: true, role: 'mining' }]
+    const towns = [
+      { id: 1, lineage_id: 'a', center: [40, 30], planned: true, role: 'mining' },
+      { id: 2, lineage_id: 'b', center: [60, 30], planned: true, role: 'mixed' },
+    ]
     const near = collectSettlementLabels(world({ towns } as Partial<WorldState>), bounds, 1.2)
     expect(near.find((l) => l.title === 'ROK')?.sub).toBe('a mining town')
     expect(near.find((l) => l.title === 'MALA')?.sub).toBe('')
