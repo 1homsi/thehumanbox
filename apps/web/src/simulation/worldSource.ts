@@ -1,6 +1,7 @@
 import { t } from '../i18n'
 import { showNotice } from '../shared/confirm'
 import { forgetSavedCameraForReload } from '../game/model/saved-camera'
+import { openEmptyWorldTab } from '../shared/empty-world'
 
 export type WorldSource = 'native' | 'wasm'
 export type PlayerWorldKind = 'local'
@@ -10,6 +11,7 @@ const SOURCE_KEY = 'thb-world-source'
 const SEED_KEY = 'thb-wasm-seed'
 const RESET_KEY = 'thb-wasm-reset-pending'
 const RECOVERY_KEY = 'thb-wasm-recovery-pending'
+const EMPTY_KEY = 'thb-wasm-reset-empty'
 export const LOCAL_WORLD_CHECKPOINT_EVENT = 'thb:local-world-checkpoint'
 export const LOCAL_WORLD_RELOAD_EVENT = 'thb:local-world-safe-reload'
 export const OWN_WORLD_ID = 'browser-own'
@@ -32,6 +34,7 @@ interface LocalWorldRequestSnapshot {
   seed: string | null
   reset: string | null
   recovery: string | null
+  empty: string | null
 }
 
 function readLocalWorldRequestSnapshot(): LocalWorldRequestSnapshot | null {
@@ -40,6 +43,7 @@ function readLocalWorldRequestSnapshot(): LocalWorldRequestSnapshot | null {
       seed: window.localStorage.getItem(SEED_KEY),
       reset: window.localStorage.getItem(RESET_KEY),
       recovery: window.localStorage.getItem(RECOVERY_KEY),
+      empty: window.localStorage.getItem(EMPTY_KEY),
     }
   } catch {
     return null
@@ -56,6 +60,7 @@ function restoreLocalWorldRequestSnapshot(snapshot: LocalWorldRequestSnapshot): 
     restoreStorageValue(SEED_KEY, snapshot.seed)
     restoreStorageValue(RESET_KEY, snapshot.reset)
     restoreStorageValue(RECOVERY_KEY, snapshot.recovery)
+    restoreStorageValue(EMPTY_KEY, snapshot.empty)
   } catch {
     // Storage becoming unavailable mid-operation is not recoverable here, but
     // the worker checkpoint still prevents destructive reload from proceeding.
@@ -165,7 +170,7 @@ export function getOwnWorldSeed(): string {
   return seed
 }
 
-export function requestOwnWorldReset(seed?: string): boolean {
+export function requestOwnWorldReset(seed?: string, options: { empty?: boolean } = {}): boolean {
   const snapshot = readLocalWorldRequestSnapshot()
   if (!snapshot) {
     void showNotice(t('dialogs.worldNotice.storageUnavailable'), t('dialogs.worldNotice.notReset'))
@@ -174,6 +179,8 @@ export function requestOwnWorldReset(seed?: string): boolean {
   try {
     window.localStorage.setItem(RESET_KEY, '1')
     window.localStorage.removeItem(RECOVERY_KEY)
+    if (options.empty) window.localStorage.setItem(EMPTY_KEY, '1')
+    else window.localStorage.removeItem(EMPTY_KEY)
     if (seed && /^\d+$/.test(seed)) window.localStorage.setItem(SEED_KEY, seed)
     else window.localStorage.removeItem(SEED_KEY)
   } catch {
@@ -181,6 +188,7 @@ export function requestOwnWorldReset(seed?: string): boolean {
     void showNotice(t('dialogs.worldNotice.storageUnavailable'), t('dialogs.worldNotice.notReset'))
     return false
   }
+  if (options.empty) openEmptyWorldTab()
   // The new world opens whole, not on the old one's saved view.
   const camera = forgetSavedCameraForReload()
   return reloadAppSafely({
@@ -203,9 +211,18 @@ export function hasOwnWorldResetRequest(): boolean {
   }
 }
 
+export function hasOwnWorldEmptyRequest(): boolean {
+  try {
+    return window.localStorage.getItem(RESET_KEY) === '1' && window.localStorage.getItem(EMPTY_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function clearOwnWorldResetRequest() {
   try {
     window.localStorage.removeItem(RESET_KEY)
+    window.localStorage.removeItem(EMPTY_KEY)
   } catch {
     /* noop */
   }

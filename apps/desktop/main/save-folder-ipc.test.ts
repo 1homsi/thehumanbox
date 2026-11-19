@@ -28,6 +28,7 @@ function loadIpc(userData: string): Record<string, (...args: unknown[]) => Promi
       if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       if (id === './exclusive-operation') return require(path.join(__dirname, 'exclusive-operation'))
       if (id === './world-safety') return require(path.join(__dirname, 'world-safety'))
+      if (id === './sim-env') return require(path.join(__dirname, 'sim-env'))
       if (id === './renderer-load') return { loadRenderer: async () => {} }
       if (id === './data-lock') return { acquireDataRootLock: () => { throw new Error('no lock in test') } }
       if (id === './sim-process') {

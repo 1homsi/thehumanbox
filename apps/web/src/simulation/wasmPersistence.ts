@@ -1,6 +1,6 @@
 export type StorageRetry<SavedWorld> =
   | { kind: 'read' }
-  | { kind: 'reset'; seed: string }
+  | { kind: 'reset'; seed: string; empty?: boolean }
   | { kind: 'restore'; recoveryId: string }
   | { kind: 'preserve'; world: SavedWorld; recoveryId: string }
 
@@ -22,7 +22,7 @@ export function rememberStorageRetry<SavedWorld>(
 export interface StorageRetryOperations<SavedWorld> {
   persist: () => Promise<boolean>
   read: () => Promise<boolean>
-  reset: (seed: string) => Promise<boolean>
+  reset: (seed: string, empty?: boolean) => Promise<boolean>
   restore: (recoveryId: string) => Promise<boolean>
   preserve: (world: SavedWorld, recoveryId: string) => Promise<boolean>
 }
@@ -39,7 +39,7 @@ export function runStorageRetry<SavedWorld>(
     case 'read':
       return operations.read()
     case 'reset':
-      return operations.reset(retry.seed)
+      return operations.reset(retry.seed, retry.empty)
     case 'restore':
       return operations.restore(retry.recoveryId)
     case 'preserve':

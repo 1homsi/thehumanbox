@@ -49,8 +49,7 @@ import { hotkeysFor, toolForHotkey } from './tool-hotkeys'
 import { typingTarget } from '../../game/model/shortcuts'
 import { formatNumber, t } from '../../i18n'
 import { openingHides, useOpeningGuide } from '../../state/opening-guide'
-
-const TAB_STORAGE_KEY = 'thb-sandbox-category'
+import { DOCK_TAB_STORAGE_KEY } from '../../shared/empty-world'
 
 interface Props {
   armedToolId: string | null
@@ -72,7 +71,7 @@ interface Props {
 function readInitialTab(): string {
   if (typeof window === 'undefined') return DOCK_TABS[0].id
   try {
-    return resolveTab(window.localStorage.getItem(TAB_STORAGE_KEY))
+    return resolveTab(window.localStorage.getItem(DOCK_TAB_STORAGE_KEY))
   } catch {
     // Storage can be unavailable in private or locked-down browser contexts.
     return DOCK_TABS[0].id
@@ -397,7 +396,7 @@ export function SandboxToolbar({
     setTabId(id)
     openGroup(id, resolveGroup(id, remembered[id]))
     try {
-      window.localStorage.setItem(TAB_STORAGE_KEY, id)
+      window.localStorage.setItem(DOCK_TAB_STORAGE_KEY, id)
     } catch {
       // The toolbar still works when browser storage is unavailable.
     }

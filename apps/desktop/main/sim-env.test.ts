@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { buildLocalSimEnv, rssLimitsMb } from './sim-env'
+import { buildLocalSimEnv, rssLimitsMb, wantsEmptyWorld, withBlankWorld } from './sim-env'
 import type { Settings } from './settings'
 
 function settings(overrides: Partial<Settings> = {}): Settings {
@@ -52,4 +52,15 @@ test('desktop scales the process-memory limits to the machine instead of the hos
   )
   assert.equal(tuned.MEM_RSS_ELEVATED_MB, '2048')
   assert.equal(tuned.MEM_RSS_CRITICAL_MB, '2500')
+})
+
+test('an empty world is asked of the simulation only when the renderer asks for one', () => {
+  assert.equal(wantsEmptyWorld({ empty: true }), true)
+  assert.equal(wantsEmptyWorld({ empty: 'yes' }), false)
+  assert.equal(wantsEmptyWorld(undefined), false)
+  assert.equal(wantsEmptyWorld(null), false)
+  const env = buildLocalSimEnv(settings(), 4321, {})
+  assert.equal(withBlankWorld(env, true).THB_BLANK_WORLD, '1')
+  assert.equal(withBlankWorld(env, false).THB_BLANK_WORLD, undefined)
+  assert.equal(env.THB_BLANK_WORLD, undefined)
 })

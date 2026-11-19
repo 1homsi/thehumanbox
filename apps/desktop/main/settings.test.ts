@@ -36,6 +36,7 @@ function loadMain(
       if (id === './i18n') return require(path.join(__dirname, 'i18n'))
       if (id === './exclusive-operation') return require(path.join(__dirname, 'exclusive-operation'))
       if (id === './world-safety') return require(path.join(__dirname, 'world-safety'))
+      if (id === './sim-env') return require(path.join(__dirname, 'sim-env'))
       if (id === './settings') return loadMain('settings.js', userData)
       const stub = extra(id)
       if (stub !== undefined) return stub

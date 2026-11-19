@@ -83,6 +83,15 @@ function WorldSourceSection() {
     if (confirmed) requestOwnWorldReset()
   }
 
+  async function confirmEmptyWorld() {
+    const confirmed = await askConfirm({
+      title: t('settings.web.emptyTitle'),
+      body: t('settings.web.emptyBody'),
+      confirmLabel: t('settings.web.emptyConfirm'),
+    })
+    if (confirmed) requestOwnWorldReset(undefined, { empty: true })
+  }
+
   return (
     <Section title={t('settings.web.playMode')}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -98,6 +107,9 @@ function WorldSourceSection() {
             </button>
             <button className="lang-btn" disabled={storageBusy} onClick={confirmReset}>
               ↺ {t('settings.web.startNew')}
+            </button>
+            <button className="lang-btn" disabled={storageBusy} onClick={confirmEmptyWorld}>
+              ▢ {t('settings.web.startEmpty')}
             </button>
           </>
         )}
@@ -564,13 +576,15 @@ export function DesktopSettingsModal({ onClose }: Props) {
     }
   }
 
-  async function resetDesktopWorld() {
+  async function resetDesktopWorld(empty = false) {
     if (!desktop) return
     setActionError(null)
     setSafetyMessage(null)
     setBusy(true)
     try {
-      const result = await desktop.world.resetLocal()
+      const result = empty
+        ? await desktop.world.resetLocal({ empty: true })
+        : await desktop.world.resetLocal()
       setSafetyMessage(result.reset ? t('settings.desktop.resetDone') : t('settings.desktop.resetCancelled'))
     } catch (error) {
       setSafetyMessage(t('settings.desktop.resetFailed', { error: errorText(error) }))
@@ -623,6 +637,18 @@ export function DesktopSettingsModal({ onClose }: Props) {
                     disabled={busy}
                   >
                     {t('settings.desktop.newWorldButton')}
+                  </button>
+                </SettingRow>
+                <SettingRow
+                  title={t('settings.desktop.emptyWorld')}
+                  desc={t('settings.desktop.emptyWorldDesc')}
+                >
+                  <button
+                    className="lang-btn danger"
+                    onClick={() => void resetDesktopWorld(true)}
+                    disabled={busy}
+                  >
+                    {t('settings.desktop.emptyWorldButton')}
                   </button>
                 </SettingRow>
                 {safetyMessage && <div className="settings-note">{safetyMessage}</div>}

@@ -25,6 +25,7 @@ import {
   getOwnWorldSeed,
   setOwnWorldSeed,
   getOwnWorldRecoveryRequest,
+  hasOwnWorldEmptyRequest,
   hasOwnWorldResetRequest,
 } from './worldSource'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
@@ -408,6 +409,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         } else if (m.type === 'ready' || m.type === 'storage_ready') {
           if (m.type === 'ready') {
             worldReady = true
+            if (m.paused === true) setRuntimeState((current) => ({ ...current, paused: true }))
             const startup = readStartup(m.startup)
             if (startup) reportWorldStartup(startup, performance.now())
           }
@@ -433,6 +435,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           useWorldReplaced.getState().bump()
         } else if (m.type === 'reset_done') {
           clearOwnWorldResetRequest()
+          if (m.paused === true) setRuntimeState((current) => ({ ...current, paused: true }))
         } else if (m.type === 'recovery_done') {
           // The restored world may have another seed; the word-split and other per-world watches read it from here.
           if (typeof m.seed === 'string') {
@@ -529,6 +532,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         id: OWN_WORLD_ID,
         seed: ownSeed,
         reset: hasOwnWorldResetRequest(),
+        empty: hasOwnWorldEmptyRequest(),
         recoveryId: getOwnWorldRecoveryRequest(),
         touch: navigator.maxTouchPoints > 1,
       })

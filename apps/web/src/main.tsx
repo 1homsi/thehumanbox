@@ -6,7 +6,9 @@ import { initAnalytics, refreshAnalyticsContext } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
 import { isDesktopStartupPending } from './shared/desktopStartup'
 import { getLocale, initI18n } from './i18n'
+import { openEmptyWorldTabFromUrl } from './shared/empty-world'
 
+openEmptyWorldTabFromUrl(window.location.search)
 initAnalytics()
 
 // The chosen language loads before the first render; it never blocks for long

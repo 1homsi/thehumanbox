@@ -268,8 +268,18 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new(seed: u64) -> Self {
+        let mut sim = Self::on_grid(seed, WorldGrid::new(seed));
+        sim.spawn_founders();
+        sim.spawn_animals(14);
+        sim
+    }
+
+    pub fn new_blank(seed: u64) -> Self {
+        Self::on_grid(seed, WorldGrid::blank())
+    }
+
+    fn on_grid(seed: u64, grid: WorldGrid) -> Self {
         let rng = ChaCha8Rng::seed_from_u64(seed);
-        let grid = WorldGrid::new(seed);
         let mut physics = PhysicsEngine::new();
         physics.register_existing_fires(&grid);
 
@@ -285,7 +295,7 @@ impl Simulation {
             [w0, w1]
         };
 
-        let mut sim = Simulation {
+        Simulation {
             grid,
             physics,
             organisms: Vec::new(),
@@ -417,10 +427,7 @@ impl Simulation {
             territory: HashMap::default(),
             tile_owner: HashMap::default(),
             cached_territory: serde_json::Value::Null,
-        };
-        sim.spawn_founders();
-        sim.spawn_animals(14);
-        sim
+        }
     }
 
     /// Sets the natural population ceiling for this runtime. Hosted and WASM
