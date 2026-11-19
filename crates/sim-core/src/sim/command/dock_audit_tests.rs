@@ -103,6 +103,13 @@ fn staged_world() -> (Simulation, Stage) {
     for &i in &near {
         sim.organisms[i].lineage_id = lineage.clone();
     }
+    let far: Vec<usize> = (0..sim.organisms.len())
+        .filter(|&i| sim.organisms[i].alive && dist(&sim.organisms[i]) > 20.0)
+        .take(2)
+        .collect();
+    for i in far {
+        sim.organisms[i].lineage_id = lineage.clone();
+    }
     sim.lineage_eras
         .entry(lineage.clone())
         .or_insert(crate::sim::era::Era::PreStone);

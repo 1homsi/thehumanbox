@@ -129,7 +129,7 @@ const LOD_EVERY: u64 = 32;
 
 const LORE_EVERY: u64 = 60;
 
-const LORE_CHANCE_PERCENT: u64 = 20;
+const LORE_CHANCE_PERCENT: u64 = 12;
 
 const LORE_ROOM: usize = 48;
 
@@ -186,7 +186,7 @@ const HOLD: usize = usize::MAX;
 
 const CHALLENGE_COOLDOWN: u64 = 80;
 
-const DORMANT_CHALLENGE_PER_MILLE: u64 = 2;
+const DORMANT_CHALLENGE_PER_MILLE: u64 = 3;
 
 impl Simulation {
     pub(super) fn lod_awake(
@@ -367,8 +367,11 @@ impl Simulation {
         buf: &mut Vec<usize>,
     ) -> Choice {
         let o = &self.organisms[s.idx];
-        let action = match o.last_action.map(usize::from) {
-            Some(a) if a >= 8 && !stirs_others(a) => a,
+        let step = self.routine_step(s.idx);
+        let thought = step.as_ref().and_then(|r| r.thought).map(str::to_string);
+        let action = match (step, o.last_action.map(usize::from)) {
+            (Some(step), _) => step.action,
+            (None, Some(a)) if a >= 8 && !stirs_others(a) => a,
             _ => {
                 let goal = {
                     let route = o.route.borrow();
@@ -392,7 +395,7 @@ impl Simulation {
         };
         Choice {
             action,
-            thought: None,
+            thought,
             origin: "dormant",
             at: (o.x as i32, o.y as i32),
             rng,
@@ -825,6 +828,8 @@ impl Simulation {
         if !f_holds {
             self.org_apply_choice(&mut f, choice);
             self.org_act(&mut f);
+        } else if let Some(thought) = choice.thought.as_deref() {
+            self.organisms[f.idx].think(thought, self.tick_count);
         }
         self.org_vitals(&mut f);
         if dormant {

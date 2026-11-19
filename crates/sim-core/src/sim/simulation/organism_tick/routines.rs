@@ -36,6 +36,7 @@ impl Simulation {
             );
         }
 
+        self.keep_routine(idx);
         // Children keep close to their mother and play near home; elders sit by the fire after dark.
         if !f.dormant || (self.tick_count + idx as u64).is_multiple_of(DORMANT_ROUTINE_EVERY) {
             self.assign_family_outing(idx, spatial, org_idx_by_id);

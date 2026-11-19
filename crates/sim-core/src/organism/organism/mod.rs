@@ -136,6 +136,7 @@ pub struct Organism {
     pub journey: Option<Journey>,
     /// Today's stint of everyday work, if any (see `sim::agents::daily_work`). Runtime only.
     pub work: Option<crate::sim::agents::daily_work::WorkPlan>,
+    pub routine: Option<crate::sim::agents::routine::Routine>,
     /// Remembered route around obstacles; runtime only, never saved.
     pub route: super::navigation::RouteCell,
     pub last_groomed: u64,
@@ -294,6 +295,7 @@ impl Organism {
             wander_target: None,
             journey: None,
             work: None,
+            routine: None,
             route: Default::default(),
             last_groomed: 0,
             last_fed_kin: 0,
