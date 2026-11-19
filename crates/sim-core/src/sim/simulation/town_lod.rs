@@ -15,6 +15,8 @@ const FIRE_CELL: i32 = 16;
 
 const WELL: f32 = 0.5;
 
+const WORK_WELL: f32 = 0.6;
+
 const UNITS_EVERY: u64 = 8;
 
 const WAR_REACH: i32 = 48;
@@ -175,7 +177,10 @@ impl Simulation {
                     && o.energy >= WELL
                     && o.hydration >= WELL
                     && !riders.contains(o.id.as_str())
-                    && o.routine.is_some_and(|r| r.activity_at(phase) != Activity::Work);
+                    && o.routine.is_some_and(|r| {
+                        r.activity_at(phase) != Activity::Work
+                            || (o.energy >= WORK_WELL && !o.work.is_some_and(|plan| plan.skill.feeds()))
+                    });
                 unit.filter(|_| settled)
             })
             .collect()
@@ -353,6 +358,57 @@ mod tests {
         sim.calm_towns = None;
         sim.refresh_calm_towns();
         assert!(sim.calm_town_of_each().iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn a_calm_town_steps_its_rested_workers_but_not_those_who_bring_in_food() {
+        use crate::organism::skills::Skill;
+        use crate::sim::agents::daily_work::WorkPlan;
+        let mut sim = Simulation::new(42);
+        sim.tick_n(1300);
+        while !(100..250).contains(&(sim.tick_count % DAY_LENGTH)) {
+            sim.tick();
+        }
+        sim.calm_towns = None;
+        sim.refresh_calm_towns();
+        sim.lod_units = sim.home_units();
+        let phase = sim.tick_count % DAY_LENGTH;
+        let idx = (0..sim.organisms.len())
+            .find(|&i| {
+                sim.lod_units[i].is_some()
+                    && sim.organisms[i]
+                        .routine
+                        .is_some_and(|r| r.activity_at(phase) == Activity::Work)
+            })
+            .expect("a worker of a calm town");
+        let unit = sim.lod_units[idx];
+        {
+            let o = &mut sim.organisms[idx];
+            o.journey = None;
+            o.mounted_vehicle = None;
+            o.water_ticks = 0;
+            o.last_action = Some(27);
+            o.energy = 0.9;
+            o.hydration = 0.9;
+            o.work = Some(WorkPlan {
+                skill: Skill::Woodcutting,
+                spot: (o.x as i32, o.y as i32),
+                until: sim.tick_count + 100,
+                harvest: false,
+                misses: 0,
+            });
+        }
+        for vehicle in &mut sim.vehicles {
+            vehicle.occupants.retain(|id| *id != sim.organisms[idx].id);
+        }
+        assert_eq!(sim.calm_town_of_each()[idx], unit);
+        sim.organisms[idx].energy = 0.55;
+        assert_eq!(sim.calm_town_of_each()[idx], None);
+        sim.organisms[idx].energy = 0.9;
+        for skill in [Skill::Foraging, Skill::Fishing, Skill::Hunting, Skill::Farming] {
+            sim.organisms[idx].work.as_mut().expect("a work plan").skill = skill;
+            assert_eq!(sim.calm_town_of_each()[idx], None, "{skill:?}");
+        }
     }
 
     #[test]

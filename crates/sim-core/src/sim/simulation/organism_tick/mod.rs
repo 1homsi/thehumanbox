@@ -194,6 +194,8 @@ const FORD_DEPTH: f32 = 0.18;
 
 const STORM_SHELTER: f32 = 0.5;
 
+const STORM_SLOT: u64 = 4;
+
 const CHALLENGE_COOLDOWN: u64 = 80;
 
 const DORMANT_CHALLENGE_PER_MILLE: u64 = 3;
@@ -233,7 +235,9 @@ impl Simulation {
                     return false;
                 }
                 if !self.lod
-                    || (storm && !weathering_storm(o, &self.grid))
+                    || (storm
+                        && !weathering_storm(o, &self.grid)
+                        && (self.tick_count + i as u64).is_multiple_of(STORM_SLOT))
                     || match towns[i] {
                         None => (self.tick_count + i as u64).is_multiple_of(LOD_EVERY),
                         Some(town) => {
