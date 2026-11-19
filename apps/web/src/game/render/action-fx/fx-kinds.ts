@@ -118,6 +118,7 @@ const POINT_FX: Partial<Record<SandboxCommand['cmd'], FxKind>> = {
   flood: 'water',
   douse: 'water',
   bless_river: 'water',
+  spring: 'water',
   rain_patch: 'rain',
   locusts: 'swarm',
   poison: 'plague',
@@ -166,10 +167,13 @@ const POINT_FX: Partial<Record<SandboxCommand['cmd'], FxKind>> = {
   paint_biome: 'grow',
   restore: 'grow',
   bless_forest: 'grow',
+  bless_soil: 'grow',
+  bountiful_hunt: 'spawn',
   paint: 'paint',
   road: 'paint',
   place_boat: 'paint',
   clear_region: 'dust',
+  shape_land: 'dust',
   demolish: 'dust',
 }
 

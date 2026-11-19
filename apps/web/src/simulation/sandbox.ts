@@ -93,6 +93,10 @@ export type SandboxCommand =
   | { cmd: 'bless_river'; x: number; y: number; radius?: number }
   | { cmd: 'bless_forest'; x: number; y: number; radius?: number }
   | { cmd: 'talent'; x: number; y: number; radius?: number }
+  | { cmd: 'shape_land'; x: number; y: number; radius?: number; by: number }
+  | { cmd: 'bless_soil'; x: number; y: number; radius?: number }
+  | { cmd: 'spring'; x: number; y: number }
+  | { cmd: 'bountiful_hunt'; x: number; y: number; radius?: number }
   | { cmd: 'era_tribe'; x: number; y: number; era: string }
   | { cmd: 'tribe_gift'; x: number; y: number; radius?: number; what: 'food' | 'tool' }
   | { cmd: 'migrate_tribe'; x: number; y: number; radius?: number }

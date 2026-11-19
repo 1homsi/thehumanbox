@@ -138,6 +138,18 @@ export function rememberGroup(
  * show a "new" mark; opening the group marks its new tools seen. Remove an id once it is old news.
  */
 export const NEW_TOOL_IDS: readonly string[] = [
+  'ice',
+  'mineral',
+  'ash',
+  'raise_land',
+  'lower_land',
+  'biome_volcanic',
+  'bless_soil',
+  'spring',
+  'bountiful_hunt',
+  'era_iron',
+  'era_classical',
+  'era_industrial',
   'nuke',
   'black_hole',
   'sinkhole',

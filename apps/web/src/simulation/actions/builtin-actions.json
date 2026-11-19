@@ -1062,6 +1062,64 @@
       "radius": { "base": 0, "perBrush": 1, "max": 63 }
     },
     {
+      "id": "ice",
+      "group": "terrain",
+      "label": "ice",
+      "icon": "🥌",
+      "name": "dock.tools.ice",
+      "tip": "dock.tips.ice",
+      "target": "brush",
+      "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "ice", "radius": "$radius" },
+      "radius": { "base": 0, "perBrush": 1, "max": 63 },
+      "failure": "dock.failures.noWaterToFreeze"
+    },
+    {
+      "id": "mineral",
+      "group": "terrain",
+      "label": "ore",
+      "icon": "💎",
+      "name": "dock.tools.mineral",
+      "tip": "dock.tips.mineral",
+      "target": "brush",
+      "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "mineral", "radius": "$radius" },
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
+    },
+    {
+      "id": "ash",
+      "group": "terrain",
+      "label": "ash",
+      "icon": "⚱️",
+      "name": "dock.tools.ash",
+      "tip": "dock.tips.ash",
+      "target": "brush",
+      "command": { "cmd": "paint", "x": "$x", "y": "$y", "tile": "ash", "radius": "$radius" },
+      "radius": { "base": 0, "perBrush": 1, "max": 63 }
+    },
+    {
+      "id": "raise_land",
+      "group": "terrain",
+      "label": "raise land",
+      "icon": "🔼",
+      "name": "dock.tools.raise_land",
+      "tip": "dock.tips.raise_land",
+      "target": "brush",
+      "command": { "cmd": "shape_land", "x": "$x", "y": "$y", "radius": "$radius", "by": 0.08 },
+      "radius": { "base": 1, "perBrush": 1, "max": 63 },
+      "failure": "dock.failures.nothingToChange"
+    },
+    {
+      "id": "lower_land",
+      "group": "terrain",
+      "label": "lower land",
+      "icon": "🔽",
+      "name": "dock.tools.lower_land",
+      "tip": "dock.tips.lower_land",
+      "target": "brush",
+      "command": { "cmd": "shape_land", "x": "$x", "y": "$y", "radius": "$radius", "by": -0.08 },
+      "radius": { "base": 1, "perBrush": 1, "max": 63 },
+      "failure": "dock.failures.nothingToChange"
+    },
+    {
       "id": "dawn",
       "group": "sky",
       "label": "dawn",
@@ -1321,6 +1379,18 @@
       "tip": "dock.tips.biome_taiga",
       "target": "brush",
       "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "taiga", "radius": "$radius" },
+      "radius": { "base": 3, "perBrush": 1, "max": 64 },
+      "failure": "dock.failures.noLand"
+    },
+    {
+      "id": "biome_volcanic",
+      "group": "biomes",
+      "label": "volcanic",
+      "icon": "♨️",
+      "name": "dock.tools.biome_volcanic",
+      "tip": "dock.tips.biome_volcanic",
+      "target": "brush",
+      "command": { "cmd": "paint_biome", "x": "$x", "y": "$y", "biome": "volcanic", "radius": "$radius" },
       "radius": { "base": 3, "perBrush": 1, "max": 64 },
       "failure": "dock.failures.noLand"
     },
@@ -2033,6 +2103,41 @@
       "radius": { "base": 3, "perBrush": 1, "max": 16 }
     },
     {
+      "id": "bless_soil",
+      "group": "miracles",
+      "label": "rich soil",
+      "icon": "🪱",
+      "name": "dock.tools.bless_soil",
+      "tip": "dock.tips.bless_soil",
+      "target": "brush",
+      "command": { "cmd": "bless_soil", "x": "$x", "y": "$y", "radius": "$radius" },
+      "radius": { "base": 4, "perBrush": 1, "max": 16 },
+      "failure": "dock.failures.noLand"
+    },
+    {
+      "id": "spring",
+      "group": "miracles",
+      "label": "wellspring",
+      "icon": "⛲",
+      "name": "dock.tools.spring",
+      "tip": "dock.tips.spring",
+      "target": "point",
+      "command": { "cmd": "spring", "x": "$x", "y": "$y" },
+      "failure": "dock.failures.noDryLand"
+    },
+    {
+      "id": "bountiful_hunt",
+      "group": "miracles",
+      "label": "good hunt",
+      "icon": "🏹",
+      "name": "dock.tools.bountiful_hunt",
+      "tip": "dock.tips.bountiful_hunt",
+      "target": "brush",
+      "command": { "cmd": "bountiful_hunt", "x": "$x", "y": "$y", "radius": "$radius" },
+      "radius": { "base": 5, "perBrush": 1, "max": 16 },
+      "failure": "dock.failures.noGround"
+    },
+    {
       "id": "era_stone",
       "group": "eras",
       "label": "stone-age tribe",
@@ -2053,6 +2158,26 @@
       "command": { "cmd": "era_tribe", "x": "$x", "y": "$y", "era": "bronze" }
     },
     {
+      "id": "era_iron",
+      "group": "eras",
+      "label": "iron-age tribe",
+      "icon": "⚒️",
+      "name": "dock.tools.era_iron",
+      "tip": "dock.tips.era_iron",
+      "target": "point",
+      "command": { "cmd": "era_tribe", "x": "$x", "y": "$y", "era": "iron" }
+    },
+    {
+      "id": "era_classical",
+      "group": "eras",
+      "label": "classical tribe",
+      "icon": "🏛️",
+      "name": "dock.tools.era_classical",
+      "tip": "dock.tips.era_classical",
+      "target": "point",
+      "command": { "cmd": "era_tribe", "x": "$x", "y": "$y", "era": "classical" }
+    },
+    {
       "id": "era_medieval",
       "group": "eras",
       "label": "medieval tribe",
@@ -2061,6 +2186,16 @@
       "tip": "dock.tips.era_medieval",
       "target": "point",
       "command": { "cmd": "era_tribe", "x": "$x", "y": "$y", "era": "medieval" }
+    },
+    {
+      "id": "era_industrial",
+      "group": "eras",
+      "label": "industrial tribe",
+      "icon": "🏭",
+      "name": "dock.tools.era_industrial",
+      "tip": "dock.tips.era_industrial",
+      "target": "point",
+      "command": { "cmd": "era_tribe", "x": "$x", "y": "$y", "era": "industrial" }
     },
     {
       "id": "era_modern",
