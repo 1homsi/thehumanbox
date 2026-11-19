@@ -695,6 +695,41 @@ fn a_compact_save_of_a_compact_save_is_the_same_bytes() {
 }
 
 #[test]
+fn a_save_written_a_few_people_at_a_time_is_the_same_bytes() {
+    let mut sim = Simulation::new(11);
+    sim.tick_n(600);
+    let whole = sim.to_save_state().to_bytes();
+    assert!(sim.organisms.len() >= 16);
+    for step in [1, 7, usize::MAX] {
+        let mut writer = sim.to_save_state().into_writer();
+        let mut steps = 0;
+        while !writer.write(step) {
+            steps += 1;
+        }
+        assert!(step == usize::MAX || steps > 1);
+        assert_eq!(writer.finish(), whole);
+    }
+    let few = Simulation::new_blank(3).to_save_state();
+    let expected = few.to_bytes();
+    assert_eq!(few.into_writer().finish(), expected);
+}
+
+#[test]
+fn a_world_keeps_ticking_while_its_save_is_written() {
+    let mut sim = Simulation::new(4);
+    sim.tick_n(300);
+    let whole = sim.to_save_state().to_bytes();
+    let mut writer = sim.to_save_state().into_writer();
+    while !writer.write(5) {
+        sim.tick();
+    }
+    let bytes = writer.finish();
+    assert_eq!(bytes, whole);
+    let read = SaveState::from_bytes(&bytes).expect("the stepped save reads back");
+    assert_eq!(read.tick_count, 300);
+}
+
+#[test]
 fn a_first_compact_save_still_reads_with_its_half_float_values() {
     let mut sim = Simulation::new(5);
     sim.tick_n(700);

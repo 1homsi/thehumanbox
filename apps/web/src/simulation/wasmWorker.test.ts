@@ -13,6 +13,8 @@ const model = vi.hoisted(() => ({
     async (): Promise<{ blob: Uint8Array; seed: string; tick: number; savedAt: number } | null> => null,
   ),
   serialize: vi.fn(() => new Uint8Array([1])),
+  slicesLeft: 0,
+  sliceBudgets: [] as number[],
   command: vi.fn(() => APPLIED_JSON),
   saveWorld: vi.fn<(id: string, world: unknown) => Promise<void>>(async () => {}),
   archiveAndDeleteWorld: vi.fn(async () => 'recovery-1'),
@@ -60,6 +62,20 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
     }
     serialize() {
       return model.serialize()
+    }
+    pending: Uint8Array | null = null
+    serializeBegin() {
+      this.pending = model.serialize()
+    }
+    serializeChunk(budgetMs: number) {
+      model.sliceBudgets.push(budgetMs)
+      if (model.slicesLeft > 0) {
+        model.slicesLeft -= 1
+        return undefined
+      }
+      const blob = this.pending ?? new Uint8Array()
+      this.pending = null
+      return blob
     }
     free() {}
   },
@@ -145,6 +161,8 @@ beforeEach(async () => {
   model.fromSerialized.mockReset()
   model.init.mockReset().mockResolvedValue(undefined)
   model.serialize.mockReset().mockImplementation(() => new Uint8Array([1]))
+  model.slicesLeft = 0
+  model.sliceBudgets = []
   model.fullFrame.mockReset()
   model.packSave
     .mockReset()
@@ -459,6 +477,8 @@ describe('browser simulation scheduling', () => {
     model.fromSerialized.mockReturnValueOnce({
       tickCount: () => 0n,
       serialize: () => new Uint8Array([1]),
+      serializeBegin: () => {},
+      serializeChunk: () => new Uint8Array([1]),
       free: () => {},
     })
     model.saveWorld.mockImplementationOnce(() => preserve.promise)
@@ -491,6 +511,36 @@ describe('browser simulation scheduling', () => {
     await vi.advanceTimersByTimeAsync(4 * 60_000 + 30_000)
     expect(model.serialize).toHaveBeenCalledTimes(1)
     expect(model.saveWorld).toHaveBeenCalledTimes(1)
+  })
+
+  it('writes an autosave a slice at a time, letting the world tick between slices', async () => {
+    model.serialize.mockClear()
+    model.saveWorld.mockClear()
+    model.sliceBudgets = []
+    model.slicesLeft = 3
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 1_000)
+    expect(model.serialize).toHaveBeenCalledTimes(1)
+    expect(model.sliceBudgets).toEqual([8, 8, 8, 8])
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+    expect(model.saveWorld.mock.calls[0][1]).toMatchObject({ blob: Uint8Array.from([0x89, 1]) })
+  })
+
+  it('drops a save that is being sliced and saves the world at once when the page needs it now', async () => {
+    model.serialize.mockClear()
+    model.saveWorld.mockClear()
+    model.sliceBudgets = []
+    model.slicesLeft = 1_000_000
+    await vi.advanceTimersByTimeAsync(5 * 60_000)
+    expect(model.sliceBudgets.length).toBeGreaterThan(0)
+    send({ type: 'stop' })
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stopped' }))
+    expect(model.serialize).toHaveBeenCalledTimes(2)
+    expect(model.saveWorld).toHaveBeenCalledTimes(1)
+    expect(model.saveWorld).toHaveBeenCalledWith(
+      'test',
+      expect.objectContaining({ blob: Uint8Array.from([1]) }),
+    )
   })
 
   it('fast-forward advances ticks without flooding the renderer with frames', async () => {
@@ -779,6 +829,8 @@ describe('browser simulation scheduling', () => {
       deltaFrameBytes: () => new Uint8Array([0x80]),
       fullFrameBytes: () => new Uint8Array([0x80]),
       serialize: () => payload,
+      serializeBegin: () => {},
+      serializeChunk: () => payload,
       tickN: () => {},
     })
     await restartWorker({})
