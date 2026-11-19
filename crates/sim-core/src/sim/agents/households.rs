@@ -60,7 +60,7 @@ impl Simulation {
     /// A grown child whose elder parent is short of food walks over and brings some. Runs on a cadence per child.
     pub(crate) fn care_for_elder_parent(&mut self, idx: usize, org_idx_by_id: &FxHashMap<String, usize>) {
         let tick = self.tick_count;
-        if tick % CARE_STEP != idx as u64 % CARE_STEP {
+        if !self.on_minute(CARE_STEP, idx as u64) {
             return;
         }
         {

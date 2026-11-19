@@ -174,6 +174,7 @@ pub struct Simulation {
     pub(crate) evening_places: std::collections::BTreeMap<String, (i32, i32)>,
     pub(crate) calm_towns: Option<town_lod::CalmMap>,
     pub(crate) lod_units: Vec<Option<u32>>,
+    pub(crate) turn_dt: u64,
     pub lod: bool,
     pub(crate) followed: Option<String>,
     /// Where each tribe's children go to school this hour (runtime; empty outside school hours).
@@ -363,6 +364,7 @@ impl Simulation {
             evening_places: Default::default(),
             calm_towns: None,
             lod_units: Vec::new(),
+            turn_dt: 1,
             lod: true,
             followed: None,
             school_places: Default::default(),

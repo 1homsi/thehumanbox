@@ -964,6 +964,9 @@ impl<'de> Deserialize<'de> for Vocabulary {
             }
             map.insert(LAST_USED_KEY.to_string(), packed);
         }
+        if map.is_empty() {
+            return Ok(Vocabulary::default());
+        }
         Ok(Vocabulary::from_hashmap(&map))
     }
 }
@@ -983,6 +986,14 @@ mod tests {
     /// and the org-detail API. When it carried
     /// the reserved clock blob, `__thb_last_used` was rendered as if it
     /// were one of the organism's words - a ~400-number string.
+    #[test]
+    fn an_empty_vocabulary_reads_back_as_the_same_bytes() {
+        let empty = Vocabulary::default();
+        let bytes = rmp_serde::to_vec(&empty).unwrap();
+        let back: Vocabulary = rmp_serde::from_slice(&bytes).unwrap();
+        assert_eq!(rmp_serde::to_vec(&back).unwrap(), bytes);
+    }
+
     #[test]
     fn words_never_exposes_the_reserved_clock_key() {
         let mut v = vocab();
