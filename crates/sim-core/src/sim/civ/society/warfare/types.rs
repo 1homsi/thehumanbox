@@ -136,8 +136,8 @@ impl TreatyKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Treaty {
-    pub lineage_a: String,
-    pub lineage_b: String,
+    pub lineage_a: crate::intern::Sym,
+    pub lineage_b: crate::intern::Sym,
     pub kind: TreatyKind,
     pub signed_tick: u64,
     pub expires_tick: u64,

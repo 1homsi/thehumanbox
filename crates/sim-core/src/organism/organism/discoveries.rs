@@ -74,6 +74,76 @@ pub struct Discoveries {
     set: BTreeSet<String>,
     mask: DiscoveryMask,
     hot: u64,
+    known: Vec<u64>,
+}
+
+#[derive(Clone, Copy)]
+struct NameInfo {
+    id: u32,
+    mask: Option<u16>,
+    hot: Option<u8>,
+}
+
+struct Names {
+    by_name: crate::hashing::FxHashMap<&'static str, NameInfo>,
+    names: Vec<&'static str>,
+}
+
+fn names() -> &'static std::sync::Mutex<Names> {
+    static NAMES: std::sync::OnceLock<std::sync::Mutex<Names>> = std::sync::OnceLock::new();
+    NAMES.get_or_init(|| {
+        std::sync::Mutex::new(Names {
+            by_name: Default::default(),
+            names: Vec::new(),
+        })
+    })
+}
+
+fn lock_names() -> std::sync::MutexGuard<'static, Names> {
+    names().lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn name_info(name: &str) -> NameInfo {
+    if let Some(&info) = lock_names().by_name.get(name) {
+        return info;
+    }
+    let mask = crate::sim::actions::discovery_bit(name).map(|bit| bit as u16);
+    let hot = HOT_NAMES.iter().position(|hot| *hot == name).map(|bit| bit as u8);
+    let mut table = lock_names();
+    if let Some(&info) = table.by_name.get(name) {
+        return info;
+    }
+    let shared: &'static str = Box::leak(name.to_owned().into_boxed_str());
+    let info = NameInfo {
+        id: table.names.len() as u32,
+        mask,
+        hot,
+    };
+    table.names.push(shared);
+    table.by_name.insert(shared, info);
+    info
+}
+
+pub fn discovery_id(name: &str) -> u32 {
+    name_info(name).id
+}
+
+pub fn discovery_name(id: u32) -> &'static str {
+    lock_names().names[id as usize]
+}
+
+pub fn known_ids(bits: &[u64]) -> impl Iterator<Item = u32> + '_ {
+    bits.iter().enumerate().flat_map(|(word, &w)| {
+        let mut rest = w;
+        std::iter::from_fn(move || {
+            if rest == 0 {
+                return None;
+            }
+            let bit = rest.trailing_zeros();
+            rest &= rest - 1;
+            Some(word as u32 * 64 + bit)
+        })
+    })
 }
 
 impl Discoveries {
@@ -92,35 +162,34 @@ impl Discoveries {
         self.hot & (1 << name as u8) != 0
     }
 
-    fn hot_bit(name: &str) -> Option<u32> {
-        HOT_NAMES
-            .iter()
-            .position(|hot| *hot == name)
-            .map(|bit| bit as u32)
-    }
-
     pub fn insert(&mut self, name: String) -> bool {
-        let bit = crate::sim::actions::discovery_bit(&name);
-        let hot = Self::hot_bit(&name);
+        let info = name_info(&name);
         let inserted = self.set.insert(name);
-        if let Some(bit) = bit {
-            self.mask[bit / 64] |= 1 << (bit % 64);
+        if let Some(bit) = info.mask {
+            self.mask[bit as usize / 64] |= 1 << (bit % 64);
         }
-        if let Some(bit) = hot {
+        if let Some(bit) = info.hot {
             self.hot |= 1 << bit;
         }
+        let word = info.id as usize / 64;
+        if self.known.len() <= word {
+            self.known.resize(word + 1, 0);
+        }
+        self.known[word] |= 1 << (info.id % 64);
         inserted
     }
 
     pub fn remove(&mut self, name: &str) -> bool {
         let removed = self.set.remove(name);
         if removed {
-            if let Some(bit) = crate::sim::actions::discovery_bit(name) {
-                self.mask[bit / 64] &= !(1 << (bit % 64));
+            let info = name_info(name);
+            if let Some(bit) = info.mask {
+                self.mask[bit as usize / 64] &= !(1 << (bit % 64));
             }
-            if let Some(bit) = Self::hot_bit(name) {
+            if let Some(bit) = info.hot {
                 self.hot &= !(1 << bit);
             }
+            self.known[info.id as usize / 64] &= !(1 << (info.id % 64));
         }
         removed
     }
@@ -129,6 +198,26 @@ impl Discoveries {
         self.set.clear();
         self.mask = DiscoveryMask::default();
         self.hot = 0;
+        self.known.clear();
+    }
+
+    pub fn known(&self) -> &[u64] {
+        &self.known
+    }
+
+    #[inline]
+    pub fn has_id(&self, id: u32) -> bool {
+        self.known
+            .get(id as usize / 64)
+            .is_some_and(|word| word & (1 << (id % 64)) != 0)
+    }
+
+    pub fn knows_all_of(&self, other: &Discoveries) -> bool {
+        other
+            .known
+            .iter()
+            .enumerate()
+            .all(|(i, &theirs)| theirs & !self.known.get(i).copied().unwrap_or(0) == 0)
     }
 }
 
@@ -199,7 +288,19 @@ mod tests {
                     "{} disagrees",
                     hot.name()
                 );
+                let id = discovery_id(hot.name());
+                assert_eq!(discoveries.has_id(id), discoveries.contains(hot.name()));
+                assert_eq!(discovery_name(id), hot.name());
             }
+            for name in ["foraging", "pottery", "fire", "not-a-band-discovery"] {
+                assert_eq!(discoveries.has_id(discovery_id(name)), discoveries.contains(name));
+            }
+            let listed: Vec<&str> = known_ids(discoveries.known()).map(discovery_name).collect();
+            let mut listed = listed;
+            listed.sort_unstable();
+            assert!(listed.iter().copied().eq(discoveries.iter().map(String::as_str)));
+            assert!(discoveries.knows_all_of(&discoveries.iter().cloned().collect()));
+            assert!(Discoveries::new().knows_all_of(discoveries) == discoveries.is_empty());
         };
         let mut discoveries = Discoveries::new();
         agrees(&discoveries);

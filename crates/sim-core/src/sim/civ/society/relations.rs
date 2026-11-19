@@ -107,7 +107,7 @@ struct LedgerRow {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(from = "Vec<LedgerRow>", into = "Vec<LedgerRow>")]
 pub struct Relations {
-    ledger: BTreeMap<(String, String), Vec<Memory>>,
+    ledger: BTreeMap<(crate::intern::Sym, crate::intern::Sym), Vec<Memory>>,
 }
 
 impl From<Vec<LedgerRow>> for Relations {
@@ -119,7 +119,7 @@ impl From<Vec<LedgerRow>> for Relations {
             }
             let memory: Vec<Memory> = row.memory.into_iter().filter(|m| m.weight.is_finite()).collect();
             if !memory.is_empty() {
-                ledger.insert((row.holder, row.other), memory);
+                ledger.insert((row.holder.into(), row.other.into()), memory);
             }
         }
         Relations { ledger }
@@ -132,8 +132,8 @@ impl From<Relations> for Vec<LedgerRow> {
             .ledger
             .into_iter()
             .map(|((holder, other), memory)| LedgerRow {
-                holder,
-                other,
+                holder: holder.into(),
+                other: other.into(),
                 memory,
             })
             .collect()
@@ -154,10 +154,7 @@ impl Relations {
             return;
         }
         let limit = kind.limit();
-        let memory = self
-            .ledger
-            .entry((holder.to_string(), other.to_string()))
-            .or_default();
+        let memory = self.ledger.entry((holder.into(), other.into())).or_default();
         match memory.iter_mut().find(|m| m.kind == kind) {
             Some(m) => {
                 m.weight = (m.weight + delta).clamp(-limit, limit);
@@ -177,9 +174,13 @@ impl Relations {
     }
 
     pub fn memories(&self, holder: &str, other: &str) -> &[Memory] {
-        self.ledger
-            .get(&(holder.to_string(), other.to_string()))
-            .map_or(&[], Vec::as_slice)
+        let (Some(holder), Some(other)) = (
+            crate::intern::Sym::existing(holder),
+            crate::intern::Sym::existing(other),
+        ) else {
+            return &[];
+        };
+        self.ledger.get(&(holder, other)).map_or(&[], Vec::as_slice)
     }
 
     pub fn standing(&self, holder: &str, other: &str) -> f32 {
@@ -214,10 +215,13 @@ impl Relations {
     }
 
     pub fn others_of<'a>(&'a self, holder: &'a str) -> impl Iterator<Item = &'a str> + 'a {
-        self.ledger
-            .range((holder.to_string(), String::new())..)
-            .take_while(move |((h, _), _)| h == holder)
-            .map(|((_, other), _)| other.as_str())
+        let start = crate::intern::Sym::existing(holder).map(|h| (h, crate::intern::Sym::default()));
+        start.into_iter().flat_map(move |start| {
+            self.ledger
+                .range(start..)
+                .take_while(move |((h, _), _)| *h == holder)
+                .map(|((_, other), _)| other.as_str())
+        })
     }
 
     pub fn fade(&mut self) {
@@ -232,28 +236,28 @@ impl Relations {
 
     pub fn forget_gone(&mut self, living: &BTreeSet<String>) {
         self.ledger
-            .retain(|(holder, other), _| living.contains(holder) && living.contains(other));
+            .retain(|(holder, other), _| living.contains(holder.as_str()) && living.contains(other.as_str()));
     }
 
     pub fn rename(&mut self, from: &str, to: &str) {
         if from == to {
             return;
         }
-        let moved: Vec<((String, String), Vec<Memory>)> = self
+        let moved: Vec<((crate::intern::Sym, crate::intern::Sym), Vec<Memory>)> = self
             .ledger
             .iter()
-            .filter(|((h, o), _)| h == from || o == from)
-            .map(|(k, v)| (k.clone(), v.clone()))
+            .filter(|((h, o), _)| *h == from || *o == from)
+            .map(|(k, v)| (*k, v.clone()))
             .collect();
         for ((h, o), memory) in moved {
-            self.ledger.remove(&(h.clone(), o.clone()));
-            let h = if h == from { to.to_string() } else { h };
-            let o = if o == from { to.to_string() } else { o };
+            self.ledger.remove(&(h, o));
+            let h: &str = if h == from { to } else { h.as_str() };
+            let o: &str = if o == from { to } else { o.as_str() };
             if h == o {
                 continue;
             }
             for m in memory {
-                self.remember(&h, &o, m.kind, m.weight, m.tick);
+                self.remember(h, o, m.kind, m.weight, m.tick);
             }
         }
     }
@@ -305,33 +309,29 @@ impl Simulation {
             }
         }
         for (a, b) in self.border_contacts() {
-            if living.contains(&a) && living.contains(&b) && !self.same_side(&a, &b) {
+            if living.contains(a.as_str()) && living.contains(b.as_str()) && !self.same_side(&a, &b) {
                 self.remember(&a, &b, MemoryKind::Border, -0.02);
             }
         }
     }
 
-    pub(crate) fn border_contacts(&self) -> BTreeSet<(String, String)> {
-        let mut contacts: BTreeSet<(String, String)> = BTreeSet::new();
-        let mut lineages: Vec<&crate::intern::Sym> = self.territory.keys().collect();
-        lineages.sort();
-        for lid in lineages {
-            let Some(tiles) = self.territory.get(lid.as_str()) else {
-                continue;
-            };
-            let mut seen: BTreeSet<&str> = BTreeSet::new();
+    pub(crate) fn border_contacts(&self) -> BTreeSet<(crate::intern::Sym, crate::intern::Sym)> {
+        let mut contacts: BTreeSet<(crate::intern::Sym, crate::intern::Sym)> = BTreeSet::new();
+        let mut seen: Vec<crate::intern::Sym> = Vec::new();
+        for (&lid, tiles) in &self.territory {
+            seen.clear();
             for &(x, y) in tiles {
                 for (dx, dy) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
-                    if let Some(owner) = self.tile_owner.get(&(x + dx, y + dy)) {
-                        if owner != lid {
-                            seen.insert(owner.as_str());
+                    if let Some(&owner) = self.tile_owner.get(&(x + dx, y + dy)) {
+                        if owner != lid && !seen.contains(&owner) {
+                            seen.push(owner);
                         }
                     }
                 }
             }
-            for other in seen {
-                contacts.insert((lid.to_string(), other.to_string()));
-                contacts.insert((other.to_string(), lid.to_string()));
+            for &other in &seen {
+                contacts.insert((lid, other));
+                contacts.insert((other, lid));
             }
         }
         contacts

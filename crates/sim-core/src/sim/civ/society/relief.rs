@@ -90,7 +90,7 @@ impl Simulation {
         &self,
         donor: &str,
         needy: &str,
-        moods: &BTreeMap<String, BTreeMap<String, f32>>,
+        moods: &BTreeMap<String, BTreeMap<crate::intern::Sym, f32>>,
     ) -> bool {
         let mood = moods
             .get(donor)
@@ -133,7 +133,7 @@ impl Simulation {
             })
             .map(|(l, _)| l.clone())
             .collect();
-        let moods: BTreeMap<String, BTreeMap<String, f32>> = if needy.is_empty() {
+        let moods: BTreeMap<String, BTreeMap<crate::intern::Sym, f32>> = if needy.is_empty() {
             BTreeMap::new()
         } else {
             members
@@ -201,7 +201,7 @@ impl Simulation {
             .treaties
             .iter()
             .filter(|t| t.kind == TreatyKind::Vassalage && t.signed_tick <= tick && t.expires_tick > tick)
-            .map(|t| (t.lineage_a.clone(), t.lineage_b.clone()))
+            .map(|t| (t.lineage_a.to_string(), t.lineage_b.to_string()))
             .collect();
         owed.sort();
         owed.dedup();

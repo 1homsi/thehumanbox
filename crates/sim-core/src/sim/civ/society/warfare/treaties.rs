@@ -4,6 +4,21 @@ pub fn has_active_treaty(treaties: &[Treaty], a: &str, b: &str, tick: u64) -> bo
     if a.is_empty() || b.is_empty() || a == b {
         return false;
     }
+    match (crate::intern::Sym::existing(a), crate::intern::Sym::existing(b)) {
+        (Some(a), Some(b)) => has_active_treaty_between(treaties, a, b, tick),
+        _ => false,
+    }
+}
+
+pub fn has_active_treaty_between(
+    treaties: &[Treaty],
+    a: crate::intern::Sym,
+    b: crate::intern::Sym,
+    tick: u64,
+) -> bool {
+    if a.is_empty() || b.is_empty() || a == b {
+        return false;
+    }
     treaties.iter().any(|t| {
         t.signed_tick <= tick
             && t.expires_tick > tick
@@ -170,8 +185,8 @@ pub fn establish_treaty(
     consolidate_treaties(treaties, signed_tick);
     treaties.retain(|treaty| !treaty_matches_lineages(treaty, lineage_a, lineage_b));
     treaties.push(Treaty {
-        lineage_a: lineage_a.to_string(),
-        lineage_b: lineage_b.to_string(),
+        lineage_a: lineage_a.to_string().into(),
+        lineage_b: lineage_b.to_string().into(),
         kind,
         signed_tick,
         expires_tick: active_same_kind_expiry

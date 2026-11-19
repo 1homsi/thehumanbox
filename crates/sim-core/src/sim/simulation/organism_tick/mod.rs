@@ -304,11 +304,12 @@ impl Simulation {
             return;
         }
         let names = lore_in_order();
+        let ids = lore_ids();
         let mut lore: FxHashMap<crate::intern::Sym, u64> = FxHashMap::default();
         let mut near: FxHashMap<(i32, i32), u64> = FxHashMap::default();
         let mut own: Vec<u64> = vec![0; self.organisms.len()];
         for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
-            let known = lore_known(names, &o.discoveries);
+            let known = lore_known(ids, &o.discoveries);
             own[i] = known;
             *lore.entry(o.lineage_id).or_default() |= known;
             *near
@@ -603,22 +604,21 @@ fn lore_in_order() -> &'static [&'static str] {
     })
 }
 
-fn lore_known(names: &[&str], discoveries: &std::collections::BTreeSet<String>) -> u64 {
-    let mut known = 0u64;
-    let mut next = 0;
-    for d in discoveries {
-        while next < names.len() && names[next] < d.as_str() {
-            next += 1;
-        }
-        if next == names.len() {
-            break;
-        }
-        if names[next] == d.as_str() {
-            known |= 1 << next;
-            next += 1;
-        }
-    }
-    known
+fn lore_ids() -> &'static [u32] {
+    static IDS: std::sync::OnceLock<Vec<u32>> = std::sync::OnceLock::new();
+    IDS.get_or_init(|| {
+        lore_in_order()
+            .iter()
+            .map(|name| crate::organism::organism::discovery_id(name))
+            .collect()
+    })
+}
+
+fn lore_known(ids: &[u32], discoveries: &crate::organism::organism::Discoveries) -> u64 {
+    ids.iter()
+        .enumerate()
+        .filter(|&(_, &id)| discoveries.has_id(id))
+        .fold(0u64, |known, (bit, _)| known | 1 << bit)
 }
 
 fn weathering_storm(o: &Organism, grid: &WorldGrid) -> bool {
@@ -976,7 +976,7 @@ mod lore_tests {
     fn the_lore_mask_holds_exactly_the_core_discoveries_known_in_name_order() {
         let names = lore_in_order();
         assert!(names.windows(2).all(|w| w[0] < w[1]));
-        let known: std::collections::BTreeSet<String> = [
+        let known: crate::organism::organism::Discoveries = [
             "aaa",
             "fire",
             "medicine",
@@ -988,7 +988,7 @@ mod lore_tests {
         .iter()
         .map(|s| s.to_string())
         .collect();
-        let mask = lore_known(names, &known);
+        let mask = lore_known(lore_ids(), &known);
         let from_mask: Vec<&str> = (0..names.len())
             .filter(|&b| mask & (1 << b) != 0)
             .map(|b| names[b])

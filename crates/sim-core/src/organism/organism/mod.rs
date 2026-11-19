@@ -7,7 +7,9 @@ use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,
 };
-pub use discoveries::{Discoveries, DiscoveryMask, Hot, DISCOVERY_MASK_WORDS};
+pub use discoveries::{
+    discovery_id, discovery_name, known_ids, Discoveries, DiscoveryMask, Hot, DISCOVERY_MASK_WORDS,
+};
 use rand::{Rng, RngExt};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
