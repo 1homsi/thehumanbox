@@ -339,6 +339,7 @@ impl Simulation {
             cart_grain: state.cart_grain,
             towns: state.towns,
             next_town_id: state.next_town_id,
+            world_mods: state.world_mods,
             caravans: state.caravans,
             next_trade_route_id,
             next_caravan_id,

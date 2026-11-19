@@ -1,3 +1,4 @@
+import { bindWorldModSender } from './simulation/actions/world-mods'
 import { personName } from './shared/personName'
 import {
   Fragment,
@@ -192,6 +193,10 @@ function LiveApp() {
     setSandboxSender(sendCommand)
     return () => setSandboxSender(null)
   }, [sendCommand])
+  useEffect(() => {
+    bindWorldModSender(sendWorldCommand)
+    return () => bindWorldModSender(null)
+  }, [sendWorldCommand])
   /** The first click of a two-click tool (see PAIR_TOOLS), waiting for the second. */
   const pairFirstRef = useRef<{ x: number; y: number } | null>(null)
   const [brush, setBrush] = useState(2)

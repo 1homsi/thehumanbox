@@ -6,7 +6,9 @@ pub const MAX_COMPOSITE_STEPS: usize = 8;
 
 impl Simulation {
     pub(super) fn cmd_composite(&mut self, steps: Vec<Command>) -> bool {
-        let nested = steps.iter().any(|step| matches!(step, Command::Composite { .. }));
+        let nested = steps
+            .iter()
+            .any(|step| matches!(step, Command::Composite { .. } | Command::SetWorldMods { .. }));
         if steps.is_empty() || steps.len() > MAX_COMPOSITE_STEPS || nested {
             return false;
         }

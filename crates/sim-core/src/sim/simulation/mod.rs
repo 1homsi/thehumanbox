@@ -211,6 +211,7 @@ pub struct Simulation {
     /// Each town's plaza and streets (see `civ::civ_tick::town`).
     pub towns: Vec<super::civ::civ_tick::town::Town>,
     pub next_town_id: u32,
+    pub world_mods: crate::sim::command::world_mods::WorldMods,
     pub next_trade_route_id: u32,
     pub next_caravan_id: u32,
     /// Coin a tribe has earned by selling goods to other tribes, by lineage (what the
@@ -397,6 +398,7 @@ impl Simulation {
             cart_grain: Vec::new(),
             towns: Vec::new(),
             next_town_id: 1,
+            world_mods: Default::default(),
             caravans: Vec::new(),
             next_trade_route_id: 1,
             next_caravan_id: 1,

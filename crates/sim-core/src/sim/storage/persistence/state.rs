@@ -258,6 +258,11 @@ pub struct SaveState {
     pub(super) towns: Vec<crate::sim::civ::civ_tick::town::Town>,
     #[serde(default)]
     pub(super) next_town_id: u32,
+    #[serde(
+        default,
+        skip_serializing_if = "crate::sim::command::world_mods::WorldMods::is_empty"
+    )]
+    pub(super) world_mods: crate::sim::command::world_mods::WorldMods,
 }
 
 impl SaveState {

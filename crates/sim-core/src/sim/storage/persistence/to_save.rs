@@ -164,6 +164,7 @@ impl Simulation {
             cart_grain: self.cart_grain.clone(),
             towns: self.towns.clone(),
             next_town_id: self.next_town_id,
+            world_mods: self.world_mods.clone(),
             caravans: self.caravans.clone(),
             next_trade_route_id: self.next_trade_route_id,
             next_caravan_id: self.next_caravan_id,

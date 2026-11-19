@@ -77,6 +77,7 @@ export type IncomingWorldFrame = Pick<
   featured_org_id?: WorldState['featured_org_id']
   sex_words?: WorldState['sex_words']
   territory?: WorldState['territory']
+  world_mods?: unknown
   buildings?: WorldState['buildings']
   religions?: WorldState['religions']
   books?: WorldState['books']

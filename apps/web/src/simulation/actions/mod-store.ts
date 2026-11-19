@@ -20,6 +20,7 @@ interface ModState {
   setEnabled: (id: string, enabled: boolean) => void
   remove: (id: string) => void
   reload: () => void
+  adopt: (entries: readonly { raw: string; enabled: boolean }[]) => string[]
 }
 
 interface Stored {
@@ -98,6 +99,21 @@ export const useMods = create<ModState>((set, get) => {
       const mods = readStored()
       apply(mods)
       set({ mods })
+    },
+    adopt: (entries) => {
+      const mods = [...get().mods]
+      const broken: string[] = []
+      for (const entry of entries) {
+        if (mods.length >= MOD_LIMITS.mods) break
+        const added = load(entry.raw, entry.enabled)
+        const id = added.mod?.id ?? null
+        const present = id ? mods.some((m) => idOf(m) === id) : mods.some((m) => m.raw === entry.raw)
+        if (present) continue
+        mods.push(added)
+        if (!added.mod) broken.push(entry.raw)
+      }
+      if (mods.length !== get().mods.length) commit(mods)
+      return broken
     },
   }
 })
