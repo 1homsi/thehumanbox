@@ -12,18 +12,11 @@ impl Simulation {
     pub(crate) fn rebuild_lineage_aggregates(&mut self) {
         let previous = std::mem::take(&mut self.lineage_aggregates);
         self.lineage_aggregates.reserve(self.lineage_names.len().max(8));
-        // Copy a lineage's id only the first time the tick meets it.
         for org in self.organisms.iter().filter(|org| org.alive) {
-            if let Some(entry) = self.lineage_aggregates.get_mut(org.lineage_id.as_str()) {
-                add_member(entry, org);
-            } else {
-                let mut entry = LineageAggregate::default();
-                add_member(&mut entry, org);
-                self.lineage_aggregates.insert(org.lineage_id.to_string(), entry);
-            }
+            add_member(self.lineage_aggregates.entry(org.lineage_id).or_default(), org);
         }
         // A tribe counted at the last rebuild with no one alive now has died out since then.
-        let gone: Vec<String> = previous
+        let gone: Vec<crate::intern::Sym> = previous
             .into_keys()
             .filter(|lid| !self.lineage_aggregates.contains_key(lid))
             .collect();

@@ -17,14 +17,14 @@ fn lineage_wellbeing_snapshot_excludes_dead_members_and_refreshes_next_tick() {
     }
 
     sim.rebuild_lineage_aggregates();
-    let snapshot = sim.lineage_aggregates[&lineage];
+    let snapshot = sim.lineage_aggregates[lineage.as_str()];
     assert_eq!(snapshot.population, 2);
     assert!((snapshot.energy_sum - 1.0).abs() < f32::EPSILON);
 
     sim.organisms[0].energy = 0.5;
-    assert_eq!(sim.lineage_aggregates[&lineage].energy_sum, 1.0);
+    assert_eq!(sim.lineage_aggregates[lineage.as_str()].energy_sum, 1.0);
     sim.rebuild_lineage_aggregates();
-    assert!((sim.lineage_aggregates[&lineage].energy_sum - 1.25).abs() < f32::EPSILON);
+    assert!((sim.lineage_aggregates[lineage.as_str()].energy_sum - 1.25).abs() < f32::EPSILON);
 }
 
 #[test]

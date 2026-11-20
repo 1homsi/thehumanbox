@@ -1,25 +1,26 @@
 use crate::hashing::FxHashMap;
+use crate::intern::Sym;
 
 use super::organism::Organism;
 
-pub struct PeopleIndex<'a> {
-    by_id: FxHashMap<&'a str, usize>,
-    by_lineage: FxHashMap<&'a str, Vec<usize>>,
+pub struct PeopleIndex {
+    by_id: FxHashMap<Sym, usize>,
+    by_lineage: FxHashMap<Sym, Vec<usize>>,
 }
 
-impl<'a> PeopleIndex<'a> {
-    pub fn build(organisms: &'a [Organism]) -> Option<Self> {
-        let mut by_id: FxHashMap<&'a str, usize> =
+impl PeopleIndex {
+    pub fn build(organisms: &[Organism]) -> Option<Self> {
+        let mut by_id: FxHashMap<Sym, usize> =
             FxHashMap::with_capacity_and_hasher(organisms.len(), Default::default());
-        let mut by_lineage: FxHashMap<&'a str, Vec<usize>> = FxHashMap::default();
+        let mut by_lineage: FxHashMap<Sym, Vec<usize>> = FxHashMap::default();
         for (i, o) in organisms.iter().enumerate() {
             if !o.alive {
                 continue;
             }
-            if by_id.insert(o.id.as_str(), i).is_some() {
+            if by_id.insert(o.id, i).is_some() {
                 return None;
             }
-            by_lineage.entry(o.lineage_id.as_str()).or_default().push(i);
+            by_lineage.entry(o.lineage_id).or_default().push(i);
         }
         Some(Self { by_id, by_lineage })
     }

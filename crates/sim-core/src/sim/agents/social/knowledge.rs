@@ -239,10 +239,10 @@ pub fn teach(
     let transfer_chance = if is_elder { 0.06 } else { 0.025 };
     let mut learned = Vec::new();
     if !student.discoveries.knows_all_of(&teacher.discoveries) {
-        for disc in teacher.discoveries.iter() {
-            if !student.discoveries.contains(disc.as_str()) && rng.random::<f32>() < transfer_chance {
-                student.discoveries.insert(disc.clone());
-                learned.push(disc.clone());
+        for disc in teacher.discoveries.unknown_to(&student.discoveries) {
+            if rng.random::<f32>() < transfer_chance {
+                student.discoveries.insert(disc.to_string());
+                learned.push(disc.to_string());
             }
         }
     }

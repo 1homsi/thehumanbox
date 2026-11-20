@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::sim::civ::land::village_roads::plan_road_avoiding;
-use crate::sim::civ::land::village_stores::{self, occupied_tiles};
+use crate::sim::civ::land::village_stores;
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::BuildingKind;
 use crate::sim::tech::railways::stop_of;
@@ -84,8 +84,8 @@ fn is_busy_way(sim: &Simulation, x: i32, y: i32) -> bool {
 /// A cart's route from `from` to `to` over busy ways: the cells after `from`, last first, so the cart pops the
 /// next cell off the end. `None` when no such way is within reach.
 fn plan_cart_route(sim: &Simulation, from: [i32; 2], to: [i32; 2]) -> Option<Vec<(i32, i32)>> {
-    let occupied = occupied_tiles(sim);
-    let blocked = |x: i32, y: i32| occupied.contains(&(x, y));
+    let occupied = village_stores::OccupiedMap::of(sim);
+    let blocked = |x: i32, y: i32| occupied.contains(x, y);
     let cheap = |x: i32, y: i32| is_busy_way(sim, x, y);
     let path = plan_road_avoiding(&sim.grid, from, to, &blocked, &cheap, None)?;
     if path.len() > MAX_CART_PATH {

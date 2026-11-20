@@ -210,6 +210,9 @@ fn surplus_good(sim: &Simulation, route_index: usize, sender: &str, receiver: &s
 fn lineage_stock(sim: &Simulation, lineage: &str) -> (u32, [u32; TRADE_GOOD_COUNT]) {
     let mut people = 0u32;
     let mut stock = [0u32; TRADE_GOOD_COUNT];
+    let Some(lineage) = crate::intern::Sym::existing(lineage) else {
+        return (people, stock);
+    };
     for org in sim
         .organisms
         .iter()

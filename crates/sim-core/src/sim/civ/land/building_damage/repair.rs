@@ -40,8 +40,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
             .enumerate()
             .filter(|(index, _)| !assigned_workers.contains(index))
             .filter(|(_, org)| {
-                can_repair(org)
-                    && (reclaimable || building.owner_lineage.as_deref() == Some(org.lineage_id.as_str()))
+                can_repair(org) && (reclaimable || building.owner_lineage == Some(org.lineage_id))
             })
             .filter_map(|(index, org)| {
                 let distance = (org.x - x as f32).abs() + (org.y - y as f32).abs();

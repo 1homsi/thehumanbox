@@ -65,9 +65,10 @@ impl Simulation {
 
     /// The centre of the nearest working workshop of `lineage` that pulls `trade`, within `WORK_REACH` of `home`.
     pub(super) fn workplace_for(&self, lineage: &str, trade: &str, home: (i32, i32)) -> Option<(i32, i32)> {
+        let lineage = crate::intern::Sym::existing(lineage)?;
         self.buildings
             .iter()
-            .filter(|b| b.owner_lineage.as_deref() == Some(lineage) && b.is_operational() && b.damage < 0.5)
+            .filter(|b| b.owner_lineage == Some(lineage) && b.is_operational() && b.damage < 0.5)
             .filter(|b| workshop_pull(b.kind).is_some_and(|s| s.name() == trade))
             .map(|b| {
                 let (fw, fh) = b.kind.footprint();
