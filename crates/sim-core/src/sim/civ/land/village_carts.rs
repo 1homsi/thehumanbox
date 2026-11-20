@@ -84,7 +84,15 @@ fn is_busy_way(sim: &Simulation, x: i32, y: i32) -> bool {
 /// A cart's route from `from` to `to` over busy ways: the cells after `from`, last first, so the cart pops the
 /// next cell off the end. `None` when no such way is within reach.
 fn plan_cart_route(sim: &Simulation, from: [i32; 2], to: [i32; 2]) -> Option<Vec<(i32, i32)>> {
-    let occupied = village_stores::OccupiedMap::of(sim);
+    plan_cart_route_in(sim, &village_stores::OccupiedMap::of(sim), from, to)
+}
+
+fn plan_cart_route_in(
+    sim: &Simulation,
+    occupied: &village_stores::OccupiedMap,
+    from: [i32; 2],
+    to: [i32; 2],
+) -> Option<Vec<(i32, i32)>> {
     let blocked = |x: i32, y: i32| occupied.contains(x, y);
     let cheap = |x: i32, y: i32| is_busy_way(sim, x, y);
     let path = plan_road_avoiding(&sim.grid, from, to, &blocked, &cheap, None)?;
@@ -155,6 +163,7 @@ fn spawn_carts(sim: &mut Simulation) {
         .filter(|o| o.alive && o.discoveries.contains(WHEEL))
         .map(|o| o.lineage_id.to_string())
         .collect();
+    let mut occupied: Option<village_stores::OccupiedMap> = None;
     for lineage in wheeled {
         if carts_of(sim, &lineage) >= MAX_CARTS_PER_TRIBE {
             continue;
@@ -168,7 +177,10 @@ fn spawn_carts(sim: &mut Simulation) {
             .filter(|f| {
                 f.owner_lineage == lineage && !f.harvested && chebyshev([f.x, f.y], stop) <= CART_REACH
             })
-            .any(|f| plan_cart_route(sim, stop, [f.x, f.y]).is_some());
+            .any(|f| {
+                let occupied = occupied.get_or_insert_with(|| village_stores::OccupiedMap::of(sim));
+                plan_cart_route_in(sim, occupied, stop, [f.x, f.y]).is_some()
+            });
         if !reachable {
             continue;
         }
@@ -194,6 +206,7 @@ fn spawn_carts(sim: &mut Simulation) {
 
 fn run_carts(sim: &mut Simulation) {
     let now = sim.tick_count;
+    let mut occupied: Option<village_stores::OccupiedMap> = None;
     for vi in 0..sim.vehicles.len() {
         let v = &sim.vehicles[vi];
         if v.kind != TransportKind::Cart || now < v.ready_tick {
@@ -238,8 +251,10 @@ fn run_carts(sim: &mut Simulation) {
         }
         // Standing still: take the grain to the granary when loaded, otherwise go to the nearest waiting field.
         if loaded {
-            let route = granary_stop(sim, &lineage)
-                .and_then(|stop| plan_cart_route(sim, here, stop).map(|r| (r, stop)));
+            let route = granary_stop(sim, &lineage).and_then(|stop| {
+                let occupied = occupied.get_or_insert_with(|| village_stores::OccupiedMap::of(sim));
+                plan_cart_route_in(sim, occupied, here, stop).map(|r| (r, stop))
+            });
             match route {
                 Some((r, stop)) => {
                     crate::sim::civ::land::road_net::note_route(sim, &r, 1);
@@ -259,10 +274,10 @@ fn run_carts(sim: &mut Simulation) {
             .collect();
         fields.sort_by_key(|&at| (chebyshev(at, here), at));
         fields.dedup();
-        let found = fields
-            .into_iter()
-            .take(CART_CANDIDATES)
-            .find_map(|field| plan_cart_route(sim, here, field).map(|r| (r, field)));
+        let found = fields.into_iter().take(CART_CANDIDATES).find_map(|field| {
+            let occupied = occupied.get_or_insert_with(|| village_stores::OccupiedMap::of(sim));
+            plan_cart_route_in(sim, occupied, here, field).map(|r| (r, field))
+        });
         match found {
             Some((r, field)) => {
                 crate::sim::civ::land::road_net::note_route(sim, &r, 1);
