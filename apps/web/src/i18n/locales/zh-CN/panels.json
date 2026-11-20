@@ -412,6 +412,18 @@
       "marker": "{name}在第{year}年于此灭绝。打开卡片",
       "markerCause": "{name}在第{year}年于此灭绝（最后一死：{cause}）。打开卡片",
       "listHeading": "已灭绝的部落"
+    },
+    "urgency": {
+      "famine": "饥荒",
+      "thirst": "干渴",
+      "war": "战争伤亡",
+      "plague": "瘟疫",
+      "danger": "危急",
+      "lost": "本季 {total} 人中失去 {count} 人",
+      "noneLost": "本季尚无人死去",
+      "tip": "这个部落在上一季（{days} 天）里失去的人数，与它原有的全部人口相比。进度条是仍然活着的比例：有人死去时会缩短，损失越大颜色就越从琥珀色变成红色。箭头显示最近一天里死亡是在增加还是在减少。",
+      "rising": "死亡在增加",
+      "easing": "死亡在减少"
     }
   },
   "scene": {

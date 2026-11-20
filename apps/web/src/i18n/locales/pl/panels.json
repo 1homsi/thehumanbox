@@ -440,6 +440,18 @@
       "marker": "{name} wymarło tutaj w roku {year}. Otwórz kartę",
       "markerCause": "{name} wymarło tutaj w roku {year} (ostatnia śmierć: {cause}). Otwórz kartę",
       "listHeading": "Plemiona, które wymarły"
+    },
+    "urgency": {
+      "famine": "głód",
+      "thirst": "pragnienie",
+      "war": "straty wojenne",
+      "plague": "zaraza",
+      "danger": "w niebezpieczeństwie",
+      "lost": "stracono {count} z {total} w tej porze roku",
+      "noneLost": "w tej porze roku nikt jeszcze nie zginął",
+      "tip": "Wszyscy, których to plemię straciło w ostatniej porze roku ({days} dni), spośród wszystkich, których miało. Pasek to część, która wciąż żyje: kurczy się, gdy ludzie umierają, i przechodzi od bursztynu do czerwieni, gdy straty rosną. Strzałka pokazuje, czy w ciągu ostatniego dnia zgonów przybywa, czy ubywa.",
+      "rising": "zgonów przybywa",
+      "easing": "zgonów ubywa"
     }
   },
   "scene": {

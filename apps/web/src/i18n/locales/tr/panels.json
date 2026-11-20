@@ -419,6 +419,18 @@
       "marker": "{name} {year} yılında burada tükendi. Kartını aç",
       "markerCause": "{name} {year} yılında burada tükendi (son ölüm: {cause}). Kartını aç",
       "listHeading": "Tükenen kabileler"
+    },
+    "urgency": {
+      "famine": "kıtlık",
+      "thirst": "susuzluk",
+      "war": "savaş kayıpları",
+      "plague": "salgın",
+      "danger": "tehlikede",
+      "lost": "bu mevsim {total} kişiden {count} kayıp",
+      "noneLost": "bu mevsim henüz kayıp yok",
+      "tip": "Bu kabilenin son mevsimde ({days} gün) kaybettiği herkes, sahip olduğu tüm nüfusa göre. Çubuk hayatta kalanların payıdır: insanlar öldükçe kısalır ve kayıplar arttıkça kehribardan kırmızıya döner. Ok, son bir günde ölümlerin artıp artmadığını ya da azaldığını gösterir.",
+      "rising": "ölümler artıyor",
+      "easing": "ölümler azalıyor"
     }
   },
   "scene": {

@@ -419,6 +419,18 @@
       "marker": "{name} s'est éteinte ici en l'an {year}. Ouvrir sa fiche",
       "markerCause": "{name} s'est éteinte ici en l'an {year} (dernière mort : {cause}). Ouvrir sa fiche",
       "listHeading": "Tribus éteintes"
+    },
+    "urgency": {
+      "famine": "famine",
+      "thirst": "soif",
+      "war": "pertes de guerre",
+      "plague": "épidémie",
+      "danger": "en danger",
+      "lost": "{count} perdus sur {total} cette saison",
+      "noneLost": "personne de perdu cette saison",
+      "tip": "Tous ceux que cette tribu a perdus lors de la dernière saison ({days} jours), sur tous ceux qu'elle comptait. La barre est la part encore en vie : elle rétrécit quand des gens meurent et passe de l'ambre au rouge à mesure que les pertes s'accumulent. La flèche indique si les morts augmentent ou diminuent depuis la veille.",
+      "rising": "les morts augmentent",
+      "easing": "les morts diminuent"
     }
   },
   "scene": {

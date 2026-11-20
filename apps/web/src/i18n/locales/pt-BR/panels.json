@@ -419,6 +419,18 @@
       "marker": "{name} se extinguiu aqui no ano {year}. Abrir a ficha",
       "markerCause": "{name} se extinguiu aqui no ano {year} (última morte: {cause}). Abrir a ficha",
       "listHeading": "Tribos extintas"
+    },
+    "urgency": {
+      "famine": "fome",
+      "thirst": "sede",
+      "war": "baixas de guerra",
+      "plague": "peste",
+      "danger": "em perigo",
+      "lost": "perdeu {count} de {total} nesta estação",
+      "noneLost": "ninguém perdido nesta estação",
+      "tip": "Todos que esta tribo perdeu na última estação ({days} dias), de todos que tinha. A barra é a parte que continua viva: ela encolhe quando pessoas morrem e passa de âmbar a vermelho conforme as perdas aumentam. A seta mostra se as mortes estão aumentando ou diminuindo desde o último dia.",
+      "rising": "mortes aumentando",
+      "easing": "mortes diminuindo"
     }
   },
   "scene": {
