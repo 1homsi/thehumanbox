@@ -419,6 +419,18 @@
       "marker": "{name} erlosch hier im Jahr {year}. Karte öffnen",
       "markerCause": "{name} erlosch hier im Jahr {year} (letzter Tod: {cause}). Karte öffnen",
       "listHeading": "Erloschene Stämme"
+    },
+    "urgency": {
+      "famine": "Hungersnot",
+      "thirst": "Durst",
+      "war": "Kriegsverluste",
+      "plague": "Seuche",
+      "danger": "in Gefahr",
+      "lost": "{count} von {total} verloren in dieser Jahreszeit",
+      "noneLost": "diese Jahreszeit noch niemand verloren",
+      "tip": "Alle, die dieser Stamm in der letzten Jahreszeit ({days} Tage) verloren hat, gemessen an allen, die er hatte. Der Balken ist der Anteil der Lebenden: Er schrumpft, wenn Menschen sterben, und färbt sich mit wachsenden Verlusten von Bernstein zu Rot. Der Pfeil zeigt, ob die Todesfälle seit gestern zu- oder abnehmen.",
+      "rising": "Tote nehmen zu",
+      "easing": "Tote nehmen ab"
     }
   },
   "scene": {

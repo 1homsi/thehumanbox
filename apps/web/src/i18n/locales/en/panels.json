@@ -422,6 +422,18 @@
       "marker": "{name} died out here in year {year}. Open its card",
       "markerCause": "{name} died out here in year {year} (last death: {cause}). Open its card",
       "listHeading": "Tribes that died out"
+    },
+    "urgency": {
+      "famine": "famine",
+      "thirst": "thirst",
+      "war": "war losses",
+      "plague": "plague",
+      "danger": "in danger",
+      "lost": "lost {count} of {total} this season",
+      "noneLost": "no one lost yet this season",
+      "tip": "Everyone this tribe lost in the last season ({days} days), out of all it had. The bar is the share still alive: it shrinks as people die and turns from amber to red as the losses mount. The arrow shows whether the deaths are mounting or easing over the last day.",
+      "rising": "deaths mounting",
+      "easing": "deaths easing"
     }
   },
   "scene": {

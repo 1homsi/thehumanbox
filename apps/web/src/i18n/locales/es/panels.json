@@ -419,6 +419,18 @@
       "marker": "{name} se extinguió aquí en el año {year}. Abrir su ficha",
       "markerCause": "{name} se extinguió aquí en el año {year} (última muerte: {cause}). Abrir su ficha",
       "listHeading": "Tribus extinguidas"
+    },
+    "urgency": {
+      "famine": "hambruna",
+      "thirst": "sed",
+      "war": "bajas de guerra",
+      "plague": "plaga",
+      "danger": "en peligro",
+      "lost": "perdidos {count} de {total} esta estación",
+      "noneLost": "nadie perdido aún esta estación",
+      "tip": "Todos los que esta tribu perdió en la última estación ({days} días), de todos los que tenía. La barra es la parte que sigue viva: se encoge cuando muere gente y pasa de ámbar a rojo a medida que crecen las pérdidas. La flecha indica si las muertes aumentan o disminuyen desde el último día.",
+      "rising": "las muertes aumentan",
+      "easing": "las muertes disminuyen"
     }
   },
   "scene": {

@@ -419,6 +419,18 @@
       "marker": "{name} si è estinta qui nell'anno {year}. Apri la scheda",
       "markerCause": "{name} si è estinta qui nell'anno {year} (ultima morte: {cause}). Apri la scheda",
       "listHeading": "Tribù estinte"
+    },
+    "urgency": {
+      "famine": "carestia",
+      "thirst": "sete",
+      "war": "perdite di guerra",
+      "plague": "pestilenza",
+      "danger": "in pericolo",
+      "lost": "persi {count} su {total} in questa stagione",
+      "noneLost": "nessuno perso in questa stagione",
+      "tip": "Tutti quelli che questa tribù ha perso nell'ultima stagione ({days} giorni), su tutti quelli che aveva. La barra è la parte ancora in vita: si accorcia quando muore qualcuno e passa dall'ambra al rosso man mano che le perdite crescono. La freccia mostra se le morti aumentano o calano rispetto all'ultimo giorno.",
+      "rising": "le morti aumentano",
+      "easing": "le morti calano"
     }
   },
   "scene": {

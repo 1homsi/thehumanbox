@@ -24,6 +24,8 @@ import { TribeTimeline } from './TribeTimeline'
 import { TribeReasoning } from './TribeReasoning'
 import { FollowTribe } from './FollowTribe'
 import { FallenTribe } from './FallenTribe'
+import { TribeUrgency } from './TribeUrgency'
+import { tribeUrgency } from '../../game/model/tribe-urgency'
 import { extinctionOf } from '../../game/model/tribe-end'
 import { focusedTribe } from '../../shared/viewerSelection'
 import { formatNumber, t, type MessageKey } from '../../i18n'
@@ -308,6 +310,12 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const festival = festivalLabel(world.festivals, status.id)
   const peril = perilOf(world, status.id)
   const losses = lossLine(world.tribe_losses?.[status.id])
+  const urgency = tribeUrgency({
+    peril,
+    losses: world.tribe_losses?.[status.id],
+    alive: status.people,
+    food: status.food,
+  })
   const families = familyLines(world.organisms, status.id)
   const eldest = eldestByLineage(world.organisms)[status.id]
   const lore = world.lineage_lore?.[status.id]
@@ -394,6 +402,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           </button>
         </div>
       )}
+      <TribeUrgency key={status.id} tick={world.tick} urgency={urgency} />
       <Sparkline lineage={status.id} />
       <Need label={t('panels.tribe.food')} value={status.food} />
       {status.stores > 0 && (
