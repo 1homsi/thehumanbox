@@ -293,7 +293,7 @@ pub(crate) fn build_stores(sim: &mut Simulation, tribe: &Tribe) {
 
 /// Builds a watermill on a river bank near the houses. False when no bank is near enough.
 fn place_watermill(sim: &mut Simulation, tribe: &Tribe) -> bool {
-    let occupied = occupied_tiles(sim);
+    let occupied = OccupiedMap::of(sim);
     let Some((x, y)) = water_site(sim, &tribe.dwellings, &occupied) else {
         return false;
     };
@@ -337,6 +337,17 @@ impl OccupiedMap {
         map
     }
 
+    #[cfg(test)]
+    pub(crate) fn insert(&mut self, x: i32, y: i32) {
+        use crate::world::grid::WorldGrid;
+        if WorldGrid::in_bounds(x, y) {
+            let i = WorldGrid::idx(x, y);
+            self.inside[i / 64] |= 1 << (i % 64);
+        } else {
+            self.outside.insert((x, y));
+        }
+    }
+
     #[inline]
     pub(crate) fn contains(&self, x: i32, y: i32) -> bool {
         use crate::world::grid::WorldGrid;
@@ -349,6 +360,7 @@ impl OccupiedMap {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn occupied_tiles(sim: &Simulation) -> FxHashSet<(i32, i32)> {
     let mut tiles: FxHashSet<(i32, i32)> = sim.farms.iter().map(|f| (f.x, f.y)).collect();
     for b in &sim.buildings {
@@ -363,19 +375,13 @@ pub(crate) fn occupied_tiles(sim: &Simulation) -> FxHashSet<(i32, i32)> {
 }
 
 /// True when every tile a building of `kind` would cover, from its origin `(x, y)`, is open grass.
-pub(crate) fn fits(
-    sim: &Simulation,
-    x: i32,
-    y: i32,
-    kind: BuildingKind,
-    occupied: &FxHashSet<(i32, i32)>,
-) -> bool {
+pub(crate) fn fits(sim: &Simulation, x: i32, y: i32, kind: BuildingKind, occupied: &OccupiedMap) -> bool {
     let (fw, fh) = kind.footprint();
     (0..fh as i32).all(|dy| (0..fw as i32).all(|dx| open_grass(sim, x + dx, y + dy, occupied)))
 }
 
 pub(crate) fn place(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind) {
-    let occupied = occupied_tiles(sim);
+    let occupied = OccupiedMap::of(sim);
     let Some((x, y)) = edge_site(sim, &tribe.lineage, kind, &occupied)
         .or_else(|| site(sim, &tribe.dwellings, kind, &occupied))
     else {
@@ -408,11 +414,7 @@ fn place_at(sim: &mut Simulation, tribe: &Tribe, kind: BuildingKind, x: i32, y: 
 
 /// The first open grass tile 2 to `WATER_REACH` tiles from a house that has water within two
 /// tiles: a river bank for a watermill.
-fn water_site(
-    sim: &Simulation,
-    dwellings: &[(i32, i32)],
-    occupied: &FxHashSet<(i32, i32)>,
-) -> Option<(i32, i32)> {
+fn water_site(sim: &Simulation, dwellings: &[(i32, i32)], occupied: &OccupiedMap) -> Option<(i32, i32)> {
     let (near, far) = (BUILD_REACH.0, WATER_REACH);
     for &(hx, hy) in dwellings {
         for reach in near..=far {
@@ -437,12 +439,12 @@ fn water_within(sim: &Simulation, x: i32, y: i32, reach: i32) -> bool {
 }
 
 /// True for open grass that is not a road and not taken by a field or a building.
-fn open_grass(sim: &Simulation, x: i32, y: i32, occupied: &FxHashSet<(i32, i32)>) -> bool {
+fn open_grass(sim: &Simulation, x: i32, y: i32, occupied: &OccupiedMap) -> bool {
     x >= 0
         && y >= 0
         && (x as usize) < WIDTH
         && (y as usize) < HEIGHT
-        && !occupied.contains(&(x, y))
+        && !occupied.contains(x, y)
         && matches!(sim.grid.get(x, y), Tile::Grass)
         && sim.grid.road_at(x, y) == crate::world::grid::ROAD_NONE
 }
@@ -451,7 +453,7 @@ fn edge_site(
     sim: &Simulation,
     lineage: &str,
     kind: BuildingKind,
-    occupied: &FxHashSet<(i32, i32)>,
+    occupied: &OccupiedMap,
 ) -> Option<(i32, i32)> {
     use crate::sim::civ::civ_tick::town::{main_town, Zone};
     let [cx, cy] = main_town(sim, lineage)?.center;
@@ -476,7 +478,7 @@ fn site(
     sim: &Simulation,
     dwellings: &[(i32, i32)],
     kind: BuildingKind,
-    occupied: &FxHashSet<(i32, i32)>,
+    occupied: &OccupiedMap,
 ) -> Option<(i32, i32)> {
     let (near, far) = BUILD_REACH;
     for &(hx, hy) in dwellings {
@@ -515,9 +517,9 @@ mod tests {
         }
         sim.buildings
             .push(Building::new(1, BuildingKind::Pen, 10, 10, None, 0));
-        let occupied = occupied_tiles(&sim);
+        let occupied = OccupiedMap::of(&sim);
         for tile in [(10, 10), (11, 10), (10, 11), (11, 11)] {
-            assert!(occupied.contains(&tile), "the pen covers {tile:?}");
+            assert!(occupied.contains(tile.0, tile.1), "the pen covers {tile:?}");
         }
         assert!(!fits(&sim, 9, 10, BuildingKind::Barn, &occupied));
         assert!(!fits(&sim, 11, 11, BuildingKind::Barn, &occupied));

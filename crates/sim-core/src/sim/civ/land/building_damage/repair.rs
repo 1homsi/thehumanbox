@@ -10,6 +10,7 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         .map(|o| o.lineage_id.to_string())
         .collect();
     let orphans = crate::sim::tech::networks::orphans(sim);
+    let mut crews: Option<RepairCrews> = None;
 
     for building_index in 0..sim.buildings.len() {
         if exposed.contains(&building_index) {
@@ -34,16 +35,13 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
                 .as_ref()
                 .is_none_or(|owner| !living_lineages.contains(owner.as_str()));
         let (x, y, kind) = (building.x, building.y, building.kind);
-        let Some(worker_index) = sim
-            .organisms
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| !assigned_workers.contains(index))
-            .filter(|(_, org)| {
-                can_repair(org) && (reclaimable || building.owner_lineage == Some(org.lineage_id))
-            })
-            .filter_map(|(index, org)| {
-                let distance = (org.x - x as f32).abs() + (org.y - y as f32).abs();
+        let crews = crews.get_or_insert_with(|| RepairCrews::gather(&sim.organisms));
+        let Some(worker_index) = crews
+            .near(x, y)
+            .filter(|&&(index, _, _, _)| !assigned_workers.contains(&index))
+            .filter(|&&(_, _, _, tribe)| reclaimable || building.owner_lineage == Some(tribe))
+            .filter_map(|&(index, ox, oy, _)| {
+                let distance = (ox - x as f32).abs() + (oy - y as f32).abs();
                 (distance <= REPAIR_REACH).then_some((distance, index))
             })
             .min_by(|(distance_a, index_a), (distance_b, index_b)| {
@@ -153,5 +151,48 @@ pub(super) fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         while sim.headlines.len() > 80 {
             sim.headlines.pop_front();
         }
+    }
+}
+
+const CREW_CELL: i32 = 32;
+
+type Crew = (usize, f32, f32, crate::intern::Sym);
+
+struct RepairCrews {
+    cells: crate::hashing::FxHashMap<(i32, i32), Vec<Crew>>,
+}
+
+impl RepairCrews {
+    fn gather(organisms: &[crate::organism::organism::Organism]) -> Self {
+        let mut cells: crate::hashing::FxHashMap<(i32, i32), Vec<_>> = Default::default();
+        for (index, org) in organisms.iter().enumerate().filter(|(_, org)| can_repair(org)) {
+            cells
+                .entry(Self::cell(org.x, org.y))
+                .or_default()
+                .push((index, org.x, org.y, org.lineage_id));
+        }
+        Self { cells }
+    }
+
+    fn cell(x: f32, y: f32) -> (i32, i32) {
+        (
+            (x.floor() as i32).div_euclid(CREW_CELL),
+            (y.floor() as i32).div_euclid(CREW_CELL),
+        )
+    }
+
+    fn near(&self, x: i32, y: i32) -> impl Iterator<Item = &Crew> {
+        let reach = REPAIR_REACH as i32 + 2;
+        let span = |at: i32| {
+            (
+                at.saturating_sub(reach).div_euclid(CREW_CELL),
+                at.saturating_add(reach).div_euclid(CREW_CELL),
+            )
+        };
+        let ((x0, x1), (y0, y1)) = (span(x), span(y));
+        (y0..=y1)
+            .flat_map(move |cy| (x0..=x1).map(move |cx| (cx, cy)))
+            .filter_map(|cell| self.cells.get(&cell))
+            .flatten()
     }
 }

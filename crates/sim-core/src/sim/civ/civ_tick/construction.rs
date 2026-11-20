@@ -610,7 +610,7 @@ pub(crate) fn construction_capped(sim: &Simulation) -> bool {
         .filter(|building| !building.decorative)
         .count();
     functional_count >= FUNCTIONAL_BUILDINGS_CAP
-        && abandoned_ruin_candidates(sim).len() < functional_count - FUNCTIONAL_BUILDINGS_CAP + 1
+        && fewer_abandoned_ruins_than(sim, functional_count - FUNCTIONAL_BUILDINGS_CAP + 1)
 }
 
 pub(super) fn start_building_at_valid_site(
@@ -1198,7 +1198,7 @@ pub(super) fn tick_buildings_construct(sim: &mut Simulation) {
     let mut functional_slots = FUNCTIONAL_BUILDINGS_CAP.saturating_sub(functional_count);
     if functional_slots == 0 {
         let needed = functional_count - FUNCTIONAL_BUILDINGS_CAP + 1;
-        if abandoned_ruin_candidates(sim).len() >= needed {
+        if !fewer_abandoned_ruins_than(sim, needed) {
             // Reserve one logical slot. The selected project will perform the
             // actual eviction only after its site, worker, and pooled cost all
             // pass non-mutating validation.
@@ -1507,10 +1507,11 @@ pub(super) fn is_wonder(kind: BuildingKind) -> bool {
     )
 }
 
-pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usize)> {
+type OldRuin = (u64, u32, usize, Option<crate::intern::Sym>);
+
+fn old_ruins(sim: &Simulation) -> Vec<OldRuin> {
     let now = sim.tick_count;
-    let old_ruins: Vec<(u64, u32, usize, Option<crate::intern::Sym>)> = sim
-        .buildings
+    sim.buildings
         .iter()
         .enumerate()
         .filter_map(|(index, building)| {
@@ -1532,7 +1533,54 @@ pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usiz
                 building.owner_lineage,
             ))
         })
-        .collect();
+        .collect()
+}
+
+pub(super) fn fewer_abandoned_ruins_than(sim: &Simulation, need: usize) -> bool {
+    let old_ruins = old_ruins(sim);
+    if old_ruins.len() < need {
+        return true;
+    }
+    let mut owners: Vec<(crate::intern::Sym, usize)> = Vec::new();
+    let mut ownerless = 0usize;
+    for &(_, _, _, owner) in &old_ruins {
+        match owner {
+            None => ownerless += 1,
+            Some(owner) => match owners.iter_mut().find(|(o, _)| *o == owner) {
+                Some(entry) => entry.1 += 1,
+                None => owners.push((owner, 1)),
+            },
+        }
+    }
+    if ownerless >= need {
+        return false;
+    }
+    let mut left = old_ruins.len();
+    let mut pending = owners
+        .iter()
+        .fold(0u64, |bits, (owner, _)| bits | owner.bloom_bit());
+    for organism in sim.organisms.iter().filter(|organism| organism.alive) {
+        if owners.is_empty() {
+            break;
+        }
+        if pending & organism.lineage_id.bloom_bit() == 0 {
+            continue;
+        }
+        if let Some(at) = owners.iter().position(|(owner, _)| *owner == organism.lineage_id) {
+            left -= owners.swap_remove(at).1;
+            if left < need {
+                return true;
+            }
+            pending = owners
+                .iter()
+                .fold(0u64, |bits, (owner, _)| bits | owner.bloom_bit());
+        }
+    }
+    left < need
+}
+
+pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usize)> {
+    let old_ruins = old_ruins(sim);
     if old_ruins.is_empty() {
         return Vec::new();
     }

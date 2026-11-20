@@ -6,7 +6,7 @@
 //! a boat is launched only when one is free.
 //!
 //! Everything here walks buildings, people and boats in a fixed order and draws no random numbers.
-use crate::sim::civ::land::village_stores::{fits, occupied_tiles};
+use crate::sim::civ::land::village_stores::{fits, OccupiedMap};
 use crate::sim::era::Era;
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::{Building, BuildingKind};
@@ -310,7 +310,7 @@ fn launch_boat(sim: &mut Simulation, lineage: &str, harbour: (i32, i32)) {
 
 /// Raises a shipyard or a warehouse on open grass two to four tiles from the harbour.
 fn build_port_work(sim: &mut Simulation, lineage: &str, harbour: (i32, i32), kind: BuildingKind) -> bool {
-    let occupied = occupied_tiles(sim);
+    let occupied = OccupiedMap::of(sim);
     // A shipyard's slip runs into the water, so it must have open water along its side, and it may
     // look further along the coast for that; both keep clear of the moorings and the quay right
     // beside them, where the town fishes and draws water.

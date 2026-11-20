@@ -75,6 +75,14 @@ impl Census {
     }
 }
 
+#[derive(Clone)]
+struct Protector {
+    key: String,
+    members: Vec<String>,
+    strength: usize,
+    ruler: crate::intern::Sym,
+}
+
 fn chebyshev(a: [i32; 2], b: [i32; 2]) -> i32 {
     (a[0] - b[0]).abs().max((a[1] - b[1]).abs())
 }
@@ -421,7 +429,17 @@ impl Simulation {
             .filter(|(l, &n)| n <= WARD_MAX && !self.diplomacy.nation_of.contains_key(l.as_str()))
             .map(|(l, _)| l.to_string())
             .collect();
+        let placed: Vec<(crate::intern::Sym, [i32; 2])> =
+            census.centre.iter().map(|(l, c)| (*l, *c)).collect();
+        let mut actors: Vec<Option<Protector>> = vec![None; placed.len()];
         let mut taken: BTreeMap<String, usize> = BTreeMap::new();
+        let wars: Vec<(String, String)> = self
+            .diplomacy
+            .wars
+            .iter()
+            .filter(|w| w.active())
+            .map(|w| (w.attacker.clone(), w.defender.clone()))
+            .collect();
         for ward in wards {
             if self.war_weariness(&ward) >= 0.3
                 || self.lineage_unrest.get(&ward).copied().unwrap_or(0.0) >= 0.5
@@ -431,36 +449,75 @@ impl Simulation {
             let Some(&at) = census.centre.get(ward.as_str()) else {
                 continue;
             };
+            let ward_sym = crate::intern::Sym::new(&ward);
+            let foes: Vec<&String> = wars
+                .iter()
+                .filter_map(|(attacker, defender)| {
+                    if *attacker == ward {
+                        Some(defender)
+                    } else if *defender == ward {
+                        Some(attacker)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
             let size = census.pop(&ward);
-            let mut best: Option<(i32, String, String)> = None;
-            for (other, &there) in &census.centre {
-                if *other == ward {
+            let mut best: Option<(i32, usize)> = None;
+            for (k, (other, there)) in placed.iter().enumerate() {
+                if *other == ward_sym {
                     continue;
                 }
-                let d = chebyshev(at, there);
+                let d = chebyshev(at, *there);
                 if d > PROTECT_REACH || best.as_ref().is_some_and(|b| b.0 <= d) {
                     continue;
                 }
-                let key = self.actor_key(other);
-                let members = self.actor_of(other);
-                let strength: usize = members.iter().map(|m| census.pop(m)).sum();
-                let ruler: &str = self.nation_of(other).map_or(other.as_str(), |n| n.ruler.as_str());
-                if strength < PROTECTOR_MIN.max(size * PROTECTOR_RATIO)
-                    || taken.get(&key).copied().unwrap_or(0) >= WARDS_PER_PASS
-                    || self.at_war_between(std::slice::from_ref(&ward), &members)
-                    || self.opinion_in(census, &ward, ruler) < 0.0
-                    || self.opinion_in(census, ruler, &ward) < -0.1
+                let actor = actors[k].get_or_insert_with(|| self.protector(census, other));
+                if actor.strength < PROTECTOR_MIN.max(size * PROTECTOR_RATIO)
+                    || taken.get(&actor.key).copied().unwrap_or(0) >= WARDS_PER_PASS
+                    || foes.iter().any(|foe| actor.members.contains(foe))
+                    || self.opinion_sym(census, ward_sym, actor.ruler) < 0.0
+                    || self.opinion_sym(census, actor.ruler, ward_sym) < -0.1
                 {
                     continue;
                 }
-                best = Some((d, key, ruler.to_string()));
+                best = Some((d, k));
             }
-            let Some((_, key, ruler)) = best else {
+            let Some((_, k)) = best else {
                 continue;
             };
-            *taken.entry(key).or_insert(0) += 1;
-            self.take_under_wing(census, &ruler, &ward);
+            let Some(actor) = actors[k].take() else {
+                continue;
+            };
+            *taken.entry(actor.key).or_insert(0) += 1;
+            actors.iter_mut().for_each(|a| *a = None);
+            self.take_under_wing(census, &actor.ruler, &ward);
         }
+    }
+
+    fn protector(&self, census: &Census, other: &crate::intern::Sym) -> Protector {
+        let members = self.actor_of(other);
+        let strength: usize = members.iter().map(|m| census.pop(m)).sum();
+        let ruler = self
+            .nation_of(other)
+            .map_or(*other, |n| crate::intern::Sym::new(&n.ruler));
+        Protector {
+            key: self.actor_key(other),
+            members,
+            strength,
+            ruler,
+        }
+    }
+
+    fn opinion_sym(&self, census: &Census, a: crate::intern::Sym, b: crate::intern::Sym) -> f32 {
+        let mood = census
+            .moods
+            .get(&a)
+            .and_then(|m| m.get(&b))
+            .copied()
+            .unwrap_or(0.0);
+        (self.diplomacy.relations.standing_of(a, b) + crate::sim::civ::society::relations::MOOD_SHARE * mood)
+            .clamp(-1.0, 1.0)
     }
 
     fn take_under_wing(&mut self, census: &Census, ruler: &str, ward: &str) {
@@ -516,7 +573,8 @@ impl Simulation {
                 if chebyshev(**ca, **cb) > KIN_REACH {
                     continue;
                 }
-                if self.opinion_in(census, a, b) >= KIN_WARMTH && self.opinion_in(census, b, a) >= KIN_WARMTH
+                if self.opinion_sym(census, **a, **b) >= KIN_WARMTH
+                    && self.opinion_sym(census, **b, **a) >= KIN_WARMTH
                 {
                     candidates.insert(((*a).to_string(), (*b).to_string()));
                 }
