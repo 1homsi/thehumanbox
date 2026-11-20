@@ -38,6 +38,11 @@ impl Sym {
     }
 
     #[inline]
+    pub fn addr(&self) -> usize {
+        self.0.as_ptr() as usize
+    }
+
+    #[inline]
     pub fn bloom_bit(&self) -> u64 {
         let at = self.0.as_ptr() as usize;
         1 << (((at >> 4) ^ (at >> 11)) & 63)

@@ -217,3 +217,54 @@ fn building_population_gates_are_reachable_at_every_supported_world_size() {
     }
     assert_eq!(construction_population_requirement(40, 350), 40);
 }
+
+#[test]
+fn the_ruin_count_shortcut_agrees_with_the_full_candidate_list() {
+    let owners = [
+        None,
+        Some("alive-a"),
+        Some("gone-b"),
+        Some("alive-c"),
+        Some("gone-d"),
+    ];
+    for living in [
+        &[][..],
+        &["alive-a"][..],
+        &["alive-a", "alive-c"][..],
+        &["gone-b", "alive-c"][..],
+    ] {
+        let mut sim = Simulation::new(0xB022);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        sim.tick_count = RUIN_RETENTION_TICKS + 1_000;
+        for (id, owner) in owners.iter().cycle().take(23).enumerate() {
+            let mut ruin = Building::new(
+                id as u32,
+                BuildingKind::House,
+                id as i32 * 3,
+                10,
+                owner.map(|o| o.to_string()),
+                1,
+            );
+            ruin.condition = 1.0;
+            ruin.damage = 1.0;
+            ruin.ruined_at_tick = Some(1);
+            sim.buildings.push(ruin);
+        }
+        for (i, lineage) in living.iter().enumerate() {
+            let mut dead = test_org(&format!("dead-{i}"), "Dead", "gone-d", 5.0, 5.0);
+            dead.alive = false;
+            sim.organisms.push(dead);
+            sim.organisms
+                .push(test_org(&format!("p-{i}"), "Person", lineage, 5.0, 5.0));
+        }
+        let candidates = abandoned_ruin_candidates(&sim).len();
+        for need in 0..=sim.buildings.len() + 2 {
+            assert_eq!(
+                fewer_abandoned_ruins_than(&sim, need),
+                candidates < need,
+                "living {living:?}, need {need}"
+            );
+        }
+    }
+}

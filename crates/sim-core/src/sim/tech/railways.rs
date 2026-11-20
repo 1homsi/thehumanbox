@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::hashing::FxHashSet;
 use crate::organism::organism::Organism;
 use crate::sim::civ::land::village_roads::plan_road_avoiding;
-use crate::sim::civ::land::village_stores::{fits, occupied_tiles, GRANARY_CAP};
+use crate::sim::civ::land::village_stores::{fits, OccupiedMap, GRANARY_CAP};
 use crate::sim::era::Era;
 use crate::sim::simulation::Simulation;
 use crate::sim::tech::buildings::{Building, BuildingKind};
@@ -292,7 +292,7 @@ impl Simulation {
         if !(MIN_RAIL..=MAX_RAIL).contains(&d) {
             return false;
         }
-        let occupied = occupied_tiles(self);
+        let occupied = OccupiedMap::of(self);
         let mut extra: Vec<(i32, i32)> = Vec::new();
         let Some((sa, new_a)) = self.station_for(owner, a.1, &occupied, &mut extra) else {
             return false;
@@ -304,7 +304,7 @@ impl Simulation {
         if sa_stop == sb_stop {
             return false;
         }
-        let blocked = |x: i32, y: i32| occupied.contains(&(x, y)) || extra.contains(&(x, y));
+        let blocked = |x: i32, y: i32| occupied.contains(x, y) || extra.contains(&(x, y));
         let corridor: FxHashSet<[i32; 2]> = road
             .map(|(_, cells)| {
                 cells
@@ -419,7 +419,7 @@ impl Simulation {
                 .filter(|&(d, _)| d <= STOP_REACH)
                 .collect();
             near.sort();
-            let occupied = occupied_tiles(self);
+            let occupied = OccupiedMap::of(self);
             let site = near.into_iter().find_map(|(_, [px, py])| {
                 let anchor = (px - i32::from(fw) / 2, py - i32::from(fh));
                 let clear = (0..i32::from(fh)).all(|oy| {
@@ -471,11 +471,11 @@ impl Simulation {
     /// The anchor of the station a town's trains use, and whether it is new: an operational station of the
     /// owner within reach of the centre, or else the first open site near the centre. `extra` collects the
     /// cells a new station covers so the next search keeps off them.
-    fn stop_is_clear(&self, stop: [i32; 2], occupied: &FxHashSet<(i32, i32)>, extra: &[(i32, i32)]) -> bool {
+    fn stop_is_clear(&self, stop: [i32; 2], occupied: &OccupiedMap, extra: &[(i32, i32)]) -> bool {
         let (x, y) = (stop[0], stop[1]);
         WorldGrid::in_bounds(x, y)
             && self.grid.get(x, y).road_ground()
-            && !occupied.contains(&(x, y))
+            && !occupied.contains(x, y)
             && !extra.contains(&(x, y))
     }
 
@@ -483,7 +483,7 @@ impl Simulation {
         &self,
         owner: &str,
         centre: [i32; 2],
-        occupied: &FxHashSet<(i32, i32)>,
+        occupied: &OccupiedMap,
         extra: &mut Vec<(i32, i32)>,
     ) -> Option<((i32, i32), bool)> {
         if let Some(b) = self.buildings.iter().find(|b| {

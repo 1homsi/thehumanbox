@@ -27,7 +27,7 @@ pub fn tribe_mood(
     organisms: &[crate::organism::organism::Organism],
     members: &[usize],
 ) -> std::collections::BTreeMap<crate::intern::Sym, f32> {
-    let mut sums: std::collections::BTreeMap<crate::intern::Sym, f32> = std::collections::BTreeMap::new();
+    let mut sums: crate::hashing::FxHashMap<usize, (crate::intern::Sym, f32)> = Default::default();
     let alive: Vec<&crate::organism::organism::Organism> = members
         .iter()
         .map(|&i| &organisms[i])
@@ -35,14 +35,11 @@ pub fn tribe_mood(
         .collect();
     for o in &alive {
         for (lid, &att) in &o.lineage_attitudes {
-            *sums.entry(*lid).or_insert(0.0) += att;
+            sums.entry(lid.addr()).or_insert((*lid, 0.0)).1 += att;
         }
     }
     let n = alive.len().max(1) as f32;
-    for v in sums.values_mut() {
-        *v /= n;
-    }
-    sums
+    sums.into_values().map(|(lid, v)| (lid, v / n)).collect()
 }
 pub const RAID_MIN_POP: usize = 8;
 

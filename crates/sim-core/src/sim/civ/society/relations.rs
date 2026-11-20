@@ -183,6 +183,16 @@ impl Relations {
         self.ledger.get(&(holder, other)).map_or(&[], Vec::as_slice)
     }
 
+    pub fn standing_of(&self, holder: crate::intern::Sym, other: crate::intern::Sym) -> f32 {
+        self.ledger
+            .get(&(holder, other))
+            .map_or(&[][..], Vec::as_slice)
+            .iter()
+            .map(|m| m.weight)
+            .sum::<f32>()
+            .clamp(-1.0, 1.0)
+    }
+
     pub fn standing(&self, holder: &str, other: &str) -> f32 {
         self.memories(holder, other)
             .iter()
@@ -316,13 +326,33 @@ impl Simulation {
     }
 
     pub(crate) fn border_contacts(&self) -> BTreeSet<(crate::intern::Sym, crate::intern::Sym)> {
+        use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
         let mut contacts: BTreeSet<(crate::intern::Sym, crate::intern::Sym)> = BTreeSet::new();
         let mut seen: Vec<crate::intern::Sym> = Vec::new();
+        let mut owners: Vec<crate::intern::Sym> = Vec::new();
+        let mut slots: crate::hashing::FxHashMap<usize, u32> = Default::default();
+        let mut owner_at = vec![u32::MAX; WIDTH * HEIGHT];
+        for (&(x, y), &owner) in &self.tile_owner {
+            if WorldGrid::in_bounds(x, y) {
+                let slot = *slots.entry(owner.addr()).or_insert_with(|| {
+                    owners.push(owner);
+                    owners.len() as u32 - 1
+                });
+                owner_at[WorldGrid::idx(x, y)] = slot;
+            }
+        }
+        let owner_of = |x: i32, y: i32| -> Option<crate::intern::Sym> {
+            if WorldGrid::in_bounds(x, y) {
+                owners.get(owner_at[WorldGrid::idx(x, y)] as usize).copied()
+            } else {
+                self.tile_owner.get(&(x, y)).copied()
+            }
+        };
         for (&lid, tiles) in &self.territory {
             seen.clear();
             for &(x, y) in tiles {
                 for (dx, dy) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
-                    if let Some(&owner) = self.tile_owner.get(&(x + dx, y + dy)) {
+                    if let Some(owner) = owner_of(x + dx, y + dy) {
                         if owner != lid && !seen.contains(&owner) {
                             seen.push(owner);
                         }

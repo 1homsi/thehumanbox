@@ -5,7 +5,7 @@
 
 use crate::sim::civ::land::village_fields::{irrigated, Tribe};
 use crate::sim::civ::land::village_roads::plan_road_avoiding;
-use crate::sim::civ::land::village_stores::occupied_tiles;
+use crate::sim::civ::land::village_stores::OccupiedMap;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use crate::world::grid::{WorldGrid, ROAD_CANAL, ROAD_NONE};
@@ -87,12 +87,12 @@ pub(crate) fn dig_for_fields(sim: &mut Simulation, tribe: &Tribe) {
         return;
     };
 
-    let blocked_tiles = occupied_tiles(sim);
+    let blocked_tiles = OccupiedMap::of(sim);
     let mut shores: Vec<(i32, i32)> = Vec::new();
     for dy in -SHORE_REACH..=SHORE_REACH {
         for dx in -SHORE_REACH..=SHORE_REACH {
             let (x, y) = (fx + dx, fy + dy);
-            if open(sim, x, y) && !blocked_tiles.contains(&(x, y)) && on_shore(sim, x, y) {
+            if open(sim, x, y) && !blocked_tiles.contains(x, y) && on_shore(sim, x, y) {
                 shores.push((x, y));
             }
         }
@@ -101,7 +101,7 @@ pub(crate) fn dig_for_fields(sim: &mut Simulation, tribe: &Tribe) {
 
     for &(tx, ty) in shores.iter().take(SHORES_TRIED) {
         // A channel is cut through open ground only: it keeps off roads and buildings.
-        let blocked = |x: i32, y: i32| blocked_tiles.contains(&(x, y)) || sim.grid.road_at(x, y) != ROAD_NONE;
+        let blocked = |x: i32, y: i32| blocked_tiles.contains(x, y) || sim.grid.road_at(x, y) != ROAD_NONE;
         let Some(path) = plan_road_avoiding(&sim.grid, [fx, fy], [tx, ty], &blocked, &|_, _| false, None)
         else {
             continue;

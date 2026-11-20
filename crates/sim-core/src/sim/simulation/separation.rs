@@ -36,27 +36,27 @@ impl Simulation {
                 .collect()
         };
         drop(aboard);
-        for i in 0..self.organisms.len() {
-            if !self.organisms[i].alive {
+        let mut spots: Vec<(f32, f32, bool)> = self.organisms.iter().map(|o| (o.x, o.y, o.alive)).collect();
+        for i in 0..spots.len() {
+            let (xi, yi, alive) = spots[i];
+            if !alive {
                 continue;
             }
-            let (xi, yi) = (self.organisms[i].x, self.organisms[i].y);
             index.query_into(xi as i32, yi as i32, 1, &mut near);
-            let organisms = &self.organisms;
             near.retain(|&j| {
-                let o = &organisms[j];
-                let (dx, dy) = (xi - o.x, yi - o.y);
-                j > i && o.alive && dx * dx + dy * dy < PERSONAL_SPACE * PERSONAL_SPACE
+                let (x, y, alive) = spots[j];
+                let (dx, dy) = (xi - x, yi - y);
+                j > i && alive && dx * dx + dy * dy < PERSONAL_SPACE * PERSONAL_SPACE
             });
             if near.is_empty() {
                 continue;
             }
             near.sort_unstable();
             for &j in &near {
-                if j <= i || !self.organisms[j].alive {
+                let (xj, yj, alive) = spots[j];
+                if j <= i || !alive {
                     continue;
                 }
-                let (xj, yj) = (self.organisms[j].x, self.organisms[j].y);
                 let (dx, dy) = (xi - xj, yi - yj);
                 let d2 = dx * dx + dy * dy;
                 if d2 >= PERSONAL_SPACE * PERSONAL_SPACE {
@@ -76,10 +76,12 @@ impl Simulation {
                 if !held[i] && self.walkable_at(ni_x, ni_y) {
                     self.organisms[i].x = ni_x;
                     self.organisms[i].y = ni_y;
+                    spots[i] = (ni_x, ni_y, true);
                 }
                 if !held[j] && self.walkable_at(nj_x, nj_y) {
                     self.organisms[j].x = nj_x;
                     self.organisms[j].y = nj_y;
+                    spots[j] = (nj_x, nj_y, true);
                 }
             }
         }

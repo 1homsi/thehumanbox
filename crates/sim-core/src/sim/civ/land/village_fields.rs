@@ -7,7 +7,7 @@
 //! The pass draws no random numbers and walks tribes and tiles in a fixed
 //! order, so the same seed still gives the same world.
 
-use crate::hashing::{FxHashMap, FxHashSet};
+use crate::hashing::FxHashMap;
 use crate::sim::actions::agriculture::farm_ops::{crop_for_plot, harvest_crop, plant_crop};
 use crate::sim::agriculture::{plough_for, Plough};
 use crate::sim::civ::land::village_carts;
@@ -101,7 +101,7 @@ fn tribes_with_dwellings(sim: &Simulation) -> Vec<Tribe> {
 fn field_site(
     sim: &Simulation,
     dwellings: &[(i32, i32)],
-    occupied: &FxHashSet<(i32, i32)>,
+    occupied: &village_stores::OccupiedMap,
 ) -> Option<(i32, i32)> {
     for &(hx, hy) in dwellings {
         for reach in SOW_MIN_REACH..=SOW_MAX_REACH {
@@ -111,7 +111,7 @@ fn field_site(
                         continue;
                     }
                     let (x, y) = (hx + dx, hy + dy);
-                    if !in_bounds(x, y) || occupied.contains(&(x, y)) {
+                    if !in_bounds(x, y) || occupied.contains(x, y) {
                         continue;
                     }
                     if !matches!(sim.grid.get(x, y), Tile::Grass)
@@ -238,7 +238,11 @@ fn farm_belts(sim: &Simulation) -> std::collections::BTreeMap<String, Vec<(i32, 
     out
 }
 
-fn belt_site(sim: &Simulation, belts: &[(i32, i32)], occupied: &FxHashSet<(i32, i32)>) -> Option<(i32, i32)> {
+fn belt_site(
+    sim: &Simulation,
+    belts: &[(i32, i32)],
+    occupied: &village_stores::OccupiedMap,
+) -> Option<(i32, i32)> {
     for &(cx, cy) in belts {
         for reach in BELT_REACH.0..=BELT_REACH.1 {
             for dy in -reach..=reach {
@@ -247,7 +251,7 @@ fn belt_site(sim: &Simulation, belts: &[(i32, i32)], occupied: &FxHashSet<(i32, 
                         continue;
                     }
                     let (x, y) = (cx + dx, cy + dy);
-                    if !in_bounds(x, y) || occupied.contains(&(x, y)) {
+                    if !in_bounds(x, y) || occupied.contains(x, y) {
                         continue;
                     }
                     if !matches!(sim.grid.get(x, y), Tile::Grass)
@@ -295,7 +299,7 @@ fn sow_fields(sim: &mut Simulation, tribe: &Tribe, now: u64, belts: &[(i32, i32)
             None if plots < cap => {
                 // Every tile a building covers, not only its origin: a 2x2 house or barn
                 // keeps its whole footprint clear, so no field is sown under it.
-                let occupied = village_stores::occupied_tiles(sim);
+                let occupied = village_stores::OccupiedMap::of(sim);
                 let near = if plots < home_cap {
                     field_site(sim, &tribe.dwellings, &occupied)
                 } else {
@@ -408,10 +412,10 @@ mod tests {
                 sim.grid.fertility[WorldGrid::idx(hx + dx, hy + dy)] = 0.8;
             }
         }
-        let mut occupied = village_stores::occupied_tiles(&sim);
+        let mut occupied = village_stores::OccupiedMap::of(&sim);
         for dy in -8..=8 {
             for dx in -8..=8 {
-                occupied.insert((hx + dx, hy + dy));
+                occupied.insert(hx + dx, hy + dy);
             }
         }
         assert_eq!(field_site(&sim, &[(hx, hy)], &occupied), None);

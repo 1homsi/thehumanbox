@@ -10,6 +10,52 @@ use crate::sim::world_events::push_event;
 
 const BARTER_RADIUS: f32 = 3.0;
 const TRADE_LOG_CAP: usize = 500;
+const TRADE_CELL: f32 = 4.0;
+
+struct TradeCells {
+    cells: HashMap<(i32, i32), Vec<usize>>,
+    anywhere: Vec<usize>,
+    len: usize,
+}
+
+impl TradeCells {
+    fn of(spots: impl Iterator<Item = (f32, f32)>) -> Self {
+        let mut cells: HashMap<(i32, i32), Vec<usize>> = HashMap::default();
+        let mut anywhere = Vec::new();
+        let mut len = 0;
+        for (k, (x, y)) in spots.enumerate() {
+            len += 1;
+            match Self::cell(x, y) {
+                Some(cell) => cells.entry(cell).or_default().push(k),
+                None => anywhere.push(k),
+            }
+        }
+        Self { cells, anywhere, len }
+    }
+
+    fn cell(x: f32, y: f32) -> Option<(i32, i32)> {
+        (x.is_finite() && y.is_finite())
+            .then(|| ((x / TRADE_CELL).floor() as i32, (y / TRADE_CELL).floor() as i32))
+    }
+
+    fn near(&self, x: f32, y: f32, out: &mut Vec<usize>) {
+        out.clear();
+        let Some((cx, cy)) = Self::cell(x, y) else {
+            out.extend(0..self.len);
+            return;
+        };
+        for dy in -1..=1 {
+            for dx in -1..=1 {
+                if let Some(cell) = self.cells.get(&(cx.saturating_add(dx), cy.saturating_add(dy))) {
+                    out.extend_from_slice(cell);
+                }
+            }
+        }
+        out.extend_from_slice(&self.anywhere);
+        out.sort_unstable();
+        out.dedup();
+    }
+}
 
 pub fn tick_economy(sim: &mut Simulation, tick: u64) {
     // Persistent caravans move and unload independently of the slower barter
@@ -528,13 +574,16 @@ fn run_barter(sim: &mut Simulation, tick: u64) {
         .collect();
 
     let mut pairs_done: Vec<(usize, usize)> = Vec::new();
+    let cells = TradeCells::of(snapshot.iter().map(|row| (row.x, row.y)));
+    let mut near = Vec::new();
     for i in 0..snapshot.len() {
         let a = &snapshot[i];
         let asur = match surplus(a.food, a.water, a.wood, a.stone, &a.tools) {
             Some(s) => s,
             None => continue,
         };
-        for j in (i + 1)..snapshot.len() {
+        cells.near(a.x, a.y, &mut near);
+        for &j in near.iter().filter(|&&j| j > i) {
             let b = &snapshot[j];
             let cross_lineage = a.lid != b.lid;
             let cap = if cross_lineage {
@@ -677,6 +726,8 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
         .collect();
 
     let mut deals: Vec<(usize, usize, String, u32)> = Vec::new();
+    let cells = TradeCells::of(snapshot.iter().map(|row| (row.x, row.y)));
+    let mut near = Vec::new();
     for i in 0..snapshot.len() {
         let s = &snapshot[i];
         if s.era < Era::Bronze || !s.barter {
@@ -687,7 +738,8 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
             Some(p) => p,
             None => continue,
         };
-        for j in 0..snapshot.len() {
+        cells.near(s.x, s.y, &mut near);
+        for &j in &near {
             if i == j {
                 continue;
             }
@@ -955,5 +1007,31 @@ mod tests {
         // character spans bytes 5..8, so the old `&lid[..6]` split it and
         // panicked; six whole characters is "abcde日".
         assert_eq!(lid_short("abcde\u{65e5}\u{672c}"), "abcde\u{65e5}");
+    }
+
+    #[test]
+    fn trade_cells_hold_everyone_within_reach_once_and_in_order() {
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            (state % 4000) as f32 / 37.0 - 20.0
+        };
+        let mut spots: Vec<(f32, f32)> = (0..400).map(|_| (next(), next())).collect();
+        spots[5] = (f32::NAN, 3.0);
+        spots[9] = (2.0, f32::INFINITY);
+        let cells = TradeCells::of(spots.iter().copied());
+        let mut near = Vec::new();
+        for (i, &(x, y)) in spots.iter().enumerate() {
+            cells.near(x, y, &mut near);
+            assert!(near.windows(2).all(|w| w[0] < w[1]), "{i} sorted and unique");
+            for (j, &(bx, by)) in spots.iter().enumerate() {
+                let d = (x - bx).abs() + (y - by).abs();
+                if d <= BARTER_RADIUS || d.is_nan() {
+                    assert!(near.contains(&j), "{i} reaches {j}");
+                }
+            }
+        }
     }
 }
