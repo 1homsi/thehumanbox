@@ -193,6 +193,21 @@ impl Relations {
             .clamp(-1.0, 1.0)
     }
 
+    pub fn standings_held(
+        &self,
+        holder: crate::intern::Sym,
+    ) -> impl Iterator<Item = (crate::intern::Sym, f32)> + '_ {
+        self.ledger
+            .range((holder, crate::intern::Sym::default())..)
+            .take_while(move |((h, _), _)| *h == holder)
+            .map(|((_, other), memory)| {
+                (
+                    *other,
+                    memory.iter().map(|m| m.weight).sum::<f32>().clamp(-1.0, 1.0),
+                )
+            })
+    }
+
     pub fn standing(&self, holder: &str, other: &str) -> f32 {
         self.memories(holder, other)
             .iter()
@@ -242,6 +257,11 @@ impl Relations {
             });
             !memory.is_empty()
         });
+    }
+
+    pub fn forget_gone_ids(&mut self, living: &crate::hashing::FxHashSet<usize>) {
+        self.ledger
+            .retain(|(holder, other), _| living.contains(&holder.addr()) && living.contains(&other.addr()));
     }
 
     pub fn forget_gone(&mut self, living: &BTreeSet<String>) {
@@ -296,30 +316,29 @@ impl Simulation {
             return;
         }
         self.diplomacy.relations.fade();
-        let living: BTreeSet<String> = self
+        let living: crate::hashing::FxHashSet<usize> = self
             .organisms
             .iter()
             .filter(|o| o.alive)
-            .map(|o| o.lineage_id.to_string())
+            .map(|o| o.lineage_id.addr())
             .collect();
-        self.diplomacy.relations.forget_gone(&living);
+        let lives =
+            |name: &str| crate::intern::Sym::existing(name).is_some_and(|s| living.contains(&s.addr()));
+        self.diplomacy.relations.forget_gone_ids(&living);
         let gifts = std::mem::take(&mut self.history.tribe_gifts);
         for (giver, taker) in gifts {
-            if living.contains(&giver) && living.contains(&taker) {
+            if lives(&giver) && lives(&taker) {
                 self.remember(&taker, &giver, MemoryKind::Gift, 0.02);
             }
         }
         let quarrels = std::mem::take(&mut self.history.tribe_quarrels);
         for (wronged, wrongdoer) in quarrels {
-            if living.contains(&wronged)
-                && living.contains(&wrongdoer)
-                && !self.same_side(&wronged, &wrongdoer)
-            {
+            if lives(&wronged) && lives(&wrongdoer) && !self.same_side(&wronged, &wrongdoer) {
                 self.remember(&wronged, &wrongdoer, MemoryKind::Border, -0.02);
             }
         }
         for (a, b) in self.border_contacts() {
-            if living.contains(a.as_str()) && living.contains(b.as_str()) && !self.same_side(&a, &b) {
+            if living.contains(&a.addr()) && living.contains(&b.addr()) && !self.same_side(&a, &b) {
                 self.remember(&a, &b, MemoryKind::Border, -0.02);
             }
         }

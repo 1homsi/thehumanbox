@@ -489,8 +489,15 @@ impl Simulation {
             let Some(actor) = actors[k].take() else {
                 continue;
             };
+            for (slot, (tribe, _)) in actors.iter_mut().zip(&placed) {
+                if *tribe == ward_sym
+                    || *tribe == actor.ruler
+                    || slot.as_ref().is_some_and(|a| a.key == actor.key)
+                {
+                    *slot = None;
+                }
+            }
             *taken.entry(actor.key).or_insert(0) += 1;
-            actors.iter_mut().for_each(|a| *a = None);
             self.take_under_wing(census, &actor.ruler, &ward);
         }
     }
@@ -507,6 +514,28 @@ impl Simulation {
             strength,
             ruler,
         }
+    }
+
+    fn opinions_held(
+        &self,
+        census: &Census,
+        holder: crate::intern::Sym,
+    ) -> crate::hashing::FxHashMap<usize, f32> {
+        let mut parts: crate::hashing::FxHashMap<usize, (f32, f32)> = Default::default();
+        for (other, standing) in self.diplomacy.relations.standings_held(holder) {
+            parts.entry(other.addr()).or_default().0 = standing;
+        }
+        for (other, &mood) in census.moods.get(&holder).into_iter().flatten() {
+            parts.entry(other.addr()).or_default().1 = mood;
+        }
+        parts
+            .into_iter()
+            .map(|(other, (standing, mood))| {
+                let held =
+                    (standing + crate::sim::civ::society::relations::MOOD_SHARE * mood).clamp(-1.0, 1.0);
+                (other, held)
+            })
+            .collect()
     }
 
     fn opinion_sym(&self, census: &Census, a: crate::intern::Sym, b: crate::intern::Sym) -> f32 {
@@ -568,14 +597,19 @@ impl Simulation {
             }
         }
         let placed: Vec<(&crate::intern::Sym, &[i32; 2])> = census.centre.iter().collect();
+        let opinions: Vec<crate::hashing::FxHashMap<usize, f32>> = placed
+            .iter()
+            .map(|(a, _)| self.opinions_held(census, **a))
+            .collect();
+        let opinion = |k: usize, of: &crate::intern::Sym| -> f32 {
+            opinions[k].get(&of.addr()).copied().unwrap_or(0.0)
+        };
         for (i, (a, ca)) in placed.iter().enumerate() {
-            for (b, cb) in placed.iter().skip(i + 1) {
+            for (j, (b, cb)) in placed.iter().enumerate().skip(i + 1) {
                 if chebyshev(**ca, **cb) > KIN_REACH {
                     continue;
                 }
-                if self.opinion_sym(census, **a, **b) >= KIN_WARMTH
-                    && self.opinion_sym(census, **b, **a) >= KIN_WARMTH
-                {
+                if opinion(i, b) >= KIN_WARMTH && opinion(j, a) >= KIN_WARMTH {
                     candidates.insert(((*a).to_string(), (*b).to_string()));
                 }
             }
