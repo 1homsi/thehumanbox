@@ -26,8 +26,8 @@ pub const RAID_ATTITUDE_THRESHOLD: f32 = -0.45;
 pub fn tribe_mood(
     organisms: &[crate::organism::organism::Organism],
     members: &[usize],
-) -> std::collections::BTreeMap<String, f32> {
-    let mut sums: std::collections::BTreeMap<String, f32> = std::collections::BTreeMap::new();
+) -> std::collections::BTreeMap<crate::intern::Sym, f32> {
+    let mut sums: std::collections::BTreeMap<crate::intern::Sym, f32> = std::collections::BTreeMap::new();
     let alive: Vec<&crate::organism::organism::Organism> = members
         .iter()
         .map(|&i| &organisms[i])
@@ -35,7 +35,7 @@ pub fn tribe_mood(
         .collect();
     for o in &alive {
         for (lid, &att) in &o.lineage_attitudes {
-            *sums.entry(lid.to_string()).or_insert(0.0) += att;
+            *sums.entry(*lid).or_insert(0.0) += att;
         }
     }
     let n = alive.len().max(1) as f32;
@@ -99,7 +99,8 @@ pub fn try_spawn_raids(
         }
 
         let mood = tribe_mood(organisms, &pop_per_lineage[a_lid]);
-        let mut known: std::collections::BTreeSet<&str> = mood.keys().map(String::as_str).collect();
+        let mut known: std::collections::BTreeSet<&str> =
+            mood.keys().map(crate::intern::Sym::as_str).collect();
         known.extend(minds.relations.others_of(a_lid));
         let mut candidates: Vec<(String, f32, CasusBelli)> = known
             .into_iter()

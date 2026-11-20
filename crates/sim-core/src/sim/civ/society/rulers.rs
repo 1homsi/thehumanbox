@@ -339,8 +339,8 @@ impl Simulation {
         });
         if !allied {
             self.treaties.push(Treaty {
-                lineage_a: ra.to_string(),
-                lineage_b: rb.to_string(),
+                lineage_a: ra.to_string().into(),
+                lineage_b: rb.to_string().into(),
                 kind: TreatyKind::Alliance,
                 signed_tick: now,
                 expires_tick: now + ALLIANCE_TICKS,

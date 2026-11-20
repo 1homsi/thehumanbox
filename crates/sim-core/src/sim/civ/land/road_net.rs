@@ -671,11 +671,11 @@ fn wanted(sim: &Simulation, knowing: &BTreeSet<String>) -> Vec<Want> {
     for t in &sim.treaties {
         if allied(sim, &t.lineage_a, &t.lineage_b) {
             let (a, b) = if t.lineage_a <= t.lineage_b {
-                (t.lineage_a.clone(), t.lineage_b.clone())
+                (t.lineage_a, t.lineage_b)
             } else {
-                (t.lineage_b.clone(), t.lineage_a.clone())
+                (t.lineage_b, t.lineage_a)
             };
-            partners.insert((a, b));
+            partners.insert((a.to_string(), b.to_string()));
         }
     }
     for (a, b) in partners {

@@ -276,12 +276,17 @@ pub fn determine_era_for_lineage(
     world_population: usize,
     population_limit: usize,
 ) -> Era {
+    determine_era_from(|d| discoveries.contains(d), world_population, population_limit)
+}
+
+pub fn determine_era_from(
+    knows: impl Fn(&str) -> bool,
+    world_population: usize,
+    population_limit: usize,
+) -> Era {
     let mut best = Era::PreStone;
     for era in LADDER.iter().copied() {
-        let has_all = era
-            .required_discoveries()
-            .iter()
-            .all(|d| discoveries.contains(*d));
+        let has_all = era.required_discoveries().iter().all(|d| knows(d));
         if has_all && world_population >= era.population_gate(population_limit) {
             best = era;
         }

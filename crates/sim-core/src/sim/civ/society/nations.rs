@@ -55,10 +55,10 @@ pub struct Nation {
 
 #[derive(Default)]
 struct Census {
-    pop: BTreeMap<String, usize>,
-    centre: BTreeMap<String, [i32; 2]>,
-    towns: BTreeMap<String, Vec<u32>>,
-    moods: BTreeMap<String, BTreeMap<String, f32>>,
+    pop: BTreeMap<crate::intern::Sym, usize>,
+    centre: BTreeMap<crate::intern::Sym, [i32; 2]>,
+    towns: BTreeMap<crate::intern::Sym, Vec<u32>>,
+    moods: BTreeMap<crate::intern::Sym, BTreeMap<crate::intern::Sym, f32>>,
 }
 
 impl Census {
@@ -101,24 +101,21 @@ impl Simulation {
 
     fn nation_census(&self) -> Census {
         let mut census = Census::default();
-        let mut members: BTreeMap<String, Vec<usize>> = BTreeMap::new();
-        let mut sums: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+        let mut members: BTreeMap<crate::intern::Sym, Vec<usize>> = BTreeMap::new();
+        let mut sums: BTreeMap<crate::intern::Sym, (f64, f64)> = BTreeMap::new();
         for (i, o) in self.organisms.iter().enumerate().filter(|(_, o)| o.alive) {
-            *census.pop.entry(o.lineage_id.to_string()).or_insert(0) += 1;
-            members.entry(o.lineage_id.to_string()).or_default().push(i);
-            let s = sums.entry(o.lineage_id.to_string()).or_insert((0.0, 0.0));
+            *census.pop.entry(o.lineage_id).or_insert(0) += 1;
+            members.entry(o.lineage_id).or_default().push(i);
+            let s = sums.entry(o.lineage_id).or_insert((0.0, 0.0));
             s.0 += f64::from(o.x);
             s.1 += f64::from(o.y);
         }
-        let mut towns: Vec<(u32, &str, [i32; 2])> = self
-            .towns
-            .iter()
-            .map(|t| (t.id, t.lineage.as_str(), t.center))
-            .collect();
+        let mut towns: Vec<(u32, crate::intern::Sym, [i32; 2])> =
+            self.towns.iter().map(|t| (t.id, t.lineage, t.center)).collect();
         towns.sort_unstable();
         for (id, lineage, centre) in towns {
-            census.towns.entry(lineage.to_string()).or_default().push(id);
-            census.centre.entry(lineage.to_string()).or_insert(centre);
+            census.towns.entry(lineage).or_default().push(id);
+            census.centre.entry(lineage).or_insert(centre);
         }
         for (lineage, (sx, sy)) in sums {
             let n = census.pop(&lineage).max(1) as f64;
@@ -129,7 +126,7 @@ impl Simulation {
         }
         census.moods = members
             .iter()
-            .map(|(l, m)| (l.clone(), tribe_mood(&self.organisms, m)))
+            .map(|(l, m)| (*l, tribe_mood(&self.organisms, m)))
             .collect();
         census
     }
@@ -171,7 +168,7 @@ impl Simulation {
             if let Some(t) = self.towns.iter().find(|t| t.id == n.capital) {
                 return Some(t.center);
             }
-            return census.centre.get(&n.ruler).copied();
+            return census.centre.get(n.ruler.as_str()).copied();
         }
         census.centre.get(lineage).copied()
     }
@@ -206,7 +203,7 @@ impl Simulation {
             .or_else(|| {
                 members
                     .iter()
-                    .filter_map(|m| census.towns.get(m).and_then(|t| t.first().copied()))
+                    .filter_map(|m| census.towns.get(m.as_str()).and_then(|t| t.first().copied()))
                     .min()
             })
             .unwrap_or(0)
@@ -369,12 +366,12 @@ impl Simulation {
         let founders: Vec<String> = census
             .pop
             .keys()
-            .filter(|l| !self.diplomacy.nation_of.contains_key(*l))
+            .filter(|l| !self.diplomacy.nation_of.contains_key(l.as_str()))
             .filter(|l| {
-                self.settlement_tiers.get(*l).copied().unwrap_or(0) >= FOUNDING_TIER
+                self.settlement_tiers.get(l.as_str()).copied().unwrap_or(0) >= FOUNDING_TIER
                     && census.towns(l) >= FOUNDING_TOWNS
             })
-            .cloned()
+            .map(|l| l.to_string())
             .collect();
         for lineage in founders {
             let id = self.found_nation(census, &lineage, vec![lineage.clone()]);
@@ -403,7 +400,7 @@ impl Simulation {
                     && t.expires_tick > now
                     && t.signed_tick + VASSAL_JOIN_AGE <= now
             })
-            .map(|t| (t.lineage_a.clone(), t.lineage_b.clone()))
+            .map(|t| (t.lineage_a.to_string(), t.lineage_b.to_string()))
             .collect();
         vassals.sort();
         for (vassal, overlord) in vassals {
@@ -421,8 +418,8 @@ impl Simulation {
         let wards: Vec<String> = census
             .pop
             .iter()
-            .filter(|(l, &n)| n <= WARD_MAX && !self.diplomacy.nation_of.contains_key(*l))
-            .map(|(l, _)| l.clone())
+            .filter(|(l, &n)| n <= WARD_MAX && !self.diplomacy.nation_of.contains_key(l.as_str()))
+            .map(|(l, _)| l.to_string())
             .collect();
         let mut taken: BTreeMap<String, usize> = BTreeMap::new();
         for ward in wards {
@@ -431,7 +428,7 @@ impl Simulation {
             {
                 continue;
             }
-            let Some(&at) = census.centre.get(&ward) else {
+            let Some(&at) = census.centre.get(ward.as_str()) else {
                 continue;
             };
             let size = census.pop(&ward);
@@ -447,18 +444,16 @@ impl Simulation {
                 let key = self.actor_key(other);
                 let members = self.actor_of(other);
                 let strength: usize = members.iter().map(|m| census.pop(m)).sum();
-                let ruler = self
-                    .nation_of(other)
-                    .map_or_else(|| other.clone(), |n| n.ruler.clone());
+                let ruler: &str = self.nation_of(other).map_or(other.as_str(), |n| n.ruler.as_str());
                 if strength < PROTECTOR_MIN.max(size * PROTECTOR_RATIO)
                     || taken.get(&key).copied().unwrap_or(0) >= WARDS_PER_PASS
                     || self.at_war_between(std::slice::from_ref(&ward), &members)
-                    || self.opinion_in(census, &ward, &ruler) < 0.0
-                    || self.opinion_in(census, &ruler, &ward) < -0.1
+                    || self.opinion_in(census, &ward, ruler) < 0.0
+                    || self.opinion_in(census, ruler, &ward) < -0.1
                 {
                     continue;
                 }
-                best = Some((d, key, ruler));
+                best = Some((d, key, ruler.to_string()));
             }
             let Some((_, key, ruler)) = best else {
                 continue;
@@ -508,14 +503,14 @@ impl Simulation {
                 && t.signed_tick + UNION_TREATY_AGE <= now
             {
                 let pair = if t.lineage_a < t.lineage_b {
-                    (t.lineage_a.clone(), t.lineage_b.clone())
+                    (t.lineage_a.to_string(), t.lineage_b.to_string())
                 } else {
-                    (t.lineage_b.clone(), t.lineage_a.clone())
+                    (t.lineage_b.to_string(), t.lineage_a.to_string())
                 };
                 candidates.insert(pair);
             }
         }
-        let placed: Vec<(&String, &[i32; 2])> = census.centre.iter().collect();
+        let placed: Vec<(&crate::intern::Sym, &[i32; 2])> = census.centre.iter().collect();
         for (i, (a, ca)) in placed.iter().enumerate() {
             for (b, cb) in placed.iter().skip(i + 1) {
                 if chebyshev(**ca, **cb) > KIN_REACH {
@@ -523,7 +518,7 @@ impl Simulation {
                 }
                 if self.opinion_in(census, a, b) >= KIN_WARMTH && self.opinion_in(census, b, a) >= KIN_WARMTH
                 {
-                    candidates.insert(((*a).clone(), (*b).clone()));
+                    candidates.insert(((*a).to_string(), (*b).to_string()));
                 }
             }
         }
@@ -631,7 +626,7 @@ impl Simulation {
             .iter()
             .find(|t| t.id == nation.capital)
             .map(|t| t.center)
-            .or_else(|| census.centre.get(&nation.ruler).copied());
+            .or_else(|| census.centre.get(nation.ruler.as_str()).copied());
         let far = match (capital, census.centre.get(member)) {
             (Some(c), Some(m)) => ((chebyshev(c, *m) - CAPITAL_REACH).max(0) as f32) / FAR_SPAN,
             _ => 0.0,
@@ -685,7 +680,7 @@ impl Simulation {
                     nation.name
                 ));
                 let front = match (
-                    census.centre.get(&member),
+                    census.centre.get(member.as_str()),
                     self.actor_centre(census, &nation.ruler),
                 ) {
                     (Some(a), Some(b)) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2],
@@ -746,9 +741,9 @@ impl Simulation {
             .iter()
             .filter(|t| t.signed_tick <= tick && t.expires_tick > tick)
         {
-            let (mine, theirs, vassal_mine) = if nation.members.contains(&t.lineage_a) {
+            let (mine, theirs, vassal_mine) = if nation.members.iter().any(|m| t.lineage_a == *m) {
                 (&t.lineage_a, &t.lineage_b, true)
-            } else if nation.members.contains(&t.lineage_b) {
+            } else if nation.members.iter().any(|m| t.lineage_b == *m) {
                 (&t.lineage_b, &t.lineage_a, false)
             } else {
                 continue;

@@ -176,35 +176,38 @@ impl Simulation {
     }
 
     pub(super) fn update_lineage_eras(&mut self) {
-        use crate::sim::era::{determine_era_for_lineage, Era};
-        let mut agg: HashMap<String, (HashSet<String>, usize)> = HashMap::default();
+        use crate::sim::era::{determine_era_from, Era};
+        let mut agg: HashMap<crate::intern::Sym, (Vec<u64>, usize)> = HashMap::default();
         for org in self.organisms.iter().filter(|o| o.alive) {
-            let entry = agg
-                .entry(org.lineage_id.to_string())
-                .or_insert_with(|| (HashSet::default(), 0));
+            let entry = agg.entry(org.lineage_id).or_insert_with(|| (Vec::new(), 0));
             entry.1 += 1;
-            for d in org.discoveries.iter() {
-                entry.0.insert(d.clone());
+            let known = org.discoveries.known();
+            if entry.0.len() < known.len() {
+                entry.0.resize(known.len(), 0);
+            }
+            for (all, &theirs) in entry.0.iter_mut().zip(known) {
+                *all |= theirs;
             }
         }
         let world_population: usize = agg.values().map(|(_, population)| *population).sum();
         let mut max_era: Option<Era> = None;
-        let alive_lineages: HashSet<String> = agg.keys().cloned().collect();
+        let alive_lineages: HashSet<crate::intern::Sym> = agg.keys().copied().collect();
         for (lid, (discoveries, _lineage_population)) in agg.iter() {
-            let prev = self
-                .lineage_eras
-                .get(lid.as_str())
-                .copied()
-                .unwrap_or(Era::PreStone);
-            let discovered_era =
-                determine_era_for_lineage(discoveries, world_population, self.population_limit());
+            let prev = self.lineage_eras.get(lid).copied().unwrap_or(Era::PreStone);
+            let knows = |name: &str| {
+                let id = crate::organism::organism::discovery_id(name);
+                discoveries
+                    .get(id as usize / 64)
+                    .is_some_and(|word| word & (1 << (id % 64)) != 0)
+            };
+            let discovered_era = determine_era_from(knows, world_population, self.population_limit());
             let new_era = discovered_era.max(prev);
             if new_era > prev {
                 let lname = self
                     .lineage_names
-                    .get(lid)
+                    .get(lid.as_str())
                     .cloned()
-                    .unwrap_or_else(|| lid.clone());
+                    .unwrap_or_else(|| lid.to_string());
                 let detail = format!(
                     "{} entered the {} era: {}",
                     lname,
@@ -215,7 +218,7 @@ impl Simulation {
                 let home = self.chronicle_home(lid);
                 self.chronicle(lid, "era", None, Some(new_era.name()), home);
             }
-            self.lineage_eras.insert(lid.clone().into(), new_era);
+            self.lineage_eras.insert(*lid, new_era);
             max_era = Some(match max_era {
                 Some(m) => {
                     if new_era > m {

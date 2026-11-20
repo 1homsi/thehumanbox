@@ -1,71 +1,80 @@
 use super::*;
 
 pub(super) fn tick_diplomacy(sim: &mut Simulation) {
+    use crate::intern::Sym;
     use crate::sim::civ::warfare::{
-        establish_treaty, has_active_battle_between, has_active_treaty, TreatyKind,
+        establish_treaty, has_active_battle_between, has_active_treaty_between, TreatyKind,
     };
     let tick = sim.tick_count;
-    let mut sums: HashMap<(String, String), (f32, u32)> = HashMap::default();
+    let mut sums: HashMap<(Sym, Sym), (f32, u32)> = HashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         for (other, att) in o.lineage_attitudes.iter() {
             if other == &o.lineage_id {
                 continue;
             }
-            let e = sums
-                .entry((o.lineage_id.to_string(), other.to_string()))
-                .or_insert((0.0, 0));
+            let e = sums.entry((o.lineage_id, *other)).or_insert((0.0, 0));
             e.0 += *att;
             e.1 += 1;
         }
     }
-    let avg = |a: &str, b: &str| -> Option<f32> {
-        sums.get(&(a.to_string(), b.to_string()))
-            .map(|(s, n)| s / *n as f32)
-    };
-    let mut lineages: Vec<String> = sim
+    let avg = |a: Sym, b: Sym| -> Option<f32> { sums.get(&(a, b)).map(|(s, n)| s / *n as f32) };
+    let mut lineages: Vec<Sym> = sim
         .organisms
         .iter()
         .filter(|o| o.alive)
-        .map(|o| o.lineage_id.to_string())
+        .map(|o| o.lineage_id)
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
     lineages.sort();
+    let nations: Vec<Option<u32>> = lineages
+        .iter()
+        .map(|l| sim.diplomacy.nation_of.get(l.as_str()).copied())
+        .collect();
     let mut formed = 0;
     for i in 0..lineages.len() {
         for j in (i + 1)..lineages.len() {
             if formed >= 2 {
                 break;
             }
-            let (a, b) = (&lineages[i], &lineages[j]);
-            if has_active_treaty(&sim.treaties, a, b, tick)
-                || has_active_battle_between(&sim.battles, a, b)
-                || sim.same_side(a, b)
+            let (a, b) = (lineages[i], lineages[j]);
+            let same_side = a == b || matches!((nations[i], nations[j]), (Some(x), Some(y)) if x == y);
+            if has_active_treaty_between(&sim.treaties, a, b, tick)
+                || has_active_battle_between(&sim.battles, &a, &b)
+                || same_side
             {
                 continue;
             }
             let (ab, ba) = (avg(a, b), avg(b, a));
-            if ab.is_none() && ba.is_none() && sim.diplomacy.relations.memories(a, b).is_empty() {
+            if ab.is_none() && ba.is_none() && sim.diplomacy.relations.memories(&a, &b).is_empty() {
                 continue;
             }
-            let warm = sim.opinion_with_mood(a, b, ab.unwrap_or(0.0)) > 0.35
-                && sim.opinion_with_mood(b, a, ba.unwrap_or(0.0)) > 0.35;
+            let warm = sim.opinion_with_mood(&a, &b, ab.unwrap_or(0.0)) > 0.35
+                && sim.opinion_with_mood(&b, &a, ba.unwrap_or(0.0)) > 0.35;
             if !warm {
                 continue;
             }
             if !establish_treaty(
                 &mut sim.treaties,
                 &mut sim.organisms,
-                a,
-                b,
+                &a,
+                &b,
                 TreatyKind::Alliance,
                 tick,
                 tick.saturating_add(12_000),
             ) {
                 continue;
             }
-            let na = sim.lineage_names.get(a).cloned().unwrap_or_else(|| a.clone());
-            let nb = sim.lineage_names.get(b).cloned().unwrap_or_else(|| b.clone());
+            let na = sim
+                .lineage_names
+                .get(a.as_str())
+                .cloned()
+                .unwrap_or_else(|| a.to_string());
+            let nb = sim
+                .lineage_names
+                .get(b.as_str())
+                .cloned()
+                .unwrap_or_else(|| b.to_string());
             let line = format!("\u{1F91D} {} and {} forged an alliance.", na, nb);
             push_event(&mut sim.events, tick, "treaty", "world", &line);
             sim.headlines.push_back((tick, line));

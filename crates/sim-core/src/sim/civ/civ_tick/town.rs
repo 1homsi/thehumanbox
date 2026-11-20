@@ -58,7 +58,7 @@ const HOME_WEIGHT: usize = 3;
 const CROSS_STREETS: [(usize, i32); 2] = [(20, 5), (40, 9)];
 const CROSS_LENGTH: i32 = 5;
 
-type HomesByLineage = std::collections::BTreeMap<String, Vec<[i32; 2]>>;
+type HomesByLineage = std::collections::BTreeMap<crate::intern::Sym, Vec<[i32; 2]>>;
 
 fn planned_by_default() -> bool {
     true
@@ -147,7 +147,7 @@ fn chebyshev(a: [i32; 2], b: [i32; 2]) -> i32 {
 fn homes_by_lineage(sim: &Simulation) -> HomesByLineage {
     let mut out = HomesByLineage::new();
     for o in sim.organisms.iter().filter(|o| o.alive) {
-        out.entry(o.lineage_id.to_string())
+        out.entry(o.lineage_id)
             .or_default()
             .push([o.home_x as i32, o.home_y as i32]);
     }
@@ -209,8 +209,14 @@ fn clusters(homes: &[[i32; 2]]) -> Vec<(usize, [i32; 2])> {
 
 fn residents(sim: &Simulation, homes: &HomesByLineage) -> HashMap<u32, usize> {
     let mut out: HashMap<u32, usize> = HashMap::default();
+    let mut by_lineage: HashMap<crate::intern::Sym, Vec<&Town>> = HashMap::default();
+    for t in &sim.towns {
+        by_lineage.entry(t.lineage).or_default().push(t);
+    }
     for (lineage, list) in homes {
-        let towns: Vec<&Town> = sim.towns.iter().filter(|t| &t.lineage == lineage).collect();
+        let Some(towns) = by_lineage.get(lineage) else {
+            continue;
+        };
         if towns.is_empty() {
             continue;
         }
@@ -309,7 +315,7 @@ fn found_towns(sim: &mut Simulation, homes: &HomesByLineage) {
             }
             let centre = find_plaza_site(sim, &covered, at[0], at[1], 0).unwrap_or(at);
             centres.push(centre);
-            founded.push((lineage.clone(), centre));
+            founded.push((lineage.to_string(), centre));
         }
     }
     let founded: Vec<(String, [i32; 2])> = founded

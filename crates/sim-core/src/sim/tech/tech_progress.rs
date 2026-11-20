@@ -13,7 +13,6 @@ use crate::sim::world_events::push_event;
 
 const TICK_INTERVAL: u64 = 40;
 
-const SEEN_SETS: usize = 4;
 const BASE_RATE: f32 = 0.012;
 /// Tiles between a tribe's dwellings and a farming tribe's dwellings for the farming to carry over.
 const FARMING_NEIGHBOUR_REACH: i32 = 24;
@@ -33,47 +32,43 @@ pub fn tick_tech_progress(
         return;
     }
 
-    // One pass over the living, borrowing every name: a lineage id and its
-    // discoveries are copied once per lineage, not once per person.
-    struct Tribe<'a> {
+    struct Tribe {
         discoveries: Vec<u64>,
         members: Vec<usize>,
-        seen: Vec<&'a crate::organism::organism::Discoveries>,
     }
-    let mut tribes: HashMap<&str, Tribe> = HashMap::default();
-    let mut ids: HashMap<&str, usize> = HashMap::default();
+    let mut tribes: HashMap<crate::intern::Sym, Tribe> = HashMap::default();
+    let mut everything: Vec<u64> = Vec::new();
     for (i, org) in organisms.iter().enumerate() {
         if !org.alive {
             continue;
         }
-        let tribe = tribes.entry(org.lineage_id.as_str()).or_insert_with(|| Tribe {
+        let tribe = tribes.entry(org.lineage_id).or_insert_with(|| Tribe {
             discoveries: Vec::new(),
             members: Vec::new(),
-            seen: Vec::new(),
         });
         tribe.members.push(i);
-        if tribe.seen.iter().any(|known| ***known == *org.discoveries) {
-            continue;
+        let known = org.discoveries.known();
+        if tribe.discoveries.len() < known.len() {
+            tribe.discoveries.resize(known.len(), 0);
         }
-        if tribe.seen.len() == SEEN_SETS {
-            tribe.seen.remove(0);
-        }
-        tribe.seen.push(&org.discoveries);
-        for name in org.discoveries.iter() {
-            let next = ids.len();
-            let id = *ids.entry(name.as_str()).or_insert(next);
-            if tribe.discoveries.len() <= id / 64 {
-                tribe.discoveries.resize(id / 64 + 1, 0);
-            }
-            tribe.discoveries[id / 64] |= 1 << (id % 64);
+        for (mine, &theirs) in tribe.discoveries.iter_mut().zip(known) {
+            *mine |= theirs;
         }
     }
-    // The research loop below changes `organisms`, so the tribes it walks must
-    // own their names.
-    let mut by_name: Vec<(&str, usize)> = ids.into_iter().collect();
+    for tribe in tribes.values() {
+        if everything.len() < tribe.discoveries.len() {
+            everything.resize(tribe.discoveries.len(), 0);
+        }
+        for (all, &theirs) in everything.iter_mut().zip(&tribe.discoveries) {
+            *all |= theirs;
+        }
+    }
+    let mut by_name: Vec<(&str, u32)> = crate::organism::organism::known_ids(&everything)
+        .map(|id| (crate::organism::organism::discovery_name(id), id))
+        .collect();
     by_name.sort_unstable();
     let mut text = String::new();
-    let spans: Vec<(usize, (usize, usize))> = by_name
+    let spans: Vec<(u32, (usize, usize))> = by_name
         .iter()
         .map(|&(name, id)| {
             let start = text.len();
@@ -89,10 +84,10 @@ pub fn tick_tech_progress(
                 .filter(|&&(id, _)| {
                     tribe
                         .discoveries
-                        .get(id / 64)
+                        .get(id as usize / 64)
                         .is_some_and(|w| w & (1 << (id % 64)) != 0)
                 })
-                .map(|&(_, span)| span)
+                .map(|&(id, (start, end))| (start, end, id))
                 .collect();
             (lineage.to_string(), Known(known), tribe.members)
         })
@@ -171,15 +166,17 @@ pub fn tick_tech_progress(
             // of RNG draws depend on the comparator's internal call pattern
             // rather than on the roster.
             let jitter: Vec<f32> = members.iter().map(|_| rng.random::<f32>() * 0.15).collect();
+            let skill = discovery_skill(node.name);
+            let scores: Vec<f32> = members
+                .iter()
+                .zip(&jitter)
+                .map(|(&m, &j)| researcher_score_with(&organisms[m], skill) + j)
+                .collect();
             let pick = members
                 .iter()
                 .copied()
                 .enumerate()
-                .max_by(|(ai, a), (bi, b)| {
-                    let a_score = researcher_score(&organisms[*a], node.name) + jitter[*ai];
-                    let b_score = researcher_score(&organisms[*b], node.name) + jitter[*bi];
-                    a_score.total_cmp(&b_score)
-                })
+                .max_by(|(ai, _), (bi, _)| scores[*ai].total_cmp(&scores[*bi]))
                 // `max_by` yields the *enumerated* item, so the winner has to
                 // be looked up through the enumerate index, not the organism
                 // index it carries.
@@ -197,20 +194,32 @@ pub fn tick_tech_progress(
             push_event(events, tick, "build", &name, &detail);
         }
 
-        spread_tribal_knowledge(rng, organisms, members, disc.names(&text), profile.literacy);
+        spread_tribal_knowledge(
+            rng,
+            organisms,
+            members,
+            disc.names_and_ids(&text),
+            profile.literacy,
+        );
     }
 }
 
-struct Known(Vec<(usize, usize)>);
+struct Known(Vec<(usize, usize, u32)>);
 
 impl Known {
     fn names<'a>(&'a self, text: &'a str) -> impl Iterator<Item = &'a str> + 'a {
-        self.0.iter().map(move |&(start, end)| &text[start..end])
+        self.0.iter().map(move |&(start, end, _)| &text[start..end])
+    }
+
+    fn names_and_ids<'a>(&'a self, text: &'a str) -> impl Iterator<Item = (&'a str, u32)> + 'a {
+        self.0
+            .iter()
+            .map(move |&(start, end, id)| (&text[start..end], id))
     }
 
     fn contains(&self, text: &str, name: &str) -> bool {
         self.0
-            .binary_search_by(|&(start, end)| text[start..end].cmp(name))
+            .binary_search_by(|&(start, end, _)| text[start..end].cmp(name))
             .is_ok()
     }
 }
@@ -239,6 +248,18 @@ fn farming_neighbours(tribes: &[(&str, bool)], buildings: &[Building]) -> HashSe
         .filter(|(_, farms)| *farms)
         .map(|&(lid, _)| lid)
         .collect();
+    let cell = |x: i32, y: i32| {
+        (
+            x.div_euclid(FARMING_NEIGHBOUR_REACH),
+            y.div_euclid(FARMING_NEIGHBOUR_REACH),
+        )
+    };
+    let mut farms_by_cell: HashMap<(i32, i32), Vec<_>> = HashMap::default();
+    for &f in &farmers {
+        for &(x, y) in dwellings.get(f).map_or(&[][..], Vec::as_slice) {
+            farms_by_cell.entry(cell(x, y)).or_default().push((f, x, y));
+        }
+    }
     let mut near = HashSet::default();
     for &(lid, farms) in tribes {
         if farms {
@@ -247,11 +268,15 @@ fn farming_neighbours(tribes: &[(&str, bool)], buildings: &[Building]) -> HashSe
         let Some(mine) = dwellings.get(lid) else {
             continue;
         };
-        let touches = farmers.iter().filter(|&&f| f != lid).any(|&f| {
-            dwellings.get(f).is_some_and(|theirs| {
-                theirs.iter().any(|&(tx, ty)| {
-                    mine.iter()
-                        .any(|&(mx, my)| (tx - mx).abs().max((ty - my).abs()) <= FARMING_NEIGHBOUR_REACH)
+        let touches = mine.iter().any(|&(mx, my)| {
+            let (cx, cy) = cell(mx, my);
+            (cy - 1..=cy + 1).any(|y| {
+                (cx - 1..=cx + 1).any(|x| {
+                    farms_by_cell.get(&(x, y)).is_some_and(|theirs| {
+                        theirs.iter().any(|&(f, tx, ty)| {
+                            f != lid && (tx - mx).abs().max((ty - my).abs()) <= FARMING_NEIGHBOUR_REACH
+                        })
+                    })
                 })
             })
         });
@@ -270,19 +295,19 @@ fn spread_tribal_knowledge<'a>(
     rng: &mut ChaCha8Rng,
     organisms: &mut [Organism],
     members: &[usize],
-    discoveries: impl Iterator<Item = &'a str>,
+    discoveries: impl Iterator<Item = (&'a str, u32)>,
     literacy: f32,
 ) {
     let chance = 0.02 + literacy.clamp(0.0, 1.0) * 0.10;
     let mut learners: Vec<usize> = Vec::new();
-    for discovery in discoveries {
+    for (discovery, id) in discoveries {
         if rng.random::<f32>() >= chance {
             continue;
         }
         learners.clear();
         learners.extend(members.iter().copied().filter(|&m| {
             let o = &organisms[m];
-            o.alive && o.age >= 300 && !o.discoveries.contains(discovery)
+            o.alive && o.age >= 300 && !o.discoveries.has_id(id)
         }));
         if learners.is_empty() {
             continue;
@@ -631,14 +656,19 @@ fn credit_know_how(org: &mut Organism, discovery: &str, tick: u64) {
     }
 }
 
+#[cfg(test)]
 fn researcher_score(org: &Organism, discovery: &str) -> f32 {
+    researcher_score_with(org, discovery_skill(discovery))
+}
+
+fn researcher_score_with(org: &Organism, skill: Option<Skill>) -> f32 {
     let specialty = match org.specialty.as_deref() {
         Some("scholar" | "teacher" | "scribe") => 0.35,
         Some("engineer" | "programmer" | "doctor") => 0.25,
         _ => 0.0,
     };
     // Whoever has done the related work longest is likeliest to see the next step.
-    let hands_on = discovery_skill(discovery).map_or(0.0, |skill| org.skills.level(skill) * 0.4);
+    let hands_on = skill.map_or(0.0, |skill| org.skills.level(skill) * 0.4);
     org.literacy * 0.45 + org.traits.curiosity * 0.35 + specialty + hands_on
 }
 
@@ -793,7 +823,10 @@ fn tick_tech_progress_reference(
 
         let mut sorted: Vec<&str> = disc.iter().map(String::as_str).collect();
         sorted.sort_unstable();
-        spread_tribal_knowledge(rng, organisms, members, sorted.into_iter(), profile.literacy);
+        let with_ids = sorted
+            .into_iter()
+            .map(|name| (name, crate::organism::organism::discovery_id(name)));
+        spread_tribal_knowledge(rng, organisms, members, with_ids, profile.literacy);
     }
 }
 
@@ -826,7 +859,10 @@ mod tests {
 
         let mut rng = <ChaCha8Rng as rand::SeedableRng>::seed_from_u64(9);
         for _ in 0..200 {
-            spread_tribal_knowledge(&mut rng, &mut sim.organisms, &members, known.into_iter(), 1.0);
+            let with_ids = known
+                .into_iter()
+                .map(|name| (name, crate::organism::organism::discovery_id(name)));
+            spread_tribal_knowledge(&mut rng, &mut sim.organisms, &members, with_ids, 1.0);
         }
         let knowers = members
             .iter()
@@ -1157,5 +1193,64 @@ mod farming_neighbour_tests {
         assert!(near.contains("b"), "ten tiles from a farming tribe");
         assert!(!near.contains("c"), "far beyond the reach");
         assert!(!near.contains("a"), "a farming tribe does not learn from itself");
+    }
+
+    fn brute_force(tribes: &[(&str, bool)], buildings: &[Building]) -> HashSet<String> {
+        let dwellings = |lid: &str| -> Vec<(i32, i32)> {
+            buildings
+                .iter()
+                .filter(|b| b.is_operational() && b.owner_lineage.is_some_and(|o| o == lid))
+                .map(|b| (b.x, b.y))
+                .collect()
+        };
+        let mut near = HashSet::default();
+        for &(lid, farms) in tribes {
+            if farms {
+                continue;
+            }
+            let mine = dwellings(lid);
+            let touches = tribes
+                .iter()
+                .filter(|&&(f, farms)| farms && f != lid)
+                .any(|&(f, _)| {
+                    dwellings(f).iter().any(|&(tx, ty)| {
+                        mine.iter()
+                            .any(|&(mx, my)| (tx - mx).abs().max((ty - my).abs()) <= FARMING_NEIGHBOUR_REACH)
+                    })
+                });
+            if touches {
+                near.insert(lid.to_string());
+            }
+        }
+        near
+    }
+
+    #[test]
+    fn the_cell_search_finds_the_same_neighbours_as_comparing_every_pair_of_dwellings() {
+        let names = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"];
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let mut next = |n: u64| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state % n
+        };
+        for _ in 0..200 {
+            let tribes: Vec<(&str, bool)> = names.iter().map(|&n| (n, next(3) == 0)).collect();
+            let buildings: Vec<Building> = (0..40)
+                .map(|id| {
+                    let x = next(160) as i32 - 80;
+                    let y = next(160) as i32 - 80;
+                    hut(id, x, y, names[next(names.len() as u64) as usize])
+                })
+                .collect();
+            let near = farming_neighbours(&tribes, &buildings);
+            let expected = brute_force(&tribes, &buildings);
+            let mut near: Vec<&String> = near.iter().collect();
+            let mut expected: Vec<&String> = expected.iter().collect();
+            near.sort();
+            expected.sort();
+            assert_eq!(near, expected);
+        }
     }
 }

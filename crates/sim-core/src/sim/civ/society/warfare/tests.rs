@@ -5,8 +5,8 @@ use rand::SeedableRng;
 
 fn treaty(a: &str, b: &str, kind: TreatyKind, signed_tick: u64, expires_tick: u64) -> Treaty {
     Treaty {
-        lineage_a: a.to_string(),
-        lineage_b: b.to_string(),
+        lineage_a: a.to_string().into(),
+        lineage_b: b.to_string().into(),
         kind,
         signed_tick,
         expires_tick,

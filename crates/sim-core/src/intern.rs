@@ -4,25 +4,33 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{OnceLock, RwLock};
 
 #[derive(Clone, Copy)]
 pub struct Sym(&'static str);
 
-fn table() -> &'static Mutex<FxHashSet<&'static str>> {
-    static TABLE: OnceLock<Mutex<FxHashSet<&'static str>>> = OnceLock::new();
-    TABLE.get_or_init(|| Mutex::new(FxHashSet::default()))
+fn table() -> &'static RwLock<FxHashSet<&'static str>> {
+    static TABLE: OnceLock<RwLock<FxHashSet<&'static str>>> = OnceLock::new();
+    TABLE.get_or_init(|| RwLock::new(FxHashSet::default()))
 }
 
 impl Sym {
     pub fn new(text: &str) -> Self {
-        let mut table = table().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(name) = Sym::existing(text) {
+            return name;
+        }
+        let mut table = table().write().unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(&shared) = table.get(text) {
             return Sym(shared);
         }
         let shared: &'static str = Box::leak(text.to_owned().into_boxed_str());
         table.insert(shared);
         Sym(shared)
+    }
+
+    pub fn existing(text: &str) -> Option<Self> {
+        let table = table().read().unwrap_or_else(|poisoned| poisoned.into_inner());
+        table.get(text).map(|&shared| Sym(shared))
     }
 
     pub fn as_str(&self) -> &'static str {
