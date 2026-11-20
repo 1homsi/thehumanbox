@@ -443,11 +443,15 @@ impl Simulation {
                 let (cx, cy) = a.center();
                 a.population > 0
                     && (cx as f32 - x).det_hypot(cy as f32 - y) <= ANSWER_RADIUS
-                    && !answered.contains(lid)
+                    && !answered.iter().any(|a| **lid == *a)
                     && !self.prayers.active.iter().any(|p| &p.lineage == *lid)
-                    && self.prayers.gift_quiet_until.get(*lid).is_none_or(|&t| now >= t)
+                    && self
+                        .prayers
+                        .gift_quiet_until
+                        .get(lid.as_str())
+                        .is_none_or(|&t| now >= t)
             })
-            .map(|(lid, _)| lid.clone())
+            .map(|(lid, _)| lid.to_string())
             .collect();
         let mut near = near;
         near.sort();
@@ -759,7 +763,7 @@ mod tests {
 
         // A harvest nobody asked for counts, once per cooldown.
         sim.rebuild_lineage_aggregates();
-        let (cx, cy) = sim.lineage_aggregates[&lineage].center();
+        let (cx, cy) = sim.lineage_aggregates[lineage.as_str()].center();
         let before = sim.prayers.faith[&lineage];
         let cmd = format!(r#"{{"cmd":"bless","x":{cx},"y":{cy},"radius":8}}"#);
         sim.apply_command_json(&cmd);
@@ -799,7 +803,7 @@ mod tests {
     #[test]
     fn a_tribe_beside_a_fire_begs_for_it_to_be_put_out() {
         let (mut sim, lineage) = tribe_sim();
-        let (cx, cy) = sim.lineage_aggregates[&lineage].center();
+        let (cx, cy) = sim.lineage_aggregates[lineage.as_str()].center();
         for dx in 0..4 {
             sim.grid.set(cx + 3 + dx, cy, crate::world::tiles::Tile::Fire);
         }

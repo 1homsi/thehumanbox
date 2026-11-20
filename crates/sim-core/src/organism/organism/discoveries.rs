@@ -212,6 +212,18 @@ impl Discoveries {
             .is_some_and(|word| word & (1 << (id % 64)) != 0)
     }
 
+    pub fn unknown_to(&self, learner: &Discoveries) -> Vec<&'static str> {
+        let missing: Vec<u64> = self
+            .known
+            .iter()
+            .enumerate()
+            .map(|(i, &mine)| mine & !learner.known.get(i).copied().unwrap_or(0))
+            .collect();
+        let mut names: Vec<&'static str> = known_ids(&missing).map(discovery_name).collect();
+        names.sort_unstable();
+        names
+    }
+
     pub fn knows_all_of(&self, other: &Discoveries) -> bool {
         other
             .known
@@ -300,6 +312,14 @@ mod tests {
             listed.sort_unstable();
             assert!(listed.iter().copied().eq(discoveries.iter().map(String::as_str)));
             assert!(discoveries.knows_all_of(&discoveries.iter().cloned().collect()));
+            let some: Discoveries = ["fire", "pottery"].iter().map(|n| n.to_string()).collect();
+            let expected: Vec<&str> = discoveries
+                .iter()
+                .map(String::as_str)
+                .filter(|n| !some.contains(*n))
+                .collect();
+            assert_eq!(discoveries.unknown_to(&some), expected);
+            assert!(discoveries.unknown_to(discoveries).is_empty());
             assert!(Discoveries::new().knows_all_of(discoveries) == discoveries.is_empty());
         };
         let mut discoveries = Discoveries::new();

@@ -234,8 +234,11 @@ fn residents(sim: &Simulation, homes: &HomesByLineage) -> HashMap<u32, usize> {
 }
 
 fn residents_of(sim: &Simulation, lineage: &str) -> HashMap<u32, usize> {
-    let towns: Vec<&Town> = sim.towns.iter().filter(|t| t.lineage == lineage).collect();
     let mut out: HashMap<u32, usize> = HashMap::default();
+    let Some(lineage) = crate::intern::Sym::existing(lineage) else {
+        return out;
+    };
+    let towns: Vec<&Town> = sim.towns.iter().filter(|t| t.lineage == lineage).collect();
     for o in sim
         .organisms
         .iter()
@@ -662,8 +665,9 @@ pub fn zone_of(kind: BuildingKind) -> Zone {
 }
 
 pub(crate) fn town_for(sim: &Simulation, lineage: &str, kind: BuildingKind) -> Option<usize> {
+    let tribe = crate::intern::Sym::existing(lineage)?;
     let mine: Vec<usize> = (0..sim.towns.len())
-        .filter(|&i| sim.towns[i].lineage == lineage)
+        .filter(|&i| sim.towns[i].lineage == tribe)
         .collect();
     if mine.len() <= 1 {
         return mine.first().copied();
@@ -679,7 +683,7 @@ pub(crate) fn town_for(sim: &Simulation, lineage: &str, kind: BuildingKind) -> O
                 .filter(|b| {
                     !b.decorative
                         && !b.is_ruined()
-                        && b.owner_lineage.as_deref() == Some(lineage)
+                        && b.owner_lineage == Some(tribe)
                         && crate::sim::civ::vacancy::is_home(b.kind)
                         && t.distance(b.x, b.y) <= HOME_REACH
                 })

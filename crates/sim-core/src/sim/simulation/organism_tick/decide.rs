@@ -88,7 +88,7 @@ impl Simulation {
         available_buf: &mut Vec<usize>,
         spatial_buf: &mut Vec<usize>,
         mut rng: ChoiceRng,
-        people: Option<&PeopleIndex<'_>>,
+        people: Option<&PeopleIndex>,
     ) -> Choice {
         let o = &self.organisms[s.idx];
         let at = (o.x as i32, o.y as i32);
@@ -112,7 +112,7 @@ impl Simulation {
         available_buf: &mut Vec<usize>,
         spatial_buf: &mut Vec<usize>,
         rng: &mut ChoiceRng,
-        people: Option<&PeopleIndex<'_>>,
+        people: Option<&PeopleIndex>,
     ) -> ChoiceParts {
         let idx = s.idx;
         let (ox, oy) = (s.ox, s.oy);

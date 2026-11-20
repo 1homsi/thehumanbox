@@ -1509,7 +1509,7 @@ pub(super) fn is_wonder(kind: BuildingKind) -> bool {
 
 pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usize)> {
     let now = sim.tick_count;
-    let old_ruins: Vec<(u64, u32, usize, Option<&str>)> = sim
+    let old_ruins: Vec<(u64, u32, usize, Option<crate::intern::Sym>)> = sim
         .buildings
         .iter()
         .enumerate()
@@ -1529,14 +1529,14 @@ pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usiz
                 ruin_origin,
                 building.id,
                 index,
-                building.owner_lineage.as_deref(),
+                building.owner_lineage,
             ))
         })
         .collect();
     if old_ruins.is_empty() {
         return Vec::new();
     }
-    let mut owners: Vec<(&str, bool)> = Vec::new();
+    let mut owners: Vec<(crate::intern::Sym, bool)> = Vec::new();
     for &(_, _, _, owner) in &old_ruins {
         if let Some(owner) = owner {
             if !owners.iter().any(|&(o, _)| o == owner) {
@@ -1545,16 +1545,27 @@ pub(super) fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usiz
         }
     }
     let mut unseen = owners.len();
+    let unseen_bits = |owners: &[(crate::intern::Sym, bool)]| {
+        owners
+            .iter()
+            .filter(|(_, seen)| !seen)
+            .fold(0u64, |bits, (owner, _)| bits | owner.bloom_bit())
+    };
+    let mut pending = unseen_bits(&owners);
     for organism in sim.organisms.iter().filter(|organism| organism.alive) {
         if unseen == 0 {
             break;
         }
+        if pending & organism.lineage_id.bloom_bit() == 0 {
+            continue;
+        }
         if let Some(entry) = owners
             .iter_mut()
-            .find(|(owner, seen)| !*seen && *owner == organism.lineage_id.as_str())
+            .find(|(owner, seen)| !*seen && *owner == organism.lineage_id)
         {
             entry.1 = true;
             unseen -= 1;
+            pending = unseen_bits(&owners);
         }
     }
     let mut candidates: Vec<(u64, u32, usize)> = old_ruins

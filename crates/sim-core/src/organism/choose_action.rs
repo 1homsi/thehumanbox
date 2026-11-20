@@ -160,7 +160,7 @@ impl Organism {
         cached_perception: &str,
         available: &[usize],
         nearby: Option<&[usize]>,
-        people: Option<&PeopleIndex<'_>>,
+        people: Option<&PeopleIndex>,
     ) -> (usize, Option<String>) {
         // Use the tick's spatial index for bounded local checks, retaining the
         // full population for long-distance partners, friends, and kin.

@@ -72,10 +72,10 @@ fn tier_for(population: usize, building_count: usize, score: u32) -> u8 {
 /// unowned buildings, and structures belonging to extinct lineages contribute
 /// nothing. BTreeMap keeps wire ordering stable across runs and save reloads.
 pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
-    let mut by_lineage: BTreeMap<String, SettlementAccumulator> = BTreeMap::new();
+    let mut by_lineage: BTreeMap<crate::intern::Sym, SettlementAccumulator> = BTreeMap::new();
 
     for resident in sim.organisms.iter().filter(|org| org.alive) {
-        let entry = by_lineage.entry(resident.lineage_id.to_string()).or_default();
+        let entry = by_lineage.entry(resident.lineage_id).or_default();
         entry.population += 1;
         // Residents anchor the center more strongly than a single small
         // building, while major completed buildings still pull it toward the
@@ -93,10 +93,10 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
     }
 
     for building in sim.buildings.iter().filter(|building| building.is_operational()) {
-        let Some(lineage_id) = building.owner_lineage.as_deref() else {
+        let Some(lineage_id) = building.owner_lineage else {
             continue;
         };
-        let Some(entry) = by_lineage.get_mut(lineage_id) else {
+        let Some(entry) = by_lineage.get_mut(&lineage_id) else {
             // A dead lineage's ruins remain world history, not a live
             // settlement or a stale client/sidebar entry.
             continue;
@@ -152,11 +152,11 @@ pub fn snapshots(sim: &Simulation) -> Vec<SettlementSnapshot> {
             };
             let name = sim
                 .lineage_names
-                .get(&lineage_id)
+                .get(lineage_id.as_str())
                 .cloned()
-                .unwrap_or_else(|| lineage_id.clone());
+                .unwrap_or_else(|| lineage_id.to_string());
             SettlementSnapshot {
-                lineage_id,
+                lineage_id: lineage_id.to_string(),
                 name,
                 tier,
                 tier_name: TIER_NAMES[tier as usize],

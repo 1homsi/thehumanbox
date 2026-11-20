@@ -64,10 +64,13 @@ fn living_tribes(sim: &Simulation) -> FxHashMap<&str, Tribe> {
 
 /// Beds in a tribe's standing homes, finished or not.
 pub(crate) fn housing_capacity(sim: &Simulation, lineage: &str) -> usize {
+    let Some(lineage) = crate::intern::Sym::existing(lineage) else {
+        return 0;
+    };
     sim.buildings
         .iter()
         .filter(|b| !b.decorative && !b.is_ruined() && is_home(b.kind))
-        .filter(|b| b.owner_lineage.as_deref() == Some(lineage))
+        .filter(|b| b.owner_lineage == Some(lineage))
         .map(|b| usize::from(b.kind.capacity()))
         .sum()
 }
@@ -75,7 +78,10 @@ pub(crate) fn housing_capacity(sim: &Simulation, lineage: &str) -> usize {
 /// True while a tribe has fewer beds than people: only then does anyone
 /// set out to build another home.
 pub(crate) fn short_of_housing(sim: &Simulation, lineage: &str) -> bool {
-    let capacity = housing_capacity(sim, lineage);
+    let Some(lineage) = crate::intern::Sym::existing(lineage) else {
+        return false;
+    };
+    let capacity = housing_capacity(sim, &lineage);
     sim.organisms
         .iter()
         .filter(|o| o.alive && o.lineage_id == lineage)

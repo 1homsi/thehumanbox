@@ -36,6 +36,12 @@ impl Sym {
     pub fn as_str(&self) -> &'static str {
         self.0
     }
+
+    #[inline]
+    pub fn bloom_bit(&self) -> u64 {
+        let at = self.0.as_ptr() as usize;
+        1 << (((at >> 4) ^ (at >> 11)) & 63)
+    }
 }
 
 impl Default for Sym {

@@ -303,6 +303,52 @@ fn place_watermill(sim: &mut Simulation, tribe: &Tribe) -> bool {
 
 /// Every tile a field or a building covers. A 2x2 pen or barn takes all four of its tiles, so a
 /// new building cannot stand over a neighbour's footprint (its sheep graze there).
+pub(crate) struct OccupiedMap {
+    inside: Vec<u64>,
+    outside: FxHashSet<(i32, i32)>,
+}
+
+impl OccupiedMap {
+    pub(crate) fn of(sim: &Simulation) -> Self {
+        use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
+        let mut map = OccupiedMap {
+            inside: vec![0; (WIDTH * HEIGHT).div_ceil(64)],
+            outside: FxHashSet::default(),
+        };
+        let mut mark = |x: i32, y: i32| {
+            if WorldGrid::in_bounds(x, y) {
+                let i = WorldGrid::idx(x, y);
+                map.inside[i / 64] |= 1 << (i % 64);
+            } else {
+                map.outside.insert((x, y));
+            }
+        };
+        for f in &sim.farms {
+            mark(f.x, f.y);
+        }
+        for b in &sim.buildings {
+            let (fw, fh) = b.kind.footprint();
+            for dy in 0..fh as i32 {
+                for dx in 0..fw as i32 {
+                    mark(b.x + dx, b.y + dy);
+                }
+            }
+        }
+        map
+    }
+
+    #[inline]
+    pub(crate) fn contains(&self, x: i32, y: i32) -> bool {
+        use crate::world::grid::WorldGrid;
+        if WorldGrid::in_bounds(x, y) {
+            let i = WorldGrid::idx(x, y);
+            self.inside[i / 64] & (1 << (i % 64)) != 0
+        } else {
+            self.outside.contains(&(x, y))
+        }
+    }
+}
+
 pub(crate) fn occupied_tiles(sim: &Simulation) -> FxHashSet<(i32, i32)> {
     let mut tiles: FxHashSet<(i32, i32)> = sim.farms.iter().map(|f| (f.x, f.y)).collect();
     for b in &sim.buildings {
@@ -476,6 +522,41 @@ mod tests {
         assert!(!fits(&sim, 9, 10, BuildingKind::Barn, &occupied));
         assert!(!fits(&sim, 11, 11, BuildingKind::Barn, &occupied));
         assert!(fits(&sim, 13, 13, BuildingKind::Barn, &occupied));
+    }
+
+    #[test]
+    fn the_occupied_map_holds_the_same_tiles_as_the_occupied_set() {
+        use crate::world::grid::{HEIGHT, WIDTH};
+        let mut sim = Simulation::new(4);
+        let (w, h) = (WIDTH as i32, HEIGHT as i32);
+        let spots = [
+            (0, 0),
+            (-1, 5),
+            (w - 1, h - 1),
+            (w - 2, 7),
+            (17, h - 1),
+            (40, 60),
+            (-3, -3),
+        ];
+        for (id, &(x, y)) in spots.iter().enumerate() {
+            sim.buildings
+                .push(Building::new(1000 + id as u32, BuildingKind::Pen, x, y, None, 0));
+            sim.buildings.push(Building::new(
+                2000 + id as u32,
+                BuildingKind::Hut,
+                x + 3,
+                y,
+                None,
+                0,
+            ));
+        }
+        let set = occupied_tiles(&sim);
+        let map = OccupiedMap::of(&sim);
+        for y in -4..h + 4 {
+            for x in -4..w + 4 {
+                assert_eq!(map.contains(x, y), set.contains(&(x, y)), "({x}, {y})");
+            }
+        }
     }
 
     fn granary(id: u32, owner: &str, stock: u32) -> Building {

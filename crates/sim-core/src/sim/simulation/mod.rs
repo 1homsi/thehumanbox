@@ -95,7 +95,7 @@ pub struct Simulation {
     pub story_history: VecDeque<StoryEntry>,
     pub pending_memory_flushes: Vec<PendingMemoryFlush>,
     pub(crate) pending_learning: Vec<organism_tick::PendingLearn>,
-    pub(crate) choosing_tribes: Option<HashMap<String, (usize, usize)>>,
+    pub(crate) choosing_tribes: Option<HashMap<crate::intern::Sym, (usize, usize)>>,
     pub(crate) focus_points: Vec<(i32, i32, u64)>,
     pub lineage_names: HashMap<String, String>,
     pub lineage_strategies: HashMap<String, (String, u64)>,
@@ -127,7 +127,7 @@ pub struct Simulation {
     pub lineage_crafts_ready: bool,
     /// Thefts, killings and punishments in each tribe (civ/society/crime.rs).
     pub lineage_crime: HashMap<String, crate::sim::civ::society::crime::CrimeTally>,
-    pub(crate) lineage_aggregates: HashMap<String, LineageAggregate>,
+    pub(crate) lineage_aggregates: HashMap<crate::intern::Sym, LineageAggregate>,
     pub buildings: super::buildings::BuildingList,
     pub next_building_id: u32,
     pub governments: HashMap<String, super::government::Government>,

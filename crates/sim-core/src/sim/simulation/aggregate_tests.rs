@@ -64,9 +64,9 @@ fn lineage_aggregates_match_the_cloning_version() {
     for seed in [7u64, 42] {
         let mut sim = lived_in(seed, 1_500);
         sim.rebuild_lineage_aggregates();
-        let mut original: HashMap<String, LineageAggregate> = HashMap::default();
+        let mut original: HashMap<crate::intern::Sym, LineageAggregate> = HashMap::default();
         for org in sim.organisms.iter().filter(|org| org.alive) {
-            let entry = original.entry(org.lineage_id.to_string()).or_default();
+            let entry = original.entry(org.lineage_id).or_default();
             entry.population += 1;
             entry.x_sum += org.x;
             entry.y_sum += org.y;
@@ -75,12 +75,12 @@ fn lineage_aggregates_match_the_cloning_version() {
         }
         // The live map keeps its table from earlier ticks, so compare by key:
         // the tally is only ever looked up, never walked.
-        let flatten = |map: &HashMap<String, LineageAggregate>| {
+        let flatten = |map: &HashMap<crate::intern::Sym, LineageAggregate>| {
             let mut rows = map
                 .iter()
                 .map(|(k, a)| {
                     (
-                        k.clone(),
+                        k.to_string(),
                         a.population,
                         a.x_sum.to_bits(),
                         a.y_sum.to_bits(),

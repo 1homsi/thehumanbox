@@ -156,7 +156,8 @@ impl Simulation {
         let o = &self.organisms[idx];
         let home = (o.home_x as i32, o.home_y as i32);
         let group = group_of(o.age_stage());
-        let lineage = o.lineage_id.as_str();
+        let tribe = o.lineage_id;
+        let lineage = tribe.as_str();
         let jitter = |salt: u64, range: i32| spread(idx, day, salt, range);
         let around = |p: (i32, i32), salt: u64, range: i32| {
             let q = (p.0 + jitter(salt, range), p.1 + jitter(salt + 1, range));
@@ -189,7 +190,7 @@ impl Simulation {
         let centre = self
             .towns
             .iter()
-            .filter(|t| t.lineage == lineage)
+            .filter(|t| t.lineage == tribe)
             .map(|t| (t.center[0], t.center[1]))
             .min_by_key(|&c| (chebyshev(c, home), c))
             .map(|c| around(c, 13, 3));

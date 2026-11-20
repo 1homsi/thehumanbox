@@ -197,7 +197,7 @@ pub(super) fn tick_disease_spread(sim: &mut Simulation) {
         if !o.alive {
             continue;
         }
-        let era = eras.get(o.lineage_id.as_str()).copied().unwrap_or(Era::PreStone);
+        let era = eras.get(&o.lineage_id).copied().unwrap_or(Era::PreStone);
         let healer = if o.discoveries.contains("medicine") {
             0.6
         } else {
