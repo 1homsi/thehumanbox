@@ -20,9 +20,9 @@ export function lineageEraTiers(
 /**
  * Drawn sizes for summoned monsters. Zombies, demons and aliens are drawn
  * at one pixel per sprite pixel, the size of a person; the dragon and the
- * UFO are drawn double and dwarf everything else.
+ * UFO are drawn larger; the dragon is about 4.8x a person so it reads as a threat.
  */
-export const MONSTER_SIZES: Record<string, number> = { zombie: 10, demon: 12, dragon: 32, alien: 8, ufo: 26 }
+export const MONSTER_SIZES: Record<string, number> = { zombie: 10, demon: 12, dragon: 48, alien: 8, ufo: 26 }
 
 export const _orgLastPos = new Map<string, CharacterMotion>()
 export const _animalLastPos = new Map<number, CharacterMotion>()
