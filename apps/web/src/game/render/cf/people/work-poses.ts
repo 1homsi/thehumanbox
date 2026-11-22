@@ -1,4 +1,4 @@
-import type { WorkActivity } from '../../activity-visuals'
+import { POSE_SHEETS, TOOL_HEADS, type SheetPose, type WorkActivity } from '../../activity-visuals'
 import { packRgba, parseColor } from '../overlays/color'
 
 /** Where a pose's rectangles go: an untextured quad by its centre, size, rotation (radians) and packed colour. */
@@ -34,9 +34,48 @@ const BASKET = part('#9e703e', 5, 0, 5, 3)
 const LEAVES = part('#88a34c', 6, -1, 3, 2)
 const REACH = part('#d6b389', 0, 0, 3, 2)
 const HANDLE = part('#b38b52', 0, -7, 1, 8)
-const HEAD_BUILD = part('#93918b', -2, -8, 4, 2)
-const HEAD_CHOP = part('#b5b5a5', -2, -8, 4, 4)
-const HEAD_MINE = part('#b5b5a5', -2, -8, 7, 2)
+const TOOL_HEAD_PARTS = {
+  build: part(
+    TOOL_HEADS.build.css,
+    TOOL_HEADS.build.x,
+    TOOL_HEADS.build.y,
+    TOOL_HEADS.build.w,
+    TOOL_HEADS.build.h,
+  ),
+  chop: part(TOOL_HEADS.chop.css, TOOL_HEADS.chop.x, TOOL_HEADS.chop.y, TOOL_HEADS.chop.w, TOOL_HEADS.chop.h),
+  mine: part(TOOL_HEADS.mine.css, TOOL_HEADS.mine.x, TOOL_HEADS.mine.y, TOOL_HEADS.mine.w, TOOL_HEADS.mine.h),
+  till: part(TOOL_HEADS.till.css, TOOL_HEADS.till.x, TOOL_HEADS.till.y, TOOL_HEADS.till.w, TOOL_HEADS.till.h),
+}
+
+interface SheetParts {
+  period: number
+  parts: Part[]
+  mx: Float32Array
+  my: Float32Array
+  above: Float32Array
+}
+
+function sheetParts(pose: SheetPose): SheetParts {
+  const sheet = POSE_SHEETS[pose]
+  return {
+    period: sheet.period,
+    parts: sheet.parts.map((p) => part(p.css, p.x, p.y, p.w, p.h)),
+    mx: Float32Array.from(sheet.parts, (p) => p.mx),
+    my: Float32Array.from(sheet.parts, (p) => p.my),
+    above: Float32Array.from(sheet.parts, (p) => p.above),
+  }
+}
+
+const SHEETS: Record<SheetPose, SheetParts> = {
+  dig: sheetParts('dig'),
+  craft: sheetParts('craft'),
+  cook: sheetParts('cook'),
+  eat: sheetParts('eat'),
+  drink: sheetParts('drink'),
+  talk: sheetParts('talk'),
+  dance: sheetParts('dance'),
+  fight: sheetParts('fight'),
+}
 const DUST: Part[] = [part('#c9b28a', 3, 3, 1, 1), part('#c9b28a', -3, 2, 1, 1)]
 const SPEAR_SHAFT = part('#b38b52', 1, -4, 12, 1)
 const SPEAR_POINT = part('#b5b5a5', 13, -5, 2, 3)
@@ -122,6 +161,23 @@ export function emitWorkPose(
     put(sink, SPEAR_POINT, ox, oy, s, flat, alpha, 0, bob)
     return
   }
+  if (
+    activity !== 'gather' &&
+    activity !== 'farm' &&
+    activity !== 'build' &&
+    activity !== 'chop' &&
+    activity !== 'mine' &&
+    activity !== 'till'
+  ) {
+    const sheet = SHEETS[activity]
+    const wave = Math.sin(time / sheet.period + phase)
+    const { parts, mx, my, above } = sheet
+    for (let i = 0; i < parts.length; i++) {
+      if (wave < above[i]) continue
+      put(sink, parts[i], ox, oy, s, flat, alpha, Math.round(wave * mx[i]), Math.round(wave * my[i]))
+    }
+    return
+  }
   const swing = Math.sin(time / 180 + phase)
   if (activity === 'gather' || activity === 'farm') {
     put(sink, BASKET, ox, oy, s, flat, alpha, 0, 0)
@@ -137,8 +193,7 @@ export function emitWorkPose(
   const sin = Math.sin(angle)
   const turned = Math.atan2(sin, s * cos)
   tool(sink, HANDLE, ox, oy, s, cos, sin, turned, alpha)
-  const head = activity === 'build' ? HEAD_BUILD : activity === 'chop' ? HEAD_CHOP : HEAD_MINE
-  tool(sink, head, ox, oy, s, cos, sin, turned, alpha)
+  tool(sink, TOOL_HEAD_PARTS[activity], ox, oy, s, cos, sin, turned, alpha)
   if (swing > 0.75)
     for (let i = 0; i < DUST.length; i++) tool(sink, DUST[i], ox, oy, s, cos, sin, turned, alpha)
 }

@@ -97,13 +97,41 @@ function refWorkActivity(thought: string, moving: boolean) {
   if (moving) return null
   const t = thought.toLowerCase()
   if (/\b(seeking|looking|searching|heading|walking|traveling|going|planning|wanting)\b/.test(t)) return null
-  if (/repairing|rebuilding|reclaiming|building|constructing|raising/.test(t)) return 'build'
-  if (/chopping|cutting wood|gathering wood|felling/.test(t)) return 'chop'
-  if (/mining|quarrying|gathering stone|digging ore/.test(t)) return 'mine'
-  if (/harvesting|planting|sowing|irrigating|tending crops/.test(t)) return 'farm'
-  if (/fishing/.test(t)) return 'fish'
+  if (
+    /repairing|rebuilding|reclaiming|building|constructing|raising|thatching|roofing|laying (the )?(bricks?|stones?|foundations?)/.test(
+      t,
+    )
+  )
+    return 'build'
+  if (/chopping|cutting wood|gathering (wood|timber)|felling|splitting (logs|wood)|logging/.test(t))
+    return 'chop'
+  if (/mining|quarrying|gathering stone|digging ore|breaking rock/.test(t)) return 'mine'
+  if (/\bdigging\b/.test(t)) return 'dig'
+  if (/planting|sowing|tilling|hoeing|plowing|ploughing|weeding/.test(t)) return 'till'
+  if (/harvesting|reaping|threshing|irrigating|tending crops/.test(t)) return 'farm'
+  if (/fishing|caught a fish|casting a (net|line)/.test(t)) return 'fish'
+  if (/stalking|tracking|caught small game|setting a trap|checking the traps|trap caught|\bhunting\b/.test(t))
+    return 'hunt'
+  if (/\b(fighting|attacking|defending|duelling|dueling|sparring|challenging)\b/.test(t)) return 'fight'
+  if (/\b(cooking|baking|roasting|boiling|brewing|stewing|grilling|tending (the )?fire|stoking)\b/.test(t))
+    return 'cook'
+  if (
+    /\b(crafting|carving|knapping|weaving|sewing|stitching|forging|smithing|hammering|whittling|tanning|sharpening|mending|spinning)\b/.test(
+      t,
+    )
+  )
+    return 'craft'
+  if (/\b(eating|feasting|chewing|dining)\b/.test(t)) return 'eat'
+  if (/\b(drinking|sipping)\b/.test(t)) return 'drink'
+  if (/\b(dancing|playing|celebrating|singing)\b/.test(t)) return 'dance'
+  if (
+    /\b(talking|chatting|gossiping|telling|arguing|greeting|teaching|discussing|debating|haggling|bargaining)\b/.test(
+      t,
+    )
+  )
+    return 'talk'
   if (/foraging|gathering|picking berries/.test(t)) return 'gather'
-  if (/sleeping|resting|dozing|napping/.test(t)) return 'rest'
+  if (/sleeping|\bresting|dozing|napping/.test(t)) return 'rest'
   return null
 }
 
@@ -125,6 +153,15 @@ const THOUGHTS = [
   'praying at the shrine',
   'trading salt',
   'teaching the children',
+  'digging a well',
+  'planting a sapling',
+  'eating stored food',
+  'repeating the old words',
+  "drinking at the water's edge",
+  'tending fire',
+  'interesting times',
+  'going hunting',
+  'hunting',
   'dancing at the festival',
   'inspired by a dream',
   'fleeing the wolves',

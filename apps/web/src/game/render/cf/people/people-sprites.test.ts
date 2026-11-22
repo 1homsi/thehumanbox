@@ -13,6 +13,9 @@ import {
 } from '../../character-visuals'
 import { BODY_ATLAS, PeopleSprites, glideTile, isFocused, type PeopleFrameInput } from './people-sprites'
 import { emoteFor } from '../../activity-emotes'
+import { orgAnimPhase } from '../../draw-helpers'
+import { CARRY_WOOD_GLYPH, glyphFrame } from '../atlas-bake'
+import { scatterX, scatterY } from './people-motion'
 import { peopleLabelSource, pickPersonAt, registerPeopleLayer } from '../picking'
 
 const flags = { health: false, age: false, fear: false, lineageDot: false, pregnancy: false }
@@ -71,9 +74,14 @@ function input(orgs: OrganismState[], extra: Partial<PeopleFrameInput> = {}): Pe
 /** Native sprite bounds with the feet at the ground point. */
 function painterBox(o: OrganismState, ox = 0, oy = 0) {
   const size = HUMAN_ATLAS_CELL
-  const px = (o.x - ox) * 8 + 4
-  const py = (o.y - oy) * 8 + 4
+  const phase = orgAnimPhase(o.id)
+  const px = (o.x - ox) * 8 + 4 + scatterX(phase)
+  const py = (o.y - oy) * 8 + 4 + scatterY(phase)
   return { size, px, py, left: Math.round(px - size / 2), top: Math.round(py - HUMAN_FEET_ROW) }
+}
+
+function bank(frame: number): number {
+  return frame - (frame % (2 * HUMAN_ATLAS_FRAMES))
 }
 
 describe('PeopleSprites', () => {
@@ -88,7 +96,7 @@ describe('PeopleSprites', () => {
       expect(body.x[i] - box.size / 2).toBe(box.left)
       expect(body.y[i] - box.size / 2).toBe(box.top)
       const row = humanAtlasRow(o.sex!, 'adult', deterministicAppearanceIndex(o.id))
-      expect(body.frame[i]).toBe(row * HUMAN_ATLAS_COLS)
+      expect(bank(body.frame[i])).toBe(row * HUMAN_ATLAS_COLS)
       expect(body.atlas[i]).toBe(BODY_ATLAS.people)
     })
   })
@@ -101,11 +109,11 @@ describe('PeopleSprites', () => {
     sprites.animate(1000, 1)
     const positions = sprites.px
     const phase = sprites.phase
-    expect(body.frame[0]).toBe(row * HUMAN_ATLAS_COLS)
-    expect(body.frame[1] % HUMAN_ATLAS_COLS).toBe(humanAtlasColumn('space'))
+    expect(bank(body.frame[0])).toBe(row * HUMAN_ATLAS_COLS)
+    expect(bank(body.frame[1]) % HUMAN_ATLAS_COLS).toBe(humanAtlasColumn('space'))
     sprites.rebuild(input(people, { lineageEras: { tribe: 'industrial', other: 'space' } }))
     sprites.animate(1200, 1)
-    expect(body.frame[0]).toBe(row * HUMAN_ATLAS_COLS + humanAtlasColumn('industrial'))
+    expect(bank(body.frame[0])).toBe(row * HUMAN_ATLAS_COLS + humanAtlasColumn('industrial'))
     expect(sprites.px).toBe(positions)
     expect(sprites.phase).toBe(phase)
     expect(body.count).toBe(2)
@@ -160,7 +168,7 @@ describe('PeopleSprites', () => {
     }
     // halfway along the way, 9.5 tiles
     sprites.animate(2000, 0.5)
-    expect(sprites.px[0]).toBeCloseTo(9.5 * 8 + 4, 3)
+    expect(sprites.px[0]).toBeCloseTo(9.5 * 8 + 4 + scatterX(orgAnimPhase('a')), 3)
     // walking left means flipped
     sprites.animate(2016, 0.6)
     sprites.animate(2032, 0.9)
@@ -169,7 +177,7 @@ describe('PeopleSprites', () => {
     // standing still for longer than the stride timeout returns to frame 0
     sprites.animate(5000, 1)
     sprites.animate(5400, 1)
-    expect(body.frame[0] % HUMAN_ATLAS_FRAMES).toBe(0)
+    expect([0, 2]).toContain(body.frame[0] % HUMAN_ATLAS_FRAMES)
   })
 
   it('keeps walking state when the list changes order', () => {
@@ -334,7 +342,7 @@ describe('PeopleSprites', () => {
   it('answers picks with the person drawn there and nothing for ground', () => {
     const { sprites } = setup()
     const a = org('a', 10, 10)
-    const b = org('b', 10.2, 10.1) // drawn on top of a
+    const b = org('b', 10.2, 10.7) // drawn on top of a
     sprites.rebuild(input([a, b]))
     sprites.animate(1000, 1)
     const box = painterBox(b)
@@ -354,8 +362,9 @@ describe('PeopleSprites', () => {
     const { sprites } = setup()
     sprites.rebuild(input([org('a', 10, 10)], { prevOrgs: [org('a', 9, 10)] }))
     expect(sprites.animate(1000, 0.5)).toBe(true)
-    expect(sprites.animate(1016, 1)).toBe(true)
-    expect(sprites.animate(1500, 1)).toBe(false)
+    for (let now = 1016; now <= 1800; now += 16) sprites.animate(now, 1)
+    expect(sprites.px[0]).toBeCloseTo(10 * 8 + 4 + scatterX(orgAnimPhase('a')), 3)
+    expect(sprites.animate(2400, 1)).toBe(false)
   })
 })
 
@@ -405,7 +414,7 @@ describe('sprite layer bridge', () => {
     sprites.rebuild(input([org('a', 4, 4), org('b', 6, 6, { alive: false }), org('c', 8, 8)]))
     sprites.animate(0, 1)
     expect(sprites.orgs.map((o) => o.id)).toEqual(['a', 'c'])
-    expect(sprites.px[1]).toBeCloseTo(8 * 8 + 4)
+    expect(sprites.px[1]).toBeCloseTo(8 * 8 + 4 + scatterX(orgAnimPhase('c')))
   })
 })
 
@@ -575,7 +584,7 @@ describe('PeopleSprites touch ranges', () => {
     const people = Array.from({ length: 40 }, (_, k) =>
       org(`s${k}`, 10 + (k % 8) * 3, 10 + Math.floor(k / 8) * 3),
     )
-    sprites.rebuild(input(people))
+    sprites.rebuild(input(people, { zoom: 0.5 }))
     sprites.animate(1000, 1)
     const recs = [body, soft, over, emote].map(recordWrites)
     sprites.animate(60000, 1)
@@ -583,6 +592,165 @@ describe('PeopleSprites touch ranges', () => {
       expect(rec.all).toBe(false)
       expect(rec.slots.size).toBe(0)
     }
+    expect(sprites.lively).toBe(false)
+  })
+
+  it('keeps idle people where they stand: only their frame changes, and only close up', () => {
+    const { body, soft, over, emote, sprites } = setup()
+    const people = Array.from({ length: 40 }, (_, k) =>
+      org(`s${k}`, 10 + (k % 8) * 3, 10 + Math.floor(k / 8) * 3),
+    )
+    sprites.rebuild(input(people))
+    sprites.animate(1000, 1)
+    const x = Array.from(body.x.subarray(0, 40))
+    const y = Array.from(body.y.subarray(0, 40))
+    const recs = [soft, over, emote].map(recordWrites)
+    const seen = people.map(() => new Set<number>())
+    for (let now = 1016; now < 21000; now += 50) {
+      sprites.animate(now, 1)
+      for (let i = 0; i < 40; i++) seen[i].add(body.frame[i] % (2 * HUMAN_ATLAS_FRAMES))
+    }
+    expect(Array.from(body.x.subarray(0, 40))).toEqual(x)
+    expect(Array.from(body.y.subarray(0, 40))).toEqual(y)
+    for (const rec of recs) expect(rec.slots.size).toBe(0)
+    for (const frames of seen) {
+      expect(frames.has(0) || frames.has(HUMAN_ATLAS_FRAMES)).toBe(true)
+      expect(frames.has(2) || frames.has(HUMAN_ATLAS_FRAMES + 2)).toBe(true)
+      for (const f of frames) expect(f % HUMAN_ATLAS_FRAMES === 0 || f % HUMAN_ATLAS_FRAMES === 2).toBe(true)
+    }
+    expect(seen.some((frames) => frames.has(HUMAN_ATLAS_FRAMES))).toBe(true)
+    expect(sprites.lively).toBe(true)
+  })
+})
+
+describe('people that move like people', () => {
+  const facesLeft = (frame: number) => frame % (2 * HUMAN_ATLAS_FRAMES) >= HUMAN_ATLAS_FRAMES
+
+  it('eases into a walk and settles at the end instead of stepping with the simulation', () => {
+    const { sprites } = setup()
+    sprites.rebuild(input([org('a', 11, 5)], { prevOrgs: [org('a', 10, 5)] }))
+    sprites.animate(1000, 0)
+    const start = sprites.px[0]
+    const steps: number[] = []
+    let last = start
+    for (let k = 1; k <= 40; k++) {
+      sprites.animate(1000 + k * 16, Math.min(1, k / 6))
+      steps.push(sprites.px[0] - last)
+      last = sprites.px[0]
+    }
+    expect(steps[0]).toBeLessThan(steps[3])
+    for (const d of steps) expect(d).toBeGreaterThanOrEqual(0)
+    expect(steps[8]).toBeGreaterThan(0)
+    expect(steps[8]).toBeLessThan(steps[4])
+    expect(last).toBeCloseTo(start + 8, 1)
+  })
+
+  it('jumps straight to a far placement', () => {
+    const { sprites } = setup()
+    sprites.rebuild(input([org('a', 10, 5)]))
+    sprites.animate(1000, 1)
+    sprites.rebuild(input([org('a', 40, 5)], { prevOrgs: [org('a', 40, 5)] }))
+    sprites.animate(1016, 1)
+    expect(sprites.px[0]).toBeCloseTo(40 * 8 + 4 + scatterX(orgAnimPhase('a')), 3)
+  })
+
+  it('does not flip on a small sidestep, and turns once the way back is clear', () => {
+    const { body, sprites } = setup()
+    let x = 10
+    let now = 1000
+    const walk = (dx: number, frames: number) => {
+      for (let k = 0; k < frames; k++) {
+        const before = x
+        x += dx
+        now += 16
+        sprites.rebuild(input([org('a', x, 5)], { prevOrgs: [org('a', before, 5)] }))
+        sprites.animate(now, 1)
+      }
+    }
+    sprites.rebuild(input([org('a', x, 5)]))
+    sprites.animate(now, 1)
+    walk(0.05, 30)
+    expect(facesLeft(body.frame[0])).toBe(false)
+    walk(-0.03, 2)
+    walk(0.05, 10)
+    expect(facesLeft(body.frame[0])).toBe(false)
+    walk(-0.05, 30)
+    expect(facesLeft(body.frame[0])).toBe(true)
+  })
+
+  it('turns an idle person toward where they mean to go, and leaves a worker facing the work', () => {
+    const { body, sprites } = setup()
+    const now = 1000
+    sprites.rebuild(
+      input([
+        org('idle', 10, 5, { target_x: 4, target_y: 5 }),
+        org('worker', 20, 5, { target_x: 4, target_y: 5, thought: 'chopping wood' }),
+      ]),
+    )
+    sprites.animate(now, 1)
+    expect(facesLeft(body.frame[0])).toBe(true)
+    expect(facesLeft(body.frame[1])).toBe(false)
+    expect(sprites.stepState.flipped[0]).toBe(1)
+    expect(sprites.stepState.flipped[1]).toBe(0)
+  })
+
+  it('bends a worker into the stroke of the tool', () => {
+    const { body, sprites } = setup()
+    sprites.rebuild(input([org('w', 10, 5, { thought: 'chopping wood' })]))
+    const phase = orgAnimPhase('w')
+    let bent = 0
+    let upright = 0
+    for (let now = 1000; now < 4000; now += 16) {
+      sprites.animate(now, 1)
+      const down = Math.sin(now / 180 + phase) > 0.3
+      expect(body.frame[0] % HUMAN_ATLAS_FRAMES).toBe(down ? 2 : 0)
+      if (down) bent++
+      else upright++
+    }
+    expect(bent).toBeGreaterThan(10)
+    expect(upright).toBeGreaterThan(10)
+  })
+
+  it('spreads people who share a spot, the same way every time', () => {
+    const { body, sprites } = setup()
+    const crowd = Array.from({ length: 30 }, (_, k) => org(`same-${k}`, 10, 10))
+    sprites.rebuild(input(crowd))
+    sprites.animate(1000, 1)
+    const spots = new Set<string>()
+    for (let i = 0; i < 30; i++) {
+      spots.add(`${body.x[i]},${body.y[i]}`)
+      expect(Math.abs(sprites.px[i] - 84)).toBeLessThanOrEqual(3)
+      expect(Math.abs(sprites.py[i] - 84)).toBeLessThanOrEqual(2)
+    }
+    expect(spots.size).toBeGreaterThan(8)
+    const again = setup()
+    again.sprites.rebuild(input(crowd))
+    again.sprites.animate(9000, 1)
+    for (let i = 0; i < 30; i++) expect(again.body.x[i]).toBe(body.x[i])
+  })
+
+  it('carries a load on the side away from where the person faces', () => {
+    const { over, sprites } = setup()
+    const frame = glyphFrame(CARRY_WOOD_GLYPH)
+    const load = () =>
+      Array.from({ length: over.count }, (_, i) => i).find(
+        (i) => over.frame[i] === frame && (over.flags[i] & SPRITE_UNTEXTURED) === 0,
+      )!
+    sprites.rebuild(input([org('c', 10, 5, { carrying: 200, carrying_type: 1, thought: 'chopping wood' })]))
+    sprites.animate(1000, 1)
+    expect(over.x[load()]).toBe(sprites.px[0] - 3)
+    let x = 10
+    for (let k = 1; k <= 20; k++) {
+      const before = x
+      x -= 0.1
+      sprites.rebuild(
+        input([org('c', x, 5, { carrying: 200, carrying_type: 1, thought: 'chopping wood' })], {
+          prevOrgs: [org('c', before, 5)],
+        }),
+      )
+      sprites.animate(1000 + k * 16, 1)
+    }
+    expect(over.x[load()]).toBe(sprites.px[0] + 4)
   })
 })
 
