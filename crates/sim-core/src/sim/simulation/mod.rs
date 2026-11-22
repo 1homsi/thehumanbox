@@ -269,6 +269,11 @@ pub struct Simulation {
     // decay use - we just need *a* rival, not the full conflict set.
     pub(crate) tile_owner: HashMap<(i32, i32), crate::intern::Sym>,
     pub(crate) cached_territory: serde_json::Value,
+    /// Distinct living homes, sorted by x then y, so a search for an empty
+    /// founding site can reject a candidate without walking every person.
+    /// Rebuilt when homes move.
+    pub(crate) home_spots: Vec<(i32, i32)>,
+    pub(crate) home_spots_ok: bool,
 }
 
 impl Simulation {
@@ -443,6 +448,8 @@ impl Simulation {
             territory: HashMap::default(),
             tile_owner: HashMap::default(),
             cached_territory: serde_json::Value::Null,
+            home_spots: Vec::new(),
+            home_spots_ok: false,
         }
     }
 

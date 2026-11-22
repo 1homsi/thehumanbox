@@ -274,6 +274,8 @@ impl Simulation {
                 .collect(),
             tile_owner: crate::hashing::FxHashMap::default(),
             cached_territory: serde_json::Value::Null,
+            home_spots: Vec::new(),
+            home_spots_ok: false,
             building_state_revision: 1,
             serialized_building_state_revision: 0,
             planting_revision: 1,
