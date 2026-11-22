@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { TribeReasoning } from './TribeReasoning'
+import { useCameraFocus } from '../../state/camera-focus'
 import { t } from '../../i18n'
 import type { TribeStatus } from '../../game/model/tribe-status'
 import type { WorldState } from '../../shared/types'
@@ -13,6 +14,7 @@ const roots: Root[] = []
 afterEach(() => {
   act(() => roots.splice(0).forEach((root) => root.unmount()))
   document.body.innerHTML = ''
+  useCameraFocus.setState({ request: null })
 })
 
 const status = (over: Partial<TribeStatus> = {}): TribeStatus =>
@@ -81,5 +83,54 @@ describe('TribeReasoning', () => {
         target: '12',
       }),
     )
+  })
+
+  it('takes the camera to the tribe when the about-to-try line is clicked', () => {
+    const host = render(
+      {
+        tick: 10,
+        organisms: [],
+        settlements: [
+          {
+            lineage_id: 'a',
+            name: 'Ash camp',
+            tier: 1,
+            tier_name: 'camp',
+            center: [4, 5],
+            population: 3,
+            building_count: 0,
+            capacity: 3,
+            score: 0,
+          },
+        ],
+        lineage_names: { a: 'Ash' },
+        tribal_relations: [],
+        tribe_work: { a: { building: 2 } },
+        lineage_strategies: {},
+      } as unknown as WorldState,
+      status({ food: 0.2 }),
+    )
+    const line = host.querySelector('.tribe-why-next') as HTMLButtonElement
+    expect(line.tagName).toBe('BUTTON')
+    expect(useCameraFocus.getState().request).toBeNull()
+    act(() => line.click())
+    expect(useCameraFocus.getState().request).toMatchObject({ x: 4, y: 5 })
+  })
+
+  it('keeps the about-to-try line as plain text while the tribe has no home on the map', () => {
+    const host = render(
+      {
+        tick: 10,
+        organisms: [],
+        lineage_names: { a: 'Ash' },
+        tribal_relations: [],
+        tribe_work: {},
+        lineage_strategies: {},
+      } as unknown as WorldState,
+      status(),
+    )
+    const line = host.querySelector('.tribe-why-next') as HTMLElement
+    expect(line.tagName).toBe('P')
+    expect(host.querySelector('button.tribe-why-next')).toBeNull()
   })
 })
