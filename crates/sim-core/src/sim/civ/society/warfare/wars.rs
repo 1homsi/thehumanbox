@@ -898,6 +898,7 @@ impl Simulation {
                 o.lineage_id = to.to_string().into();
             }
         }
+        self.organism_columns.refresh_lineages(&self.organisms);
         let land: Vec<(i32, i32)> = self.territory.get(from).map_or_else(Vec::new, |tiles| {
             let mut v: Vec<(i32, i32)> = tiles
                 .iter()
@@ -918,6 +919,7 @@ impl Simulation {
         {
             o.lineage_id = to.to_string().into();
         }
+        self.organism_columns.refresh_lineages(&self.organisms);
         let land: Vec<(i32, i32)> = self.territory.get(from).map_or_else(Vec::new, |tiles| {
             let mut v: Vec<(i32, i32)> = tiles.iter().copied().collect();
             v.sort_unstable();
