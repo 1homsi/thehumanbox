@@ -281,11 +281,27 @@ impl Simulation {
                 continue;
             }
             let purpose = o.intent.filter(|intent| self.tick_count < intent.until);
-            if purpose.is_none() && (o.intent.is_some() || o.wander_target.is_some()) {
-                if o.intent.is_some() {
-                    let o = &mut self.organisms[i];
-                    o.intent = None;
-                    o.rethink = true;
+            if purpose.is_none() && o.intent.is_some() {
+                let o = &mut self.organisms[i];
+                o.intent = None;
+                o.rethink = true;
+                continue;
+            }
+            if purpose.is_none() && o.journey.is_none() && o.wander_target.is_some() {
+                continue;
+            }
+            let bound = o.wander_target.filter(|_| purpose.is_none());
+            if let Some(target) = bound {
+                if chebyshev(here, target) > 2 {
+                    if let Some(action) = o.dry_way(crate::organism::mind::Purpose::Roam, target, &self.grid)
+                    {
+                        let (dx, dy) = DIRECTIONS[action];
+                        let o = &mut self.organisms[i];
+                        o.x = (here.0 + dx) as f32;
+                        o.y = (here.1 + dy) as f32;
+                    }
+                } else if o.journey.is_some() {
+                    self.organisms[i].rethink = true;
                 }
                 continue;
             }

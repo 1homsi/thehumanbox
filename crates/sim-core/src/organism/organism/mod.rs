@@ -146,6 +146,7 @@ pub struct Organism {
     pub lod_turn: u64,
     pub intent: Option<crate::organism::mind::Intent>,
     pub rethink: bool,
+    pub settled_until: u64,
     /// Remembered route around obstacles; runtime only, never saved.
     pub route: super::navigation::RouteCell,
     pub last_groomed: u64,
@@ -309,6 +310,7 @@ impl Organism {
             lod_turn: 0,
             intent: None,
             rethink: false,
+            settled_until: 0,
             route: Default::default(),
             last_groomed: 0,
             last_fed_kin: 0,

@@ -27,6 +27,10 @@ impl Purpose {
         )
     }
 
+    pub fn is_leisure(self) -> bool {
+        matches!(self, Purpose::Roam | Purpose::Company)
+    }
+
     pub fn fits_storm(self) -> bool {
         matches!(self, Purpose::Shelter | Purpose::Home)
     }
@@ -80,6 +84,7 @@ pub fn arrival_thought(action: usize) -> &'static str {
 }
 
 pub const SIGHT: i32 = 8;
+pub const JOURNEY_REST: u64 = 2400;
 
 pub const NIGHT_STARTS: u64 = 420;
 pub const DAY: u64 = 600;
@@ -122,7 +127,7 @@ impl Intent {
     }
 
     pub fn staying(mut self, ticks: u64) -> Self {
-        self.until += ticks;
+        self.until = self.until.max(self.since + ticks);
         self.stays = true;
         self
     }
@@ -175,13 +180,10 @@ impl Organism {
 
     pub(crate) fn dry_way(&self, purpose: Purpose, target: (i32, i32), grid: &WorldGrid) -> Option<usize> {
         let action = self.toward(target, grid);
-        if purpose == Purpose::Water {
-            return Some(action);
-        }
         let &(dx, dy) = DIRECTIONS.get(action)?;
         let (x, y) = (self.x as i32 + dx, self.y as i32 + dy);
         let tile = grid.get(x, y);
-        if tile.walkable() && !grid.is_wet(tile, x, y) {
+        if tile.walkable() && (purpose == Purpose::Water || !grid.is_wet(tile, x, y)) {
             return Some(action);
         }
         let mut route = self.route.borrow_mut();
@@ -220,6 +222,8 @@ mod tests {
     fn an_intent_lasts_long_enough_to_walk_there() {
         let i = Intent::new(Purpose::Wood, (0, 0), (10, 4), 0, Some(14), "seeking wood", 100);
         assert_eq!(i.until, 100 + 30 + 40);
+        assert_eq!(i.staying(20).until, 170);
+        assert_eq!(i.staying(300).until, 400);
         assert!(!Purpose::Wood.fits_night());
         assert!(Purpose::Home.fits_storm());
     }

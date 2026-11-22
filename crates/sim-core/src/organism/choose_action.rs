@@ -389,8 +389,14 @@ impl Organism {
         }
 
         if let Some(intent) = self.intent {
+            let danger_reach = (3.0 + 2.0 * self.traits.fear) as i32;
+            let danger_close = self.danger_memory.iter().any(|(&(cx, cy), &v)| {
+                v > 0.4 && (cx, cy) != (ix, iy) && (cx - ix).abs() + (cy - iy).abs() < danger_reach
+            }) || grid.hazard_at(ix, iy) > 0.60 - self.traits.fear * 0.25;
             let outranked = self.hydration < 0.38
                 || self.energy < 0.42
+                || danger_close
+                || (!free && intent.purpose.is_leisure())
                 || (night && !intent.purpose.fits_night())
                 || (weather_kind >= 2 && !intent.purpose.fits_storm())
                 || self.fear_level > 0.65
@@ -1747,9 +1753,14 @@ impl Organism {
             if active_wander_action == Some(best_idx) && thought.is_none() {
                 set_thought!("wandering");
             }
-            if best_idx < 8 && free && !settled && needs_easy && active_wander_action != Some(best_idx) {
+            if best_idx < 8 && free && !settled && needs_easy {
                 if let Some(far) = self.stroll_target(best_idx, grid) {
-                    go!(Purpose::Roam, far, 1, None, "taking a walk");
+                    let label = if active_wander_action == Some(best_idx) {
+                        "wandering"
+                    } else {
+                        "taking a walk"
+                    };
+                    go!(Purpose::Roam, far, 1, None, label);
                 }
             }
             return (best_idx, thought);

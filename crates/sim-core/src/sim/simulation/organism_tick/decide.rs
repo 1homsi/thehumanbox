@@ -253,7 +253,7 @@ impl Simulation {
 
     pub(super) fn apply_mind(&mut self, idx: usize, op: crate::organism::mind::IntentOp, dormant: bool) {
         use crate::organism::mind::IntentOp;
-        if matches!(op, IntentOp::Done | IntentOp::Rethink) {
+        if op != IntentOp::Keep {
             self.learn_from_a_spent_intent(idx);
         }
         let o = &mut self.organisms[idx];

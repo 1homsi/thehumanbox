@@ -270,6 +270,7 @@ pub struct RouteCache {
     /// pushed out the other's route and both were searched again every turn.
     pub other: Option<KeptRoute>,
     pub settled: Option<(i32, i32)>,
+    pub detours: u8,
 }
 
 fn near(a: (i32, i32), b: (i32, i32)) -> bool {

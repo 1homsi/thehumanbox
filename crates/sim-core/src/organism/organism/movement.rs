@@ -6,6 +6,8 @@ const ROAD_PULL: f32 = 1.0;
 /// Hydration below which someone walks through houses to reach water.
 pub(crate) const PARCHED: f32 = 0.3;
 
+const DETOURS_BEFORE_A_ROUTE: u8 = 2;
+
 impl Organism {
     pub(crate) fn begin_journey(&mut self, target: (i32, i32), description: &str, tick: u64) {
         // Don't set out again for somewhere we just found no way to reach.
@@ -108,10 +110,16 @@ impl Organism {
         let pacing = self.route.borrow().reversals >= 2;
         // First a short local detour, one step at a time: it gets round a small obstacle far more cheaply
         // than a full route. A detour that steps back onto the tile just left is not trusted.
-        if distance > 1 && !blocked && (pacing || best_progress <= 0) {
+        let stalled = pacing || best_progress <= 0;
+        if !stalled {
+            self.route.borrow_mut().detours = 0;
+        }
+        let detoured = self.route.borrow().detours;
+        if distance > 1 && !blocked && stalled && detoured < DETOURS_BEFORE_A_ROUTE {
             if let Some(action) = crate::organism::navigation::detour_step(grid, (ix, iy), target) {
                 let (ddx, ddy) = DIRECTIONS[action];
                 if self.route.borrow().before != Some((ix + ddx, iy + ddy)) {
+                    self.route.borrow_mut().detours = detoured + 1;
                     return action;
                 }
             }

@@ -827,7 +827,7 @@ export class PeopleSprites {
         j,
         fromX[j] + (toX[j] - fromX[j]) * t,
         fromY[j] + (toY[j] - fromY[j]) * t,
-        glide >= 1 ? 1 : glide * pace[j],
+        glide >= 1 ? 1 : 1 - Math.pow(1 - glide, pace[j]),
       )
       const x = gait.x[j]
       const y = gait.y[j]
