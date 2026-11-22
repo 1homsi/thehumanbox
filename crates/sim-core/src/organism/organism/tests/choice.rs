@@ -1111,3 +1111,125 @@ fn with_only_unworkable_work_on_offer_they_walk_on() {
         assert!(pick < 8, "picked {pick} with no rock beside them");
     }
 }
+
+fn thinker(tile_at_goal: Option<((i32, i32), Tile)>) -> (Organism, WorldGrid, StdRng) {
+    let mut grid = WorldGrid::new(4);
+    for x in 20..=160 {
+        for y in 30..=70 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    if let Some((at, tile)) = tile_at_goal {
+        grid.set(at.0, at.1, tile);
+    }
+    let mut org = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    org.x = 50.0;
+    org.y = 50.0;
+    org.home_x = 50.0;
+    org.home_y = 50.0;
+    org.energy = 0.9;
+    org.hydration = 0.9;
+    org.health = 1.0;
+    org.age = 1500;
+    (org, grid, StdRng::seed_from_u64(7))
+}
+
+fn think(
+    org: &Organism,
+    grid: &WorldGrid,
+    rng: &mut StdRng,
+    tick: u64,
+) -> (usize, Option<String>, crate::organism::mind::IntentOp) {
+    let mut mind = crate::organism::mind::IntentOp::Keep;
+    let (action, thought) = org.decide(
+        grid,
+        &BuildingList::new(),
+        tick,
+        0.0,
+        &[],
+        false,
+        0,
+        rng,
+        false,
+        "000000000000000000000",
+        &[12, 24],
+        None,
+        None,
+        &mut mind,
+    );
+    (action, thought, mind)
+}
+
+#[test]
+fn a_goal_is_walked_in_a_straight_line_until_it_is_reached_and_then_acted_on() {
+    use crate::organism::mind::{Intent, IntentOp, Purpose};
+    let (mut org, grid, mut rng) = thinker(Some(((56, 50), Tile::Grass)));
+    org.intent = Some(Intent::new(
+        Purpose::Wood,
+        (50, 50),
+        (56, 50),
+        0,
+        Some(14),
+        "seeking wood",
+        100,
+    ));
+    for step in 0..6 {
+        let (action, thought, mind) = think(&org, &grid, &mut rng, 100 + step);
+        assert_eq!(action, 3, "step {step}");
+        assert_eq!(thought.as_deref(), Some("seeking wood"));
+        assert_eq!(mind, IntentOp::Keep);
+        org.x += 1.0;
+    }
+    let (action, thought, mind) = think(&org, &grid, &mut rng, 106);
+    assert_eq!(action, 14);
+    assert_eq!(thought.as_deref(), Some("gathering wood"));
+    assert_eq!(mind, IntentOp::Done);
+}
+
+#[test]
+fn hunger_outranks_an_errand_and_a_goal_past_its_time_is_dropped() {
+    use crate::organism::mind::{Intent, IntentOp, Purpose};
+    let (mut org, grid, mut rng) = thinker(None);
+    let stroll = Intent::new(Purpose::Roam, (50, 50), (60, 50), 1, None, "taking a walk", 100);
+    org.intent = Some(stroll);
+    org.energy = 0.3;
+    let (_, thought, mind) = think(&org, &grid, &mut rng, 101);
+    assert_ne!(thought.as_deref(), Some("taking a walk"));
+    assert_ne!(mind, IntentOp::Keep);
+    org.energy = 0.9;
+    let (_, _, mind) = think(&org, &grid, &mut rng, stroll.until + 1);
+    assert_ne!(mind, IntentOp::Keep);
+}
+
+#[test]
+fn far_water_is_set_off_for_while_there_is_still_time_to_reach_it() {
+    use crate::organism::mind::{IntentOp, Purpose};
+    let (mut org, grid, mut rng) = thinker(Some(((130, 50), Tile::Water)));
+    org.water_memory.insert((130, 50), 1.0);
+    org.hydration = 0.58;
+    let (action, thought, mind) = think(&org, &grid, &mut rng, 100);
+    assert_eq!(action, 3);
+    assert_eq!(thought.as_deref(), Some("setting off for water in good time"));
+    assert!(
+        matches!(mind, IntentOp::Set(intent) if intent.purpose == Purpose::Water && intent.target == (130, 50))
+    );
+
+    let (mut near, grid, mut rng) = thinker(Some(((62, 50), Tile::Water)));
+    near.water_memory.insert((62, 50), 1.0);
+    near.hydration = 0.7;
+    let (_, thought, _) = think(&near, &grid, &mut rng, 100);
+    assert_ne!(thought.as_deref(), Some("setting off for water in good time"));
+}
+
+#[test]
+fn someone_out_late_starts_for_home_before_dark_and_stays_the_night() {
+    use crate::organism::mind::{IntentOp, Purpose};
+    let (mut org, grid, mut rng) = thinker(None);
+    org.x = 90.0;
+    let (action, thought, mind) = think(&org, &grid, &mut rng, 370);
+    assert_eq!(action, 2);
+    assert_eq!(thought.as_deref(), Some("heading home before dark"));
+    assert!(matches!(mind, IntentOp::Set(intent) if intent.purpose == Purpose::Home && intent.stays));
+    let (_, thought, _) = think(&org, &grid, &mut rng, 100);
+    assert_ne!(thought.as_deref(), Some("heading home before dark"));
+}

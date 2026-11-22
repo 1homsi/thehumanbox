@@ -53,7 +53,7 @@ const WORK_REACH: i32 = 26;
 const PLAY_OUT: i32 = 6;
 const IN_CROWD: i32 = 3;
 const SIP: f32 = 0.7;
-const FETCH_WATER: f32 = 0.55;
+pub(crate) const FETCH_WATER: f32 = 0.55;
 const WATER_WALK: f32 = 24.0;
 const WATER_LOOK: i32 = 14;
 const WATER_HOME_REACH: i32 = 40;
@@ -328,9 +328,14 @@ impl Simulation {
             .filter(|&t| ((t.0 - here.0).abs() + (t.1 - here.1).abs()) as f32 <= WATER_WALK)
             .filter(|&t| !o.route.borrow().recently_blocked(t))
             .or_else(|| o.nearest_visible(&self.grid, crate::world::tiles::Tile::Water, WATER_LOOK))
-            .or_else(|| o.routine.and_then(|r| r.water));
+            .or_else(|| o.routine.and_then(|r| r.water))
+            .filter(|&t| !o.route.borrow().recently_blocked(t));
             if let Some(t) = water {
-                return self.dry_step(o, t).map(|action| RoutineStep {
+                let step = self.dry_step(o, t);
+                if step.is_none() {
+                    o.route.borrow_mut().mark_blocked(t);
+                }
+                return step.map(|action| RoutineStep {
                     action,
                     thought: Some("fetching water"),
                 });
@@ -400,7 +405,7 @@ impl Simulation {
             Activity::Gather | Activity::Festival | Activity::Play => IN_CROWD,
             _ => AT_PLACE,
         };
-        if chebyshev(here, place) > reach {
+        if !o.route.borrow_mut().settles(place, chebyshev(here, place), reach) {
             if o.route.borrow().recently_blocked(place) {
                 return None;
             }

@@ -276,16 +276,56 @@ impl Simulation {
                 continue;
             };
             let activity = r.activity_at(phase);
-            let target = match (activity, o.work) {
-                (Activity::Work, Some(plan)) => Some(plan.spot),
+            let here = (o.x as i32, o.y as i32);
+            if o.hydration < crate::sim::agents::routine::FETCH_WATER {
+                continue;
+            }
+            let purpose = o.intent.filter(|intent| self.tick_count < intent.until);
+            if purpose.is_none() && (o.intent.is_some() || o.wander_target.is_some()) {
+                if o.intent.is_some() {
+                    let o = &mut self.organisms[i];
+                    o.intent = None;
+                    o.rethink = true;
+                }
+                continue;
+            }
+            let target = match (purpose, activity, o.work) {
+                (Some(intent), _, _) => Some(intent.target),
+                (None, Activity::Work, Some(plan)) => Some(plan.spot),
                 _ => r.place_of(activity),
             };
             let Some(target) = target else {
                 continue;
             };
-            let here = (o.x as i32, o.y as i32);
             let gap = chebyshev(here, target);
-            if gap <= 2 {
+            if let Some(intent) = purpose {
+                if intent.arrived(here, &self.grid) {
+                    if !intent.stays {
+                        self.organisms[i].rethink = true;
+                    }
+                    continue;
+                }
+            } else if self.organisms[i].route.get_mut().settles(target, gap, 2) {
+                continue;
+            }
+            let planned = purpose.is_some() || self.organisms[i].route.get_mut().has_plan_for(target);
+            if planned {
+                let o = &self.organisms[i];
+                let kind = purpose.map_or(crate::organism::mind::Purpose::Duty, |intent| intent.purpose);
+                match o.dry_way(kind, target, &self.grid) {
+                    Some(action) => {
+                        let (dx, dy) = DIRECTIONS[action];
+                        let o = &mut self.organisms[i];
+                        o.x = (here.0 + dx) as f32;
+                        o.y = (here.1 + dy) as f32;
+                    }
+                    None if purpose.is_some() => {
+                        let o = &mut self.organisms[i];
+                        o.intent = None;
+                        o.rethink = true;
+                    }
+                    None => {}
+                }
                 continue;
             }
             let reach = |p: (i32, i32)| {

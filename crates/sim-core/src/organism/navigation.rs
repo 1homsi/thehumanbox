@@ -205,6 +205,7 @@ const PLAN_BUDGET: usize = 3000;
 /// A route that ends this near its goal (in tiles) reaches it, even when it gains little: a home in a block
 /// of huts can be got no nearer than two tiles, and refusing that last step sent people round and round it.
 const NEAR_ENOUGH: i32 = 2;
+const SETTLED_SLACK: i32 = 3;
 /// The route search's estimate per tile of distance to the target: a weighted A* (1.4 times the open-ground
 /// step). The admissible estimate (the road step, 6) was measured slower: 4 to 12% more instructions, because
 /// it weakens the pull toward the goal across open ground. At 10 (the open step) the estimate overshoots along
@@ -268,6 +269,7 @@ pub struct RouteCache {
     /// goals turn about (food and home, a partner and the fire); with one route remembered, each turn's goal
     /// pushed out the other's route and both were searched again every turn.
     pub other: Option<KeptRoute>,
+    pub settled: Option<(i32, i32)>,
 }
 
 fn near(a: (i32, i32), b: (i32, i32)) -> bool {
@@ -276,6 +278,27 @@ fn near(a: (i32, i32), b: (i32, i32)) -> bool {
 
 impl RouteCache {
     /// True while `goal` is a recently failed one.
+    pub fn settles(&mut self, place: (i32, i32), gap: i32, reach: i32) -> bool {
+        let slack = if self.settled == Some(place) {
+            SETTLED_SLACK
+        } else {
+            0
+        };
+        if gap <= reach + slack {
+            self.settled = Some(place);
+            true
+        } else {
+            if self.settled == Some(place) {
+                self.settled = None;
+            }
+            false
+        }
+    }
+
+    pub fn has_plan_for(&self, goal: (i32, i32)) -> bool {
+        self.goal == goal && self.next < self.steps.len()
+    }
+
     pub fn recently_blocked(&self, goal: (i32, i32)) -> bool {
         self.blocked_for > 0 && self.blocked.is_some_and(|b| near(b, goal))
     }

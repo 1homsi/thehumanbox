@@ -19,6 +19,7 @@ use world::tiles::{Biome, Tile};
 mod args;
 mod crowd;
 mod learning;
+mod motion;
 mod report;
 mod rows;
 mod rss;
@@ -120,6 +121,7 @@ fn main() {
     });
 
     let mut tick_times_us: Vec<u64> = Vec::new();
+    let mut motion = motion::Motion::default();
     let mut json_sizes_bytes: Vec<usize> = Vec::new();
     let mut profile_writer = profile_out.as_ref().map(|path| {
         let mut w = BufWriter::new(File::create(path).unwrap_or_else(|err| {
@@ -186,6 +188,7 @@ fn main() {
         let tick_us = t0.elapsed().as_micros() as u64;
         tick_times_us.push(tick_us);
         let t = sim.tick_count;
+        motion.observe(&sim);
 
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
         if alive > peak_pop {
@@ -285,6 +288,7 @@ fn main() {
         "final alive: {}",
         sim.organisms.iter().filter(|o| o.alive).count()
     );
+    motion.print();
     println!(
         "markets:     {} standing, {} trade coin earned",
         sim.buildings

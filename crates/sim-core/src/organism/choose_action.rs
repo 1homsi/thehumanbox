@@ -8,6 +8,9 @@ use crate::world::{
 
 use super::decision_bias::{directive_action_boost, preferred_action_boost, Directive};
 use super::lessons::Lesson;
+use super::mind::{
+    arrival_thought, ticks_until_dawn, ticks_until_night, Intent, IntentOp, Purpose, Pursuit, DAY,
+};
 use super::organism::{generalization_key, Hot, Organism, ACTION_ID_SPACE, N_ACTIONS};
 use super::people_index::PeopleIndex;
 use super::skills::Skill;
@@ -22,6 +25,10 @@ const NIGHT_HOME_REACH: f32 = 16.0;
 /// strip takes a few steps; someone still in it this long is going nowhere and
 /// must get out before the cold and panic set in (from 12 ticks).
 const CROSSING_PATIENCE: u32 = 8;
+
+const HUNGER_PER_TICK: f32 = 0.0022;
+const THIRST_PER_TICK: f32 = 0.0014;
+const KNOWN_SOURCE_REACH: f32 = 90.0;
 
 /// A transferred estimate is uncertain: keep the novelty bonus for a locally
 /// untried action and bound the positive advantage of hearsay. Negative
@@ -162,6 +169,43 @@ impl Organism {
         nearby: Option<&[usize]>,
         people: Option<&PeopleIndex>,
     ) -> (usize, Option<String>) {
+        let mut mind = IntentOp::Keep;
+        self.decide(
+            grid,
+            buildings,
+            tick,
+            epsilon,
+            organisms,
+            night,
+            weather_kind,
+            rng,
+            _animal_near,
+            cached_perception,
+            available,
+            nearby,
+            people,
+            &mut mind,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn decide(
+        &self,
+        grid: &WorldGrid,
+        buildings: &BuildingList,
+        tick: u64,
+        epsilon: f32,
+        organisms: &[Organism],
+        night: bool,
+        weather_kind: u8,
+        rng: &mut impl Rng,
+        _animal_near: bool,
+        cached_perception: &str,
+        available: &[usize],
+        nearby: Option<&[usize]>,
+        people: Option<&PeopleIndex>,
+        mind: &mut IntentOp,
+    ) -> (usize, Option<String>) {
         // Use the tick's spatial index for bounded local checks, retaining the
         // full population for long-distance partners, friends, and kin.
         let nearby_people = || {
@@ -193,10 +237,78 @@ impl Organism {
                 thought = Some($t.to_string());
             };
         }
+        let activity = self.routine.map(|r| (r, r.activity_at(tick % DAY)));
+        let duty_place = activity.and_then(|(r, a)| {
+            use crate::sim::agents::routine::Activity;
+            matches!(
+                a,
+                Activity::Work | Activity::School | Activity::Gather | Activity::Festival
+            )
+            .then(|| r.place_of(a))
+            .flatten()
+        });
+        let free = duty_place.is_none();
+        macro_rules! go {
+            ($purpose:expr, $target:expr, $reach:expr, $arrive:expr, $t:expr) => {{
+                let target: (i32, i32) = $target;
+                let label: &'static str = $t;
+                let purpose: Purpose = $purpose;
+                if let Some(action) = self.dry_way(purpose, target, grid) {
+                    *mind = IntentOp::Set(Intent::new(
+                        purpose,
+                        (ix, iy),
+                        target,
+                        $reach,
+                        $arrive,
+                        label,
+                        tick,
+                    ));
+                    thought = Some(label.to_string());
+                    return (action, thought);
+                }
+            }};
+        }
+        macro_rules! stay {
+            ($purpose:expr, $target:expr, $reach:expr, $arrive:expr, $t:expr, $ticks:expr) => {{
+                let target: (i32, i32) = $target;
+                let label: &'static str = $t;
+                let purpose: Purpose = $purpose;
+                if let Some(action) = self.dry_way(purpose, target, grid) {
+                    *mind = IntentOp::Set(
+                        Intent::new(
+                            purpose,
+                            (ix, iy),
+                            target,
+                            $reach,
+                            Some($arrive),
+                            label,
+                            tick,
+                        )
+                        .staying($ticks),
+                    );
+                    thought = Some(label.to_string());
+                    return (action, thought);
+                }
+            }};
+        }
+        macro_rules! errand {
+            ($purpose:expr, $target:expr, $reach:expr, $arrive:expr, $t:expr) => {{
+                if free {
+                    go!($purpose, $target, $reach, $arrive, $t);
+                } else {
+                    let label: &'static str = $t;
+                    thought = Some(label.to_string());
+                    return (self.toward($target, grid), thought);
+                }
+            }};
+        }
 
         if tile == Tile::Water && self.hydration < 0.95 {
             set_thought!("drinking");
             return (9, thought);
+        }
+        if self.intent.is_some() {
+            *mind = IntentOp::Done;
         }
         // Wading through shallows is part of a route: `toward` only steps into
         // them when no dry step makes progress. Sending every hydrated wader
@@ -224,6 +336,7 @@ impl Organism {
             }
         }
         if tile == Tile::Food && self.energy < 0.95 {
+            *mind = IntentOp::Keep;
             set_thought!("eating");
             return (8, thought);
         }
@@ -275,6 +388,39 @@ impl Organism {
             }
         }
 
+        if let Some(intent) = self.intent {
+            let outranked = self.hydration < 0.38
+                || self.energy < 0.42
+                || (night && !intent.purpose.fits_night())
+                || (weather_kind >= 2 && !intent.purpose.fits_storm())
+                || self.fear_level > 0.65
+                || (self.health < 0.5 && !intent.purpose.fits_storm());
+            let pursuit = if outranked {
+                Pursuit::Dropped
+            } else {
+                self.pursue(&intent, grid, tick, true)
+            };
+            match pursuit {
+                Pursuit::Step(action) => {
+                    *mind = IntentOp::Keep;
+                    set_thought!(intent.thought);
+                    return (action, thought);
+                }
+                Pursuit::Arrived(Some(action)) => {
+                    *mind = if intent.stays {
+                        IntentOp::Keep
+                    } else {
+                        IntentOp::Done
+                    };
+                    set_thought!(arrival_thought(action));
+                    return (action, thought);
+                }
+                Pursuit::Arrived(None) | Pursuit::Dropped => {
+                    *mind = IntentOp::Done;
+                }
+            }
+        }
+
         let needs_ok = self.hydration > 0.62 && self.energy > 0.50;
         if needs_ok
             && !self.pregnant
@@ -285,8 +431,7 @@ impl Organism {
                 .find_shelter_tile(grid, buildings, 14)
                 .filter(|&s| !self.route.borrow().recently_blocked(s))
             {
-                set_thought!("returning to shelter");
-                return (self.toward(s, grid), thought);
+                go!(Purpose::Shelter, s, 2, None, "returning to shelter");
             }
         }
 
@@ -506,6 +651,50 @@ impl Organism {
             }
         }
 
+        if let Some(place) = duty_place.filter(|&p| {
+            needs_easy
+                && !fire_dangerous
+                && !journeying
+                && !(self.carrying > 0 && self.carrying_type != 2)
+                && weather_kind < 2
+                && self.fear_level < 0.65
+                && !self
+                    .route
+                    .borrow_mut()
+                    .settles(p, (p.0 - ix).abs().max((p.1 - iy).abs()), 3)
+                && !self.route.borrow().recently_blocked(p)
+        }) {
+            use crate::sim::agents::routine::Activity;
+            let label = match activity.map(|(_, a)| a) {
+                Some(Activity::School) => "going to school",
+                Some(Activity::Gather) => "going to the evening gathering",
+                Some(Activity::Festival) => "going to the festival",
+                _ => "going to work",
+            };
+            go!(Purpose::Duty, place, 3, None, label);
+        }
+
+        let dusk_in = ticks_until_night(tick);
+        let (home_tx, home_ty) = (self.home_x as i32, self.home_y as i32);
+        if free
+            && !night
+            && needs_easy
+            && !journeying
+            && dist_home > 6.0
+            && dist_home < 160.0
+            && dist_home as u64 + 20 >= dusk_in
+            && !self.route.borrow().recently_blocked((home_tx, home_ty))
+        {
+            stay!(
+                Purpose::Home,
+                (home_tx, home_ty),
+                2,
+                17,
+                "heading home before dark",
+                dusk_in + ticks_until_dawn(tick + dusk_in)
+            );
+        }
+
         if needs_easy && !night && !fire_dangerous {
             // A home no route reaches (walled in by other huts or water) is not worth carrying wood toward.
             let home_unreachable = self
@@ -530,10 +719,12 @@ impl Organism {
                     return (17, thought);
                 }
                 if dist_home < 60.0 {
-                    set_thought!("carrying wood home");
-                    return (
-                        self.toward((self.home_x as i32, self.home_y as i32), grid),
-                        thought,
+                    go!(
+                        Purpose::Home,
+                        (self.home_x as i32, self.home_y as i32),
+                        2,
+                        None,
+                        "carrying wood home"
                     );
                 }
             }
@@ -553,8 +744,7 @@ impl Organism {
                         set_thought!("gathering wood");
                         return (14, thought);
                     }
-                    set_thought!("seeking wood");
-                    return (self.toward(t, grid), thought);
+                    errand!(Purpose::Wood, t, 0, Some(14), "seeking wood");
                 }
             }
             // Someone who saw a death by hunger eats sooner and goes further for it.
@@ -563,8 +753,7 @@ impl Organism {
                 if let Some(v) = self.nearest_visible(grid, Tile::Food, 8) {
                     let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
                     if dist <= 6 + (2.0 * hunger_wary) as i32 {
-                        set_thought!("topping up food");
-                        return (self.toward(v, grid), thought);
+                        go!(Purpose::Food, v, 0, Some(8), "topping up food");
                     }
                 }
             }
@@ -582,8 +771,51 @@ impl Organism {
                 if let Some(v) = self.nearest_visible(grid, Tile::Water, 6 + (2.0 * thirst_wary) as i32) {
                     let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
                     if dist <= 4 + (2.0 * thirst_wary) as i32 {
-                        set_thought!("topping up water");
-                        return (self.toward(v, grid), thought);
+                        go!(Purpose::Water, v, 1, Some(9), "topping up water");
+                    }
+                }
+            }
+            if !journeying {
+                let away = |t: (i32, i32)| (t.0 - ix).abs().max((t.1 - iy).abs()) as f32;
+                let in_time = |left: f32, t: (i32, i32)| left < away(t) * 1.5 + 30.0;
+                let thirsty_in = ((self.hydration - 0.38) / THIRST_PER_TICK).max(0.0);
+                let hungry_in = ((self.energy - 0.42) / HUNGER_PER_TICK).max(0.0);
+                if self.inv_water == 0
+                    && self.hydration < 0.75
+                    && self.nearest_visible(grid, Tile::Water, 6).is_none()
+                {
+                    let known = Self::best_remembered_with_danger(
+                        &self.water_memory,
+                        self.x,
+                        self.y,
+                        &self.danger_memory,
+                        0.3,
+                    )
+                    .filter(|&t| away(t) <= KNOWN_SOURCE_REACH && in_time(thirsty_in, t));
+                    if let Some(t) = known.filter(|&t| !self.route.borrow().recently_blocked(t)) {
+                        go!(
+                            Purpose::Water,
+                            t,
+                            1,
+                            Some(9),
+                            "setting off for water in good time"
+                        );
+                    }
+                }
+                if self.inv_food == 0
+                    && self.energy < 0.75
+                    && self.nearest_visible(grid, Tile::Food, 8).is_none()
+                {
+                    let known = Self::best_remembered_with_danger(
+                        &self.food_memory,
+                        self.x,
+                        self.y,
+                        &self.danger_memory,
+                        0.3,
+                    )
+                    .filter(|&t| away(t) <= KNOWN_SOURCE_REACH && in_time(hungry_in, t));
+                    if let Some(t) = known.filter(|&t| !self.route.borrow().recently_blocked(t)) {
+                        go!(Purpose::Food, t, 0, Some(8), "setting off for food in good time");
                     }
                 }
             }
@@ -599,7 +831,7 @@ impl Organism {
                 && !self.skills.dreads(Skill::Woodcutting)
                 // A started trip continues; re-rolling every tick made people
                 // zig-zag between this and their other targets.
-                && (self.thought == "heading to the trees"
+                && (matches!(self.thought.as_str(), "heading to the trees" | "chopping wood")
                     || rng.random::<f32>() < 0.30 + self.skills.feeling(Skill::Woodcutting).max(0.0) * 0.5)
             {
                 if tile == Tile::Grass {
@@ -607,8 +839,7 @@ impl Organism {
                     return (27, thought);
                 }
                 if let Some(t) = self.nearest_visible(grid, Tile::Grass, 8) {
-                    set_thought!("heading to the trees");
-                    return (self.toward(t, grid), thought);
+                    errand!(Purpose::Wood, t, 0, Some(27), "heading to the trees");
                 }
             }
             // Stone only comes from quarrying next to rock, and nothing sent
@@ -624,7 +855,7 @@ impl Organism {
                 // Dread keeps them from the quarry unless the tribe is waiting on stone.
                 && (fetching_stone || !self.skills.dreads(Skill::Quarrying))
                 // As with the trees, someone who likes the quarry goes more often.
-                && (self.thought == "heading to the quarry"
+                && (matches!(self.thought.as_str(), "heading to the quarry" | "quarrying stone")
                     || rng.random::<f32>()
                         < if fetching_stone { 0.55 } else { 0.15 }
                             + self.skills.feeling(Skill::Quarrying).max(0.0) * 0.5)
@@ -642,8 +873,10 @@ impl Organism {
                     .nearest_visible(grid, Tile::Rock, reach)
                     .filter(|&t| !self.route.borrow().recently_blocked(t))
                 {
-                    set_thought!("heading to the quarry");
-                    return (self.toward(t, grid), thought);
+                    if fetching_stone {
+                        go!(Purpose::Stone, t, 1, Some(29), "heading to the quarry");
+                    }
+                    errand!(Purpose::Stone, t, 1, Some(29), "heading to the quarry");
                 }
             }
             if self.discoveries.has(Hot::Forestry)
@@ -701,8 +934,7 @@ impl Organism {
         if weather_kind >= 2 {
             if !self.near_shelter(grid, buildings) {
                 if let Some(v) = self.find_shelter_tile(grid, buildings, 14) {
-                    set_thought!("sheltering from storm");
-                    return (self.toward(v, grid), thought);
+                    stay!(Purpose::Shelter, v, 1, 17, "sheltering from storm", 60);
                 }
             } else {
                 // Under cover: stay until the storm passes. Going back to the
@@ -720,8 +952,19 @@ impl Organism {
             let (hx, hy) = (self.home_x as i32, self.home_y as i32);
             let at_home = (ix - hx).abs() <= 2 && (iy - hy).abs() <= 2;
             if !at_home && dist_home < NIGHT_HOME_REACH && self.hydration > 0.25 && self.energy > 0.2 {
-                set_thought!("going home for the night");
-                return (self.toward((hx, hy), grid), thought);
+                if free {
+                    stay!(
+                        Purpose::Home,
+                        (hx, hy),
+                        2,
+                        17,
+                        "going home for the night",
+                        ticks_until_dawn(tick)
+                    );
+                } else {
+                    set_thought!("going home for the night");
+                    return (self.toward((hx, hy), grid), thought);
+                }
             }
             if at_home && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.random::<f32>() < 0.65 {
                 set_thought!("sleeping at home");
@@ -733,13 +976,23 @@ impl Organism {
             }
             if !ns && self.hydration > 0.25 {
                 if let Some(s) = self.find_shelter_tile(grid, buildings, 16) {
-                    set_thought!("finding shelter");
-                    return (self.toward(s, grid), thought);
+                    if free {
+                        stay!(
+                            Purpose::Shelter,
+                            s,
+                            1,
+                            17,
+                            "finding shelter",
+                            ticks_until_dawn(tick)
+                        );
+                    } else {
+                        set_thought!("finding shelter");
+                        return (self.toward(s, grid), thought);
+                    }
                 }
                 if let Some(camp) = self.nearest_visible(grid, Tile::Campfire, 12) {
                     if (camp.0 - ix).abs() + (camp.1 - iy).abs() > 2 {
-                        set_thought!("heading to campfire");
-                        return (self.toward(camp, grid), thought);
+                        errand!(Purpose::Shelter, camp, 2, Some(17), "heading to campfire");
                     }
                 }
                 let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
@@ -892,8 +1145,7 @@ impl Organism {
             if n > 0 && nearest > 45.0 && nearest.is_finite() {
                 let cx_kin = (sum_x / n as f32) as i32;
                 let cy_kin = (sum_y / n as f32) as i32;
-                set_thought!("rejoining the tribe");
-                return (self.toward((cx_kin, cy_kin), grid), thought);
+                go!(Purpose::Company, (cx_kin, cy_kin), 6, None, "rejoining the tribe");
             }
         }
 
@@ -909,8 +1161,7 @@ impl Organism {
                 // drift out past it, and turn back every few ticks.
                 let start = if self.thought == "drawn to someone" { 2 } else { 6 };
                 if dist > start && dist < 60 {
-                    set_thought!("drawn to someone");
-                    return (self.toward(tp, grid), thought);
+                    errand!(Purpose::Company, tp, 2, None, "drawn to someone");
                 }
             }
         }
@@ -925,8 +1176,7 @@ impl Organism {
                         && dist < 40
                         && (walking || rng.random::<f32>() < 0.30)
                     {
-                        set_thought!("walking with partner");
-                        return (self.toward(pp, grid), thought);
+                        errand!(Purpose::Company, pp, 2, None, "walking with partner");
                     }
                 }
             }
@@ -961,8 +1211,7 @@ impl Organism {
                 .min_by_key(|&(_, _, d)| d)
                 .map(|(x, y, _)| (x, y));
             if let Some(tp) = friend_pos {
-                set_thought!("visiting a friend");
-                return (self.toward(tp, grid), thought);
+                errand!(Purpose::Company, tp, 3, None, "visiting a friend");
             }
         }
 
@@ -982,8 +1231,7 @@ impl Organism {
                 .min_by_key(|&(_, _, d)| d)
                 .map(|(x, y, _)| (x, y));
             if let Some(tp) = kin_pos {
-                set_thought!("seeking kin");
-                return (self.toward(tp, grid), thought);
+                errand!(Purpose::Company, tp, 4, None, "seeking kin");
             }
             if self.traits.social_tendency > 0.4 {
                 let social_pos: Option<(i32, i32)> = organisms
@@ -998,16 +1246,14 @@ impl Organism {
                     .min_by_key(|&(_, _, d)| d)
                     .map(|(x, y, _)| (x, y));
                 if let Some(tp) = social_pos {
-                    set_thought!("seeking company");
-                    return (self.toward(tp, grid), thought);
+                    errand!(Purpose::Company, tp, 4, None, "seeking company");
                 }
             }
         }
 
         if self.pregnant && !self.near_shelter(grid, buildings) && self.energy > 0.3 {
             if let Some(s) = self.find_shelter_tile(grid, buildings, 18) {
-                set_thought!("nesting");
-                return (self.toward(s, grid), thought);
+                go!(Purpose::Shelter, s, 1, Some(17), "nesting");
             }
         }
         if self.pregnant && rng.random::<f32>() < 0.08 {
@@ -1022,8 +1268,7 @@ impl Organism {
             if let Some(t) = self.find_trail_target(grid, TrailKind::Path, 14) {
                 let dist = (t.0 - ix).abs() + (t.1 - iy).abs();
                 if dist > 5 {
-                    set_thought!("following migration path");
-                    return (self.toward(t, grid), thought);
+                    errand!(Purpose::Roam, t, 1, None, "following migration path");
                 }
             }
         }
@@ -1304,6 +1549,16 @@ impl Organism {
             let last_dy = sign(self.vy_smooth);
             if (last_dx != 0 || last_dy != 0) && rng.random::<f32>() < 0.75 {
                 let target = (ix + last_dx * 5, iy + last_dy * 5);
+                if free && !night && needs_easy {
+                    let far = (
+                        (ix + last_dx * 9).clamp(2, crate::world::grid::WIDTH as i32 - 3),
+                        (iy + last_dy * 9).clamp(2, crate::world::grid::HEIGHT as i32 - 3),
+                    );
+                    if grid.get(far.0, far.1).walkable() && !grid.is_wet(grid.get(far.0, far.1), far.0, far.1)
+                    {
+                        go!(Purpose::Roam, far, 1, None, explore_thought);
+                    }
+                }
                 return (self.toward(target, grid), thought);
             }
             let on_food = tile == Tile::Food;
@@ -1362,6 +1617,11 @@ impl Organism {
             } else {
                 exploration_pool[rng.random_range(0..exploration_pool.len())]
             };
+            if pick < 8 && free && !night && needs_easy {
+                if let Some(far) = self.stroll_target(pick, grid) {
+                    go!(Purpose::Roam, far, 1, None, explore_thought);
+                }
+            }
             return (pick, thought);
         }
 
@@ -1486,6 +1746,11 @@ impl Organism {
         if let Some(best_idx) = best_avail {
             if active_wander_action == Some(best_idx) && thought.is_none() {
                 set_thought!("wandering");
+            }
+            if best_idx < 8 && free && !settled && needs_easy && active_wander_action != Some(best_idx) {
+                if let Some(far) = self.stroll_target(best_idx, grid) {
+                    go!(Purpose::Roam, far, 1, None, "taking a walk");
+                }
             }
             return (best_idx, thought);
         }

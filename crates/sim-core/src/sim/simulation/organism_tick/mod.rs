@@ -260,6 +260,7 @@ impl Simulation {
                     || o.mounted_vehicle.is_some()
                     || riders.contains(o.id.as_str())
                     || o.last_action.is_none()
+                    || o.rethink
                 {
                     return true;
                 }
@@ -403,10 +404,50 @@ impl Simulation {
         buf: &mut Vec<usize>,
     ) -> Choice {
         let o = &self.organisms[s.idx];
-        let step = self.routine_step(s.idx);
-        let thought = step.as_ref().and_then(|r| r.thought).map(str::to_string);
+        let mut mind = crate::organism::mind::IntentOp::Keep;
+        let mut pursued: Option<(usize, &'static str)> = None;
+        if let Some(intent) = o.intent {
+            use crate::organism::mind::{arrival_thought, IntentOp, Pursuit};
+            let at = (o.x as i32, o.y as i32);
+            let in_water = o.water_ticks > 0 || self.grid.is_wet(self.grid.get(at.0, at.1), at.0, at.1);
+            let stale = in_water
+                || (self.is_night() && !intent.purpose.fits_night())
+                || (self.weather.kind >= 2 && !intent.purpose.fits_storm());
+            let pursuit = if stale {
+                Pursuit::Dropped
+            } else {
+                o.pursue(&intent, &self.grid, self.tick_count, true)
+            };
+            match pursuit {
+                Pursuit::Step(action) => pursued = Some((action, intent.thought)),
+                Pursuit::Arrived(Some(action)) => {
+                    pursued = Some((action, arrival_thought(action)));
+                    if !intent.stays {
+                        mind = IntentOp::Rethink;
+                    }
+                }
+                Pursuit::Arrived(None) | Pursuit::Dropped => mind = IntentOp::Rethink,
+            }
+        }
+        let step = if pursued.is_some() {
+            None
+        } else {
+            self.routine_step(s.idx)
+        };
+        let thought = match pursued {
+            Some((_, label)) => (o.thought != label).then(|| label.to_string()),
+            None => step.as_ref().and_then(|r| r.thought).map(str::to_string),
+        };
+        let mut origin = "dormant";
         let action = match (step, o.last_action.map(usize::from)) {
-            (Some(step), _) => step.action,
+            _ if pursued.is_some() => {
+                origin = "dormant_intent";
+                pursued.map_or(HOLD, |(action, _)| action)
+            }
+            (Some(step), _) => {
+                origin = "dormant_routine";
+                step.action
+            }
             (None, Some(a)) if a >= 8 && !stirs_others(a) => a,
             _ => {
                 let goal = {
@@ -432,11 +473,12 @@ impl Simulation {
         Choice {
             action,
             thought,
-            origin: "dormant",
+            origin,
             at: (o.x as i32, o.y as i32),
             rng,
             flight: None,
             plan: Some(plan),
+            mind,
         }
     }
 
@@ -912,6 +954,9 @@ impl Simulation {
         let dormant = sensed_dormant;
         let f_holds = choice.action == HOLD;
         f.plan = choice.plan.take();
+        if f_holds {
+            self.apply_mind(f.idx, choice.mind, dormant);
+        }
         if !f_holds {
             self.org_apply_choice(&mut f, choice);
             self.org_act(&mut f);
@@ -1038,5 +1083,67 @@ mod lore_tests {
             .filter(|d| LORE.contains(d))
             .collect();
         assert_eq!(from_mask, plain);
+    }
+}
+
+#[cfg(test)]
+mod mind_tests {
+    use super::*;
+    use crate::world::tiles::Tile;
+
+    #[test]
+    fn a_dormant_person_keeps_walking_to_their_goal_and_wakes_when_it_is_spent() {
+        use crate::organism::mind::{Intent, IntentOp, Purpose};
+        let mut sim = Simulation::new(5);
+        sim.tick_n(50);
+        while sim.is_night() || sim.weather.kind >= 2 {
+            sim.tick_count += 1;
+            sim.weather.kind = 0;
+        }
+        let idx = sim.organisms.iter().position(|o| o.alive).expect("someone alive");
+        for x in 100..=130 {
+            for y in 95..=105 {
+                sim.grid.set(x, y, Tile::Sand);
+            }
+        }
+        let tick = sim.tick_count;
+        {
+            let o = &mut sim.organisms[idx];
+            o.x = 105.0;
+            o.y = 100.0;
+            o.water_ticks = 0;
+            o.energy = 0.9;
+            o.hydration = 0.9;
+            o.intent = Some(Intent::new(
+                Purpose::Roam,
+                (105, 100),
+                (120, 100),
+                1,
+                None,
+                "taking a walk",
+                tick,
+            ));
+        }
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        let hungry = spatial.subset(|_| false);
+        let choose = |sim: &Simulation| {
+            let sensed = sim.dormant_sensed(idx, false, 1);
+            sim.dormant_choice(
+                &sensed,
+                decide::choice_rng(1, idx),
+                &spatial,
+                &hungry,
+                &mut Vec::new(),
+            )
+        };
+        let walking = choose(&sim);
+        assert_eq!(walking.action, 3);
+        assert_eq!(walking.mind, IntentOp::Keep);
+        sim.organisms[idx].x = 119.0;
+        let there = choose(&sim);
+        assert_eq!(there.mind, IntentOp::Rethink);
+        sim.apply_mind(idx, there.mind, true);
+        assert!(sim.organisms[idx].intent.is_none());
+        assert!(sim.organisms[idx].rethink);
     }
 }
