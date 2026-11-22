@@ -92,6 +92,15 @@ function WorldSourceSection() {
     if (confirmed) requestOwnWorldReset(undefined, { empty: true })
   }
 
+  async function confirmHeadStart() {
+    const confirmed = await askConfirm({
+      title: t('settings.web.headStartTitle'),
+      body: t('settings.web.headStartBody'),
+      confirmLabel: t('settings.web.headStartConfirm'),
+    })
+    if (confirmed) requestOwnWorldReset(undefined, { headStart: true })
+  }
+
   return (
     <Section title={t('settings.web.playMode')}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -110,6 +119,9 @@ function WorldSourceSection() {
             </button>
             <button className="lang-btn" disabled={storageBusy} onClick={confirmEmptyWorld}>
               ▢ {t('settings.web.startEmpty')}
+            </button>
+            <button className="lang-btn" disabled={storageBusy} onClick={confirmHeadStart}>
+              {t('settings.web.headStart')}
             </button>
           </>
         )}
@@ -576,15 +588,18 @@ export function DesktopSettingsModal({ onClose }: Props) {
     }
   }
 
-  async function resetDesktopWorld(empty = false) {
+  async function resetDesktopWorld(kind: 'new' | 'empty' | 'headStart' = 'new') {
     if (!desktop) return
     setActionError(null)
     setSafetyMessage(null)
     setBusy(true)
     try {
-      const result = empty
-        ? await desktop.world.resetLocal({ empty: true })
-        : await desktop.world.resetLocal()
+      const result =
+        kind === 'empty'
+          ? await desktop.world.resetLocal({ empty: true })
+          : kind === 'headStart'
+            ? await desktop.world.resetLocal({ headStart: true })
+            : await desktop.world.resetLocal()
       setSafetyMessage(result.reset ? t('settings.desktop.resetDone') : t('settings.desktop.resetCancelled'))
     } catch (error) {
       setSafetyMessage(t('settings.desktop.resetFailed', { error: errorText(error) }))
@@ -633,7 +648,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                 <SettingRow title={t('settings.desktop.newWorld')} desc={t('settings.desktop.newWorldDesc')}>
                   <button
                     className="lang-btn danger"
-                    onClick={() => void resetDesktopWorld()}
+                    onClick={() => void resetDesktopWorld('new')}
                     disabled={busy}
                   >
                     {t('settings.desktop.newWorldButton')}
@@ -645,10 +660,22 @@ export function DesktopSettingsModal({ onClose }: Props) {
                 >
                   <button
                     className="lang-btn danger"
-                    onClick={() => void resetDesktopWorld(true)}
+                    onClick={() => void resetDesktopWorld('empty')}
                     disabled={busy}
                   >
                     {t('settings.desktop.emptyWorldButton')}
+                  </button>
+                </SettingRow>
+                <SettingRow
+                  title={t('settings.desktop.headStartWorld')}
+                  desc={t('settings.desktop.headStartWorldDesc')}
+                >
+                  <button
+                    className="lang-btn danger"
+                    onClick={() => void resetDesktopWorld('headStart')}
+                    disabled={busy}
+                  >
+                    {t('settings.desktop.headStartWorldButton')}
                   </button>
                 </SettingRow>
                 {safetyMessage && <div className="settings-note">{safetyMessage}</div>}

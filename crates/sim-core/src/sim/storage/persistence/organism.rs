@@ -35,6 +35,9 @@ pub(crate) struct OrgSave {
     pub(super) carrying: u32,
     pub(super) carrying_type: u8,
     pub(super) vocabulary: crate::organism::vocabulary::Vocabulary,
+    /// Keep this dead person's words in the save. Absent on older saves.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(super) remember_speech: bool,
     pub(super) last_story_tick: u64,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(super) life_log_legacy: Vec<String>,
@@ -285,11 +288,12 @@ pub(super) fn org_to_save(o: &Organism) -> OrgSave {
         infection: o.infection,
         carrying: o.carrying,
         carrying_type: o.carrying_type,
-        vocabulary: if slim {
+        vocabulary: if slim && !o.remember_speech {
             Default::default()
         } else {
             o.vocabulary.clone()
         },
+        remember_speech: o.remember_speech,
         last_story_tick: o.last_story_tick,
         life_log_legacy: Vec::new(),
         life_log: o.life_log.iter().cloned().collect(),
@@ -538,6 +542,7 @@ pub(super) fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     } else {
         o.vocabulary = saved_vocab;
     }
+    o.remember_speech = s.remember_speech;
     o
 }
 

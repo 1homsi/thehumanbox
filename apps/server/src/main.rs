@@ -72,10 +72,15 @@ async fn main() {
     let live_hash = startup::resolve_live_world(fresh_seed);
     let live_save_path = crate::world_store::world_save_path(&live_hash);
     let save_path_str = live_save_path.to_string_lossy().to_string();
-    let start_blank = blank_world_requested(env_flag("THB_BLANK_WORLD"), live_save_path.exists());
+    let save_exists = live_save_path.exists();
+    let start_blank = blank_world_requested(env_flag("THB_BLANK_WORLD"), save_exists);
+    let start_head = head_start_requested(env_flag("THB_HEAD_START"), start_blank, save_exists);
     let mut loaded_sim = if start_blank {
         tracing::info!(target: "world", "starting an empty world at {}", save_path_str);
         Simulation::new_blank(fresh_seed)
+    } else if start_head {
+        tracing::info!(target: "world", "starting a head-start world at {}", save_path_str);
+        Simulation::new_head_start(fresh_seed)
     } else {
         Simulation::load_or_new(fresh_seed, &save_path_str)
     };
@@ -296,6 +301,13 @@ fn blank_world_requested(asked: bool, save_exists: bool) -> bool {
     asked && !save_exists
 }
 
+/// A head-start world is opt-in, and only when nothing is already saved.
+/// An empty world wins when both were asked for: that start has no people
+/// for a language to drift in.
+fn head_start_requested(asked: bool, blank: bool, save_exists: bool) -> bool {
+    asked && !blank && !save_exists
+}
+
 #[cfg(test)]
 mod bind_tests {
     use super::*;
@@ -315,12 +327,20 @@ mod bind_tests {
 
 #[cfg(test)]
 mod blank_world_tests {
-    use super::blank_world_requested;
+    use super::{blank_world_requested, head_start_requested};
 
     #[test]
     fn an_empty_world_starts_only_when_asked_for_and_no_save_is_there() {
         assert!(blank_world_requested(true, false));
         assert!(!blank_world_requested(true, true));
         assert!(!blank_world_requested(false, false));
+    }
+
+    #[test]
+    fn a_head_start_world_starts_only_when_asked_and_nothing_is_saved() {
+        assert!(head_start_requested(true, false, false));
+        assert!(!head_start_requested(false, false, false));
+        assert!(!head_start_requested(true, false, true));
+        assert!(!head_start_requested(true, true, false));
     }
 }

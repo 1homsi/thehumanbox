@@ -71,3 +71,93 @@ impl Simulation {
         f.prev_inv_water = prev_inv_water;
     }
 }
+
+/// Kin within 5 tiles and a hostile neighbour within 6, from the hot columns.
+pub(super) fn kin_near_columns(
+    cols: &crate::organism::columns::OrganismColumns,
+    organisms: &[Organism],
+    idx: usize,
+    near: &[usize],
+) -> (usize, bool) {
+    let (ox, oy) = (cols.x[idx], cols.y[idx]);
+    let mine = cols.lineage[idx];
+    let mut kin_near = 0usize;
+    let mut hostile_near = false;
+    for &i in near {
+        if i == idx || cols.alive[i] == 0 {
+            continue;
+        }
+        let dist = (cols.x[i] - ox).abs() + (cols.y[i] - oy).abs();
+        let other = cols.lineage[i];
+        // The distance test comes first: the lineage compare is a string compare.
+        if dist <= 5.0 && other == mine {
+            kin_near += 1;
+        } else if !hostile_near
+            && dist <= 6.0
+            && other != mine
+            && organisms[idx].attitude_toward(other.as_str()) < -0.2
+        {
+            hostile_near = true;
+        }
+    }
+    (kin_near, hostile_near)
+}
+
+pub(super) fn kin_near_structs(organisms: &[Organism], idx: usize, near: &[usize]) -> (usize, bool) {
+    let org = &organisms[idx];
+    let mut kin_near = 0usize;
+    let mut hostile_near = false;
+    for &i in near {
+        if i == idx {
+            continue;
+        }
+        let o = &organisms[i];
+        if !o.alive {
+            continue;
+        }
+        let dist = (o.x - org.x).abs() + (o.y - org.y).abs();
+        // The distance test comes first: the lineage compare is a string compare.
+        if dist <= 5.0 && o.lineage_id == org.lineage_id {
+            kin_near += 1;
+        } else if !hostile_near
+            && dist <= 6.0
+            && o.lineage_id != org.lineage_id
+            && org.attitude_toward(&o.lineage_id) < -0.2
+        {
+            hostile_near = true;
+        }
+    }
+    (kin_near, hostile_near)
+}
+
+pub(super) fn intruders_near(
+    organisms: &[Organism],
+    hot: Option<crate::organism::columns::NeighbourCols<'_>>,
+    my_lid: &crate::intern::Sym,
+    ex: f32,
+    ey: f32,
+    near: &[usize],
+) -> Vec<crate::intern::Sym> {
+    let mut v = Vec::new();
+    if let Some(hot) = hot {
+        for &i in near {
+            if !hot.alive_at(i) || hot.lineage[i] == *my_lid {
+                continue;
+            }
+            if (hot.x[i] - ex).abs() + (hot.y[i] - ey).abs() < 12.0 {
+                v.push(hot.lineage[i]);
+            }
+        }
+    } else {
+        for &i in near {
+            let o = &organisms[i];
+            if !o.alive || o.lineage_id == *my_lid {
+                continue;
+            }
+            if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
+                v.push(o.lineage_id);
+            }
+        }
+    }
+    v
+}

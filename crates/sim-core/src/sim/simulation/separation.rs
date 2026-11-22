@@ -14,11 +14,22 @@ pub const PERSONAL_SPACE: f32 = 0.7;
 const PUSH_SHARE: f32 = 0.25;
 
 impl Simulation {
+    /// Sync the hot columns, then ease the crowd. Tests call this after they
+    /// move people by hand. The tick syncs once and calls
+    /// [`Self::separate_crowds_indexed`] so the same copy also feeds the grid.
+    #[cfg(test)]
     pub(super) fn separate_crowds(&mut self) {
-        if self.organisms.iter().filter(|o| o.alive).count() < 2 {
+        self.organism_columns.sync_from(&self.organisms);
+        self.separate_crowds_indexed();
+    }
+
+    /// Ease overlapping people apart. Caller has synced [`Self::organism_columns`].
+    pub(super) fn separate_crowds_indexed(&mut self) {
+        debug_assert!(self.organism_columns.ready_for(self.organisms.len()));
+        if self.organism_columns.alive.iter().filter(|&&a| a != 0).count() < 2 {
             return;
         }
-        let index = SpatialIndex::build(&self.organisms, 4);
+        let index = SpatialIndex::build_columns(&self.organism_columns, 4);
         let mut near: Vec<usize> = Vec::new();
         // Someone aboard a boat stays on it: their boat only sails from the tile beside its next stretch of
         // water, so easing a waiting colonist a tile inland stranded them on the shore.
@@ -36,27 +47,31 @@ impl Simulation {
                 .collect()
         };
         drop(aboard);
-        let mut spots: Vec<(f32, f32, bool)> = self.organisms.iter().map(|o| (o.x, o.y, o.alive)).collect();
-        for i in 0..spots.len() {
-            let (xi, yi, alive) = spots[i];
-            if !alive {
+        let n = self.organisms.len();
+        for i in 0..n {
+            if self.organism_columns.alive[i] == 0 {
                 continue;
             }
+            // `xi` stays the position at the start of this person's pass. Each
+            // neighbour overwrites the result from that same point, matching the
+            // spots snapshot the struct loop used.
+            let (xi, yi) = (self.organism_columns.x[i], self.organism_columns.y[i]);
             index.query_into(xi as i32, yi as i32, 1, &mut near);
             near.retain(|&j| {
-                let (x, y, alive) = spots[j];
-                let (dx, dy) = (xi - x, yi - y);
-                j > i && alive && dx * dx + dy * dy < PERSONAL_SPACE * PERSONAL_SPACE
+                let (dx, dy) = (xi - self.organism_columns.x[j], yi - self.organism_columns.y[j]);
+                j > i
+                    && self.organism_columns.alive[j] != 0
+                    && dx * dx + dy * dy < PERSONAL_SPACE * PERSONAL_SPACE
             });
             if near.is_empty() {
                 continue;
             }
             near.sort_unstable();
             for &j in &near {
-                let (xj, yj, alive) = spots[j];
-                if j <= i || !alive {
+                if j <= i || self.organism_columns.alive[j] == 0 {
                     continue;
                 }
+                let (xj, yj) = (self.organism_columns.x[j], self.organism_columns.y[j]);
                 let (dx, dy) = (xi - xj, yi - yj);
                 let d2 = dx * dx + dy * dy;
                 if d2 >= PERSONAL_SPACE * PERSONAL_SPACE {
@@ -76,12 +91,12 @@ impl Simulation {
                 if !held[i] && self.walkable_at(ni_x, ni_y) {
                     self.organisms[i].x = ni_x;
                     self.organisms[i].y = ni_y;
-                    spots[i] = (ni_x, ni_y, true);
+                    self.organism_columns.store_pos(i, ni_x, ni_y);
                 }
                 if !held[j] && self.walkable_at(nj_x, nj_y) {
                     self.organisms[j].x = nj_x;
                     self.organisms[j].y = nj_y;
-                    spots[j] = (nj_x, nj_y, true);
+                    self.organism_columns.store_pos(j, nj_x, nj_y);
                 }
             }
         }

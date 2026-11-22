@@ -76,9 +76,16 @@ impl Simulation {
         lineage_members: &FxHashMap<crate::intern::Sym, Vec<usize>>,
         buf: &mut Vec<usize>,
     ) -> KinCrowd {
-        let (lid, mx, my, my_id) = {
+        let my_id = self.organisms[idx].id;
+        let hot = self
+            .organism_columns
+            .ready_for(self.organisms.len())
+            .then(|| self.organism_columns.neighbours());
+        let (lid, mx, my) = if let Some(hot) = hot {
+            (hot.lineage[idx], hot.x[idx], hot.y[idx])
+        } else {
             let org = &self.organisms[idx];
-            (org.lineage_id, org.x, org.y, org.id)
+            (org.lineage_id, org.x, org.y)
         };
         // Same window as `ordered_nearby`: the query is padded by 2, then the walk keeps distance <= 8,
         // and the indices are sorted so the sum is the one a single thread would add up.
@@ -88,15 +95,27 @@ impl Simulation {
         let mut sumy = 0.0f32;
         let mut count = 0u32;
         for &i in buf.iter() {
-            let o = &self.organisms[i];
-            if !o.alive || o.id == my_id || o.lineage_id != lid {
-                continue;
-            }
-            let d = (o.x - mx).abs() + (o.y - my).abs();
-            if d <= 8.0 {
-                sumx += o.x;
-                sumy += o.y;
-                count += 1;
+            if let Some(hot) = hot {
+                if !hot.alive_at(i) || self.organisms[i].id == my_id || hot.lineage[i] != lid {
+                    continue;
+                }
+                let d = (hot.x[i] - mx).abs() + (hot.y[i] - my).abs();
+                if d <= 8.0 {
+                    sumx += hot.x[i];
+                    sumy += hot.y[i];
+                    count += 1;
+                }
+            } else {
+                let o = &self.organisms[i];
+                if !o.alive || o.id == my_id || o.lineage_id != lid {
+                    continue;
+                }
+                let d = (o.x - mx).abs() + (o.y - my).abs();
+                if d <= 8.0 {
+                    sumx += o.x;
+                    sumy += o.y;
+                    count += 1;
+                }
             }
         }
         let lineage_total = if count >= 2 {
@@ -105,8 +124,12 @@ impl Simulation {
                 .into_iter()
                 .flatten()
                 .filter(|&&member_idx| {
-                    let o = &self.organisms[member_idx];
-                    o.alive && o.lineage_id == lid
+                    if let Some(hot) = hot {
+                        hot.alive_at(member_idx) && hot.lineage[member_idx] == lid
+                    } else {
+                        let o = &self.organisms[member_idx];
+                        o.alive && o.lineage_id == lid
+                    }
                 })
                 .count()
         } else {

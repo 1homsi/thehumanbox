@@ -87,6 +87,10 @@ pub struct Organism {
     pub carrying_type: u8,
 
     pub vocabulary: Vocabulary,
+    /// Dead people normally lose their words when the world is saved. This
+    /// stays true for a parent who was never alive in this world, so a
+    /// child's word history can still read what they said.
+    pub remember_speech: bool,
     pub last_story_tick: u64,
     pub life_log: VecDeque<LifeEvent>,
     pub discoveries: Discoveries,
@@ -262,6 +266,7 @@ impl Organism {
             carrying: 0,
             carrying_type: 0,
             vocabulary: Vocabulary::from_hashmap(&crate::hashing::FxHashMap::default()),
+            remember_speech: false,
             last_story_tick: 0,
             life_log: VecDeque::new(),
             discoveries: Discoveries::new(),

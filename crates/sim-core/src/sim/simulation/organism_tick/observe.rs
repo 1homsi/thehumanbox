@@ -110,51 +110,44 @@ impl Simulation {
         org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
         spatial_buf: &mut Vec<usize>,
     ) -> SenseLook {
-        let org = &self.organisms[idx];
-        let (ox, oy) = (org.x, org.y);
+        let hot = self
+            .organism_columns
+            .ready_for(self.organisms.len())
+            .then(|| self.organism_columns.neighbours());
+        let (ox, oy) = if let Some(hot) = hot {
+            (hot.x[idx], hot.y[idx])
+        } else {
+            (self.organisms[idx].x, self.organisms[idx].y)
+        };
         spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
-        let mut kin_near: usize = 0;
-        let mut hostile_near = false;
-        for &i in spatial_buf.iter() {
-            if i == idx {
-                continue;
-            }
-            let o = &self.organisms[i];
-            if !o.alive {
-                continue;
-            }
-            let dist = (o.x - ox).abs() + (o.y - oy).abs();
-            // The distance test comes first: the lineage compare is a string compare.
-            if dist <= 5.0 && o.lineage_id == org.lineage_id {
-                kin_near += 1;
-            } else if !hostile_near
-                && dist <= 6.0
-                && o.lineage_id != org.lineage_id
-                && org.attitude_toward(&o.lineage_id) < -0.2
-            {
-                hostile_near = true;
-            }
-        }
-        let near_shelter = org.near_shelter(&self.grid, &self.buildings);
+        let (kin_near, hostile_near) = if self.organism_columns.ready_for(self.organisms.len()) {
+            super::setup::kin_near_columns(&self.organism_columns, &self.organisms, idx, spatial_buf)
+        } else {
+            super::setup::kin_near_structs(&self.organisms, idx, spatial_buf)
+        };
+        let near_shelter = self.organisms[idx].near_shelter(&self.grid, &self.buildings);
 
-        let my_lid = org.lineage_id;
+        let my_lid = if self.organism_columns.ready_for(self.organisms.len()) {
+            self.organism_columns.lineage[idx]
+        } else {
+            self.organisms[idx].lineage_id
+        };
         let intruders = if let Some(elder_id) = self.lineage_elders.get(my_lid.as_str()) {
             if let Some(&elder_idx) = org_idx_by_id.get(elder_id.as_str()) {
                 let ex = self.organisms[elder_idx].home_x;
                 let ey = self.organisms[elder_idx].home_y;
                 if (ox - ex).abs() + (oy - ey).abs() < 20.0 {
                     spatial.query_into(ex as i32, ey as i32, 12, spatial_buf);
-                    let mut v = Vec::new();
-                    for &i in spatial_buf.iter() {
-                        let o = &self.organisms[i];
-                        if !o.alive || o.lineage_id == my_lid {
-                            continue;
-                        }
-                        if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
-                            v.push(o.lineage_id);
-                        }
-                    }
-                    v
+                    super::setup::intruders_near(
+                        &self.organisms,
+                        self.organism_columns
+                            .ready_for(self.organisms.len())
+                            .then(|| self.organism_columns.neighbours()),
+                        &my_lid,
+                        ex,
+                        ey,
+                        spatial_buf,
+                    )
                 } else {
                     Vec::new()
                 }
@@ -165,8 +158,10 @@ impl Simulation {
             Vec::new()
         };
 
-        let fear_trait = org.traits.fear;
-        let beast_wary = org.lessons.heeds(crate::organism::lessons::Lesson::Beasts);
+        let fear_trait = self.organisms[idx].traits.fear;
+        let beast_wary = self.organisms[idx]
+            .lessons
+            .heeds(crate::organism::lessons::Lesson::Beasts);
         let wolf_flee_radius = 6.0 + fear_trait * 8.0 + beast_wary * 6.0;
         let mut animal_near = false;
         let mut wolf_threat: Option<(f32, f32, f32)> = None;

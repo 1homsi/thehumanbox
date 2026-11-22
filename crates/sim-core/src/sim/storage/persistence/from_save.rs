@@ -167,6 +167,7 @@ impl Simulation {
             grid,
             physics,
             organisms,
+            organism_columns: crate::organism::columns::OrganismColumns::new(),
             animals: state.animals.into_iter().map(animal_from_save).collect(),
             game_wariness: state
                 .game_wariness

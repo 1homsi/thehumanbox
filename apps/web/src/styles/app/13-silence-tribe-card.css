@@ -434,6 +434,27 @@
 .tribe-why-next {
   color: #ffd98a;
 }
+/* The about-to-try line is a button while the tribe is somewhere on the map; it looks like the line it is. */
+button.tribe-why-next {
+  display: block;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+button.tribe-why-next:hover {
+  color: #ffe9b0;
+  text-decoration: underline dotted;
+}
+button.tribe-why-next:focus-visible {
+  color: #ffe9b0;
+  outline: 2px solid #fff0b8;
+  outline-offset: 1px;
+}
 .tribe-card-festival {
   font-size: 9px;
   color: #ffd98a;

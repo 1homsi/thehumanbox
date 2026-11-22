@@ -21,7 +21,7 @@ import {
   startSimWithDataRootLock,
   stopSim,
 } from "./sim-process";
-import { wantsEmptyWorld } from "./sim-env";
+import { wantsEmptyWorld, wantsHeadStartWorld } from "./sim-env";
 import { acquireDataRootLock, type DataRootLock } from "./data-lock";
 import { loadRenderer } from "./renderer-load";
 import {
@@ -478,6 +478,7 @@ export function registerIpc(
     "world:resetLocal",
     exclusiveIpcHandler("reset the local world", async (_e, payload: unknown) => {
       const empty = wantsEmptyWorld(payload);
+      const headStart = wantsHeadStartWorld(payload) && !empty;
       const win = getWindow();
       if (!win) throw new Error("desktop window is unavailable");
       const settings = loadSettings();
@@ -544,6 +545,7 @@ export function registerIpc(
         operationLock = null;
         const sim = await startSimWithDataRootLock(settings, handedLock, {
           blankWorld: empty,
+          headStartWorld: headStart,
         });
         await verifyFreshWorldLoaded(sim.port, settings, world.hash);
         await loadLocalRenderer(
