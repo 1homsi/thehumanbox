@@ -3,7 +3,7 @@
 //! the dead are left at no health for the tick to bury, so the death is told by its cause, counted in
 //! the history and mourned like any other, and a tribe that loses everyone falls.
 
-use super::{cmd_tile, protected, Simulation, Tile};
+use super::{cmd_tile, Simulation, Tile};
 use crate::math::DetMath;
 use crate::organism::organism::Harm;
 use crate::sim::civ::building_damage::{strike_buildings, DamageCause};
@@ -35,8 +35,8 @@ pub(super) fn reach_f(radius: f32, (default, max): (f32, f32)) -> f32 {
 
 impl Simulation {
     /// The ground gives way: a round pit opens and fills with water, a lake from now on. Everyone and
-    /// everything standing over it falls in and dies, buildings over it collapse into it, and the
-    /// ground at its rim slumps to bare rock and sand.
+    /// everything standing over it falls in and dies, and the buildings over it fall in with them.
+    /// The ground around the lake is left as it was.
     pub(super) fn cmd_sinkhole(&mut self, x: i32, y: i32, radius: i32) -> bool {
         let (x, y) = (cmd_tile(x as f32), cmd_tile(y as f32));
         if !WorldGrid::in_bounds(x, y) {
@@ -58,32 +58,30 @@ impl Simulation {
                 a.alive = false;
             }
         }
-        strike_buildings(self, x, y, fr, 1.0, 1.0, DamageCause::Quake);
+        // Buildings over the pit fall in with it, props included, so the lake is left clear.
+        let before = self.buildings.len();
+        self.buildings.retain(|b| {
+            let (nx, ny) = b.closest_footprint_tile(x, y);
+            ((nx - x) as f32).det_hypot((ny - y) as f32) > fr
+        });
+        if self.buildings.len() != before {
+            self.building_state_revision = self.building_state_revision.wrapping_add(1);
+        }
         self.wither_plantings(x, y, r);
-        let rim = r + 2;
-        for dy in -rim..=rim {
-            for dx in -rim..=rim {
+        for dy in -r..=r {
+            for dx in -r..=r {
                 let (nx, ny) = (x + dx, y + dy);
                 let d2 = dx * dx + dy * dy;
-                if !WorldGrid::in_bounds(nx, ny) || d2 > rim * rim || self.grid.get(nx, ny) == Tile::Void {
+                if !WorldGrid::in_bounds(nx, ny) || d2 > r * r || self.grid.get(nx, ny) == Tile::Void {
                     continue;
                 }
+                // The pit fills with water and stays.
                 let i = WorldGrid::idx(nx, ny);
                 *self.grid.fire_intensity_mut(nx, ny) = 0.0;
-                if d2 <= r * r {
-                    // The pit: water fills it and stays.
-                    self.grid.set(nx, ny, Tile::Water);
-                    let depth = 1.0 - (d2 as f32).sqrt() / fr;
-                    self.grid.elevation[i] = (self.grid.elevation[i] - 0.2 * depth).max(0.0);
-                    self.grid.depth[i] = self.grid.depth[i].max(0.3 + 0.5 * depth);
-                } else if !protected(self.grid.get(nx, ny)) && self.grid.get(nx, ny) != Tile::Water {
-                    let slump = if self.rng.random::<f32>() < 0.55 {
-                        Tile::Rock
-                    } else {
-                        Tile::Sand
-                    };
-                    self.grid.set(nx, ny, slump);
-                }
+                self.grid.set(nx, ny, Tile::Water);
+                let depth = 1.0 - (d2 as f32).sqrt() / fr;
+                self.grid.elevation[i] = (self.grid.elevation[i] - 0.2 * depth).max(0.0);
+                self.grid.depth[i] = self.grid.depth[i].max(0.3 + 0.5 * depth);
             }
         }
         self.grid.wash_roads(x, y, r);
@@ -286,6 +284,75 @@ mod tests {
 
     fn alive(sim: &Simulation) -> usize {
         sim.organisms.iter().filter(|o| o.alive).count()
+    }
+
+    #[test]
+    fn a_sinkhole_swallows_what_stood_there_and_leaves_the_ground_around_it_clean() {
+        use crate::sim::buildings::{Building, BuildingKind};
+        let mut sim = Simulation::new(5);
+        let (x, y, r) = (150i32, 150i32, 4i32);
+        let rim = r + 2;
+        for dy in -rim..=rim {
+            for dx in -rim..=rim {
+                let d2 = dx * dx + dy * dy;
+                if d2 > r * r && d2 <= rim * rim {
+                    sim.grid.set(x + dx, y + dy, Tile::Grass);
+                }
+            }
+        }
+        // One tile past the ring around the hole: the sinkhole does not reach it.
+        sim.grid.set(x + rim + 1, y, Tile::Food);
+        let standing = |id, bx, by, decorative| {
+            let mut building = Building::new(id, BuildingKind::Hut, bx, by, Some("tribe".into()), 0);
+            building.condition = 1.0;
+            building.decorative = decorative;
+            building
+        };
+        sim.buildings.push(standing(9_001, x, y, false));
+        sim.buildings.push(standing(9_002, x + 1, y, true));
+        let mut site = Building::new(9_003, BuildingKind::Hut, x - 1, y, Some("tribe".into()), 0);
+        site.condition = 0.4;
+        sim.buildings.push(site);
+        sim.buildings.push(standing(9_004, x + 20, y, false));
+
+        assert!(sim.apply_command_json(r#"{"cmd":"sinkhole","x":150,"y":150,"radius":4}"#));
+        assert_eq!(sim.grid.get(x, y), Tile::Water, "the pit is a lake");
+        for dy in -rim..=rim {
+            for dx in -rim..=rim {
+                let d2 = dx * dx + dy * dy;
+                if d2 > r * r && d2 <= rim * rim {
+                    assert_eq!(
+                        sim.grid.get(x + dx, y + dy),
+                        Tile::Grass,
+                        "the ring around the lake stays clean at ({}, {})",
+                        x + dx,
+                        y + dy
+                    );
+                }
+            }
+        }
+        assert_eq!(
+            sim.grid.get(x + rim + 1, y),
+            Tile::Food,
+            "ground past the hole is left alone"
+        );
+        let left: Vec<u32> = sim
+            .buildings
+            .iter()
+            .map(|b| b.id)
+            .filter(|id| *id >= 9_001)
+            .collect();
+        assert_eq!(
+            left,
+            vec![9_004],
+            "what stood over the hole is gone, not left as rubble"
+        );
+        let spared = sim
+            .buildings
+            .iter()
+            .find(|b| b.id == 9_004)
+            .expect("the far house");
+        assert!(!spared.is_ruined(), "a building outside the hole is not wrecked");
     }
 
     #[test]
