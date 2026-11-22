@@ -7,6 +7,7 @@ import {
   clearOwnWorldResetRequest,
   getOwnWorldSeed,
   hasOwnWorldEmptyRequest,
+  hasOwnWorldHeadStartRequest,
   requestOwnWorldReset,
   resolvePlayerWorldKind,
   setOwnWorldSeed,
@@ -195,6 +196,24 @@ describe('local-world storage transitions', () => {
     clearOwnWorldResetRequest()
     expect(hasOwnWorldEmptyRequest()).toBe(false)
     expect(storage.getItem('thb-wasm-reset-pending')).toBeNull()
+  })
+
+  it('asks for a head-start world without opening the empty-world tab, and a plain reset clears that ask', () => {
+    const storage = memoryStorage({ 'thb-wasm-seed': '12345' })
+    const target = installReloadWindow(storage)
+    target.addEventListener(LOCAL_WORLD_RELOAD_EVENT, (event) => event.preventDefault())
+
+    expect(requestOwnWorldReset(undefined, { headStart: true })).toBe(true)
+    expect(hasOwnWorldHeadStartRequest()).toBe(true)
+    expect(hasOwnWorldEmptyRequest()).toBe(false)
+    expect(storage.getItem('thb-sandbox-category')).toBeNull()
+
+    clearOwnWorldResetRequest()
+    expect(hasOwnWorldHeadStartRequest()).toBe(false)
+
+    expect(requestOwnWorldReset(undefined, { empty: true, headStart: true })).toBe(true)
+    expect(hasOwnWorldEmptyRequest()).toBe(true)
+    expect(hasOwnWorldHeadStartRequest()).toBe(false)
   })
 
   it('starts a plain new world without the empty ask, and restores the ask when an empty reset fails', () => {

@@ -456,6 +456,17 @@ fn gen_word(rng: &mut impl Rng) -> String {
     (0..syllables).map(|_| gen_syllable(rng)).collect()
 }
 
+/// A word that is not `previous`, without drawing again. The first letter
+/// moves to another consonant so a stuck draw still changes the word.
+fn different_word(previous: &str) -> String {
+    let mut bytes = previous.as_bytes().to_vec();
+    if bytes.is_empty() {
+        return "ba".to_string();
+    }
+    bytes[0] = if bytes[0] == b'b' { b'd' } else { b'b' };
+    String::from_utf8(bytes).unwrap_or_else(|_| "ba".to_string())
+}
+
 pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
     gen_word(rng)
 }
@@ -750,6 +761,26 @@ impl Vocabulary {
     pub fn word(&self, concept: &str) -> Option<&str> {
         let i = *concept_index().get(concept)?;
         Some(self.text(i)).filter(|w| !w.is_empty())
+    }
+
+    /// Replace the word for `concept` with a different one. Used when a
+    /// head-start world gives a tribe its own form of a shared word.
+    pub(crate) fn drift_concept(&mut self, concept: &str, rng: &mut impl Rng) {
+        let Some(&i) = concept_index().get(concept) else {
+            return;
+        };
+        self.ensure_capacity();
+        let previous = self.text(i).to_string();
+        let mut next = gen_word(rng);
+        let mut spins = 0;
+        while next == previous && spins < 8 {
+            next = gen_word(rng);
+            spins += 1;
+        }
+        if next == previous {
+            next = different_word(&previous);
+        }
+        self.set(i, &next);
     }
 
     pub fn word_for<'a>(&'a self, concept: &'a str) -> &'a str {

@@ -12,6 +12,7 @@ const SEED_KEY = 'thb-wasm-seed'
 const RESET_KEY = 'thb-wasm-reset-pending'
 const RECOVERY_KEY = 'thb-wasm-recovery-pending'
 const EMPTY_KEY = 'thb-wasm-reset-empty'
+const HEAD_START_KEY = 'thb-wasm-reset-head-start'
 export const LOCAL_WORLD_CHECKPOINT_EVENT = 'thb:local-world-checkpoint'
 export const LOCAL_WORLD_RELOAD_EVENT = 'thb:local-world-safe-reload'
 export const OWN_WORLD_ID = 'browser-own'
@@ -35,6 +36,7 @@ interface LocalWorldRequestSnapshot {
   reset: string | null
   recovery: string | null
   empty: string | null
+  headStart: string | null
 }
 
 function readLocalWorldRequestSnapshot(): LocalWorldRequestSnapshot | null {
@@ -44,6 +46,7 @@ function readLocalWorldRequestSnapshot(): LocalWorldRequestSnapshot | null {
       reset: window.localStorage.getItem(RESET_KEY),
       recovery: window.localStorage.getItem(RECOVERY_KEY),
       empty: window.localStorage.getItem(EMPTY_KEY),
+      headStart: window.localStorage.getItem(HEAD_START_KEY),
     }
   } catch {
     return null
@@ -61,6 +64,7 @@ function restoreLocalWorldRequestSnapshot(snapshot: LocalWorldRequestSnapshot): 
     restoreStorageValue(RESET_KEY, snapshot.reset)
     restoreStorageValue(RECOVERY_KEY, snapshot.recovery)
     restoreStorageValue(EMPTY_KEY, snapshot.empty)
+    restoreStorageValue(HEAD_START_KEY, snapshot.headStart)
   } catch {
     // Storage becoming unavailable mid-operation is not recoverable here, but
     // the worker checkpoint still prevents destructive reload from proceeding.
@@ -170,7 +174,10 @@ export function getOwnWorldSeed(): string {
   return seed
 }
 
-export function requestOwnWorldReset(seed?: string, options: { empty?: boolean } = {}): boolean {
+export function requestOwnWorldReset(
+  seed?: string,
+  options: { empty?: boolean; headStart?: boolean } = {},
+): boolean {
   const snapshot = readLocalWorldRequestSnapshot()
   if (!snapshot) {
     void showNotice(t('dialogs.worldNotice.storageUnavailable'), t('dialogs.worldNotice.notReset'))
@@ -179,8 +186,16 @@ export function requestOwnWorldReset(seed?: string, options: { empty?: boolean }
   try {
     window.localStorage.setItem(RESET_KEY, '1')
     window.localStorage.removeItem(RECOVERY_KEY)
-    if (options.empty) window.localStorage.setItem(EMPTY_KEY, '1')
-    else window.localStorage.removeItem(EMPTY_KEY)
+    if (options.empty) {
+      window.localStorage.setItem(EMPTY_KEY, '1')
+      window.localStorage.removeItem(HEAD_START_KEY)
+    } else if (options.headStart) {
+      window.localStorage.setItem(HEAD_START_KEY, '1')
+      window.localStorage.removeItem(EMPTY_KEY)
+    } else {
+      window.localStorage.removeItem(EMPTY_KEY)
+      window.localStorage.removeItem(HEAD_START_KEY)
+    }
     if (seed && /^\d+$/.test(seed)) window.localStorage.setItem(SEED_KEY, seed)
     else window.localStorage.removeItem(SEED_KEY)
   } catch {
@@ -219,10 +234,23 @@ export function hasOwnWorldEmptyRequest(): boolean {
   }
 }
 
+export function hasOwnWorldHeadStartRequest(): boolean {
+  try {
+    return (
+      window.localStorage.getItem(RESET_KEY) === '1' &&
+      window.localStorage.getItem(HEAD_START_KEY) === '1' &&
+      window.localStorage.getItem(EMPTY_KEY) !== '1'
+    )
+  } catch {
+    return false
+  }
+}
+
 export function clearOwnWorldResetRequest() {
   try {
     window.localStorage.removeItem(RESET_KEY)
     window.localStorage.removeItem(EMPTY_KEY)
+    window.localStorage.removeItem(HEAD_START_KEY)
   } catch {
     /* noop */
   }

@@ -54,7 +54,20 @@ export function wantsEmptyWorld(payload: unknown): boolean {
   return typeof payload === 'object' && payload !== null && (payload as { empty?: unknown }).empty === true
 }
 
+export function wantsHeadStartWorld(payload: unknown): boolean {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    (payload as { headStart?: unknown }).headStart === true
+  )
+}
+
 export function withBlankWorld(env: NodeJS.ProcessEnv, blank: boolean): NodeJS.ProcessEnv {
   if (!blank) return env
   return { ...env, THB_BLANK_WORLD: '1' }
+}
+
+export function withHeadStartWorld(env: NodeJS.ProcessEnv, headStart: boolean): NodeJS.ProcessEnv {
+  if (!headStart) return env
+  return { ...env, THB_HEAD_START: '1' }
 }

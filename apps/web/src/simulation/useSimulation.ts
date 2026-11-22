@@ -27,6 +27,7 @@ import {
   setOwnWorldSeed,
   getOwnWorldRecoveryRequest,
   hasOwnWorldEmptyRequest,
+  hasOwnWorldHeadStartRequest,
   hasOwnWorldResetRequest,
 } from './worldSource'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
@@ -536,6 +537,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         seed: ownSeed,
         reset: hasOwnWorldResetRequest(),
         empty: hasOwnWorldEmptyRequest(),
+        headStart: hasOwnWorldHeadStartRequest(),
         recoveryId: getOwnWorldRecoveryRequest(),
         touch: navigator.maxTouchPoints > 1,
       })

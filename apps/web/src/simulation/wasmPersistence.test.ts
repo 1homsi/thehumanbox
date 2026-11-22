@@ -81,6 +81,14 @@ describe('local WASM storage retries', () => {
     expect(ops.reset).toHaveBeenCalledWith('73', true)
   })
 
+  it('retries a head-start reset as a head-start world', async () => {
+    const ops = operations()
+    await expect(runStorageRetry(false, { kind: 'reset', seed: '73', headStart: true }, ops)).resolves.toBe(
+      true,
+    )
+    expect(ops.reset).toHaveBeenCalledWith('73', false, true)
+  })
+
   it('retries persistence directly when storage access is already safe', async () => {
     const ops = operations()
     await expect(runStorageRetry(true, { kind: 'read' }, ops)).resolves.toBe(true)
