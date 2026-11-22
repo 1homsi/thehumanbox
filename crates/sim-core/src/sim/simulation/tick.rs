@@ -21,10 +21,13 @@ impl Simulation {
         // Cross-lineage learning only runs every 500 ticks. Build the spatial
         // index on that cadence so contact lookup stays local instead of
         // comparing every living pair.
-        let civ_spatial = self
-            .tick_count
-            .is_multiple_of(500)
-            .then(|| SpatialIndex::build(&self.organisms, 8));
+        let civ_spatial = self.tick_count.is_multiple_of(500).then(|| {
+            self.organism_columns.sync_from(&self.organisms);
+            let index = SpatialIndex::build_columns(&self.organism_columns, 8);
+            // World events below move people. The columns are stale until the next sync.
+            self.organism_columns.invalidate();
+            index
+        });
         crate::sim::civ_tick::tick_civ(self, civ_spatial.as_ref());
         self.tick_evening_gatherings();
         self.tick_school_places();
@@ -410,7 +413,8 @@ impl Simulation {
 
         let mut population_slots_used = growth::population_slots_used(&self.organisms);
 
-        let spatial = SpatialIndex::build(&self.organisms, 10);
+        self.organism_columns.sync_from(&self.organisms);
+        let spatial = SpatialIndex::build_columns(&self.organism_columns, 10);
         let animal_spatial = SpatialIndex::build_animals(&self.animals, 10);
         let mut buffers = TickBuffers::new();
         let mut org_idx_by_id: FxHashMap<crate::intern::Sym, usize> =
@@ -430,7 +434,7 @@ impl Simulation {
                 vehicle.route.clear();
             }
         }
-        self.separate_crowds();
+        self.separate_crowds_indexed();
         // A person's turn runs in three passes over everyone. First they all sense, in order (setup and
         // threats, which write to them); then they all choose at once, on all cores (see `sim::par`), from
         // the world as the choosing begins; then each acts on their choice, in order, as before.
@@ -487,6 +491,8 @@ impl Simulation {
                 o.lod_turn = now;
             }
         }
+        // Choosing and acting write positions, needs and life through the structs.
+        self.organism_columns.invalidate();
         let tick_seed: u64 = self.rng.random();
         self.choosing_tribes = Some(crate::sim::civ::fields::tribe_people_and_plots(self));
         let mut choices = self.choose_all(&sensed, &spatial, tick_seed);
@@ -560,24 +566,7 @@ impl Simulation {
         self.glide(&tiers);
         self.learn_from_the_tick(&spatial);
 
-        const VEL_EMA_ALPHA: f32 = 0.4;
-        const MAX_PER_TICK: f32 = 2.0;
-        for o in self.organisms.iter_mut() {
-            if !o.alive {
-                continue;
-            }
-            let inst_vx = o.x - o.prev_x;
-            let inst_vy = o.y - o.prev_y;
-            o.prev_x = o.x;
-            o.prev_y = o.y;
-            if inst_vx.abs() > MAX_PER_TICK || inst_vy.abs() > MAX_PER_TICK {
-                o.vx_smooth = 0.0;
-                o.vy_smooth = 0.0;
-                continue;
-            }
-            o.vx_smooth = VEL_EMA_ALPHA * inst_vx + (1.0 - VEL_EMA_ALPHA) * o.vx_smooth;
-            o.vy_smooth = VEL_EMA_ALPHA * inst_vy + (1.0 - VEL_EMA_ALPHA) * o.vy_smooth;
-        }
+        self.organism_columns.smooth_velocity(&mut self.organisms);
 
         if self.tick_count.is_multiple_of(1200) {
             let dead_count = self

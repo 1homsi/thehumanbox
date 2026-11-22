@@ -17,33 +17,15 @@ impl Simulation {
         let prev_inv_water = self.organisms[idx].inv_water;
 
         {
-            let org = &self.organisms[idx];
-            let ox = org.x as i32;
-            let oy = org.y as i32;
-            spatial.query_into(ox, oy, 6, spatial_buf);
-            let mut kin_near: usize = 0;
-            let mut hostile_near = false;
-            for &i in spatial_buf.iter() {
-                if i == idx {
-                    continue;
-                }
-                let o = &self.organisms[i];
-                if !o.alive {
-                    continue;
-                }
-                let dist = (o.x - org.x).abs() + (o.y - org.y).abs();
-                // The distance test comes first: the lineage compare is a string compare.
-                if dist <= 5.0 && o.lineage_id == org.lineage_id {
-                    kin_near += 1;
-                } else if !hostile_near
-                    && dist <= 6.0
-                    && o.lineage_id != org.lineage_id
-                    && org.attitude_toward(&o.lineage_id) < -0.2
-                {
-                    hostile_near = true;
-                }
-            }
-            let near_shelter = org.near_shelter(&self.grid, &self.buildings);
+            let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+            spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
+            let (kin_near, hostile_near) = if self.organism_columns.ready_for(self.organisms.len()) {
+                debug_assert_eq!(self.organism_columns.x[idx].to_bits(), ox.to_bits());
+                kin_near_columns(&self.organism_columns, &self.organisms, idx, spatial_buf)
+            } else {
+                kin_near_structs(&self.organisms, idx, spatial_buf)
+            };
+            let near_shelter = self.organisms[idx].near_shelter(&self.grid, &self.buildings);
             let weather_kind = self.weather.kind;
             let tick_now = self.tick_count;
             self.organisms[idx].tick_inner_state(
@@ -68,17 +50,16 @@ impl Simulation {
                         // scanning every organism — this block runs per-tick
                         // for every organism near its lineage's elder home.
                         spatial.query_into(ex as i32, ey as i32, 12, spatial_buf);
-                        let mut v: Vec<String> = Vec::new();
-                        for &i in spatial_buf.iter() {
-                            let o = &self.organisms[i];
-                            if !o.alive || o.lineage_id == *my_lid {
-                                continue;
-                            }
-                            if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
-                                v.push(o.lineage_id.to_string());
-                            }
-                        }
-                        v
+                        intruders_near(
+                            &self.organisms,
+                            self.organism_columns
+                                .ready_for(self.organisms.len())
+                                .then(|| self.organism_columns.neighbours()),
+                            my_lid,
+                            ex,
+                            ey,
+                            spatial_buf,
+                        )
                     } else {
                         Vec::new()
                     }
@@ -135,4 +116,94 @@ impl Simulation {
         f.prev_inv_food = prev_inv_food;
         f.prev_inv_water = prev_inv_water;
     }
+}
+
+/// Kin within 5 tiles and a hostile neighbour within 6, from the hot columns.
+fn kin_near_columns(
+    cols: &crate::organism::columns::OrganismColumns,
+    organisms: &[Organism],
+    idx: usize,
+    near: &[usize],
+) -> (usize, bool) {
+    let (ox, oy) = (cols.x[idx], cols.y[idx]);
+    let mine = cols.lineage[idx];
+    let mut kin_near = 0usize;
+    let mut hostile_near = false;
+    for &i in near {
+        if i == idx || cols.alive[i] == 0 {
+            continue;
+        }
+        let dist = (cols.x[i] - ox).abs() + (cols.y[i] - oy).abs();
+        let other = cols.lineage[i];
+        // The distance test comes first: the lineage compare is a string compare.
+        if dist <= 5.0 && other == mine {
+            kin_near += 1;
+        } else if !hostile_near
+            && dist <= 6.0
+            && other != mine
+            && organisms[idx].attitude_toward(other.as_str()) < -0.2
+        {
+            hostile_near = true;
+        }
+    }
+    (kin_near, hostile_near)
+}
+
+fn kin_near_structs(organisms: &[Organism], idx: usize, near: &[usize]) -> (usize, bool) {
+    let org = &organisms[idx];
+    let mut kin_near = 0usize;
+    let mut hostile_near = false;
+    for &i in near {
+        if i == idx {
+            continue;
+        }
+        let o = &organisms[i];
+        if !o.alive {
+            continue;
+        }
+        let dist = (o.x - org.x).abs() + (o.y - org.y).abs();
+        // The distance test comes first: the lineage compare is a string compare.
+        if dist <= 5.0 && o.lineage_id == org.lineage_id {
+            kin_near += 1;
+        } else if !hostile_near
+            && dist <= 6.0
+            && o.lineage_id != org.lineage_id
+            && org.attitude_toward(&o.lineage_id) < -0.2
+        {
+            hostile_near = true;
+        }
+    }
+    (kin_near, hostile_near)
+}
+
+fn intruders_near(
+    organisms: &[Organism],
+    hot: Option<crate::organism::columns::NeighbourCols<'_>>,
+    my_lid: &crate::intern::Sym,
+    ex: f32,
+    ey: f32,
+    near: &[usize],
+) -> Vec<String> {
+    let mut v = Vec::new();
+    if let Some(hot) = hot {
+        for &i in near {
+            if !hot.alive_at(i) || hot.lineage[i] == *my_lid {
+                continue;
+            }
+            if (hot.x[i] - ex).abs() + (hot.y[i] - ey).abs() < 12.0 {
+                v.push(hot.lineage[i].to_string());
+            }
+        }
+    } else {
+        for &i in near {
+            let o = &organisms[i];
+            if !o.alive || o.lineage_id == *my_lid {
+                continue;
+            }
+            if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
+                v.push(o.lineage_id.to_string());
+            }
+        }
+    }
+    v
 }

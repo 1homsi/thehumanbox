@@ -12,6 +12,7 @@ use crate::hashing::FxHashMap;
 use crate::hashing::{FxHashMap as HashMap, FxHashSet as HashSet};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::organism::attributes::check_earned_attributes;
+use crate::organism::columns::OrganismColumns;
 use crate::organism::decision_bias::directive_aligns_action;
 use crate::organism::organism::{Hot, Organism, DIRECTIONS};
 use crate::physics::engine::PhysicsEngine;
@@ -66,6 +67,8 @@ pub struct Simulation {
     pub grid: WorldGrid,
     pub physics: PhysicsEngine,
     pub organisms: Vec<Organism>,
+    /// Hot fields packed beside [`Self::organisms`]. Same index, not saved.
+    pub(crate) organism_columns: OrganismColumns,
     pub animals: Vec<Animal>,
     /// How wary the game in each patch of land has grown of hunters (see `wary_game`).
     pub game_wariness: crate::hashing::FxHashMap<(i32, i32), f32>,
@@ -309,6 +312,7 @@ impl Simulation {
             grid,
             physics,
             organisms: Vec::new(),
+            organism_columns: OrganismColumns::new(),
             animals: Vec::new(),
             game_wariness: Default::default(),
             carcasses: Vec::new(),

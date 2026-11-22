@@ -35,6 +35,10 @@ impl Simulation {
             // friend-seek cap. Without it, attraction can pull orgs
             // across the entire map, defeating the cluster-breaking
             // work in spawn.rs / friend-seek.
+            // Distance, sex, age and partner live in the hot columns, but this
+            // pass runs after earlier people have already moved, aged, paired
+            // and sometimes died. Those writes land on the struct. Trust and
+            // names are cold. Reading the struct here keeps the choice identical.
             const MATE_SEEK_MAX_TILES: f32 = 80.0;
             spatial.query_into(
                 ox as i32,

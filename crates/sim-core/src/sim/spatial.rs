@@ -1,10 +1,38 @@
 use crate::hashing::FxHashMap as HashMap;
 use crate::organism::animal::Animal;
+use crate::organism::columns::OrganismColumns;
 use crate::organism::organism::Organism;
 
 /// More buckets than any real world needs (600x300 tiles in 10-tile buckets is
 /// 1,800); beyond this a sparse map is used instead of a dense grid.
 const MAX_DENSE_BUCKETS: i64 = 1 << 16;
+
+/// Living `(index, bucket x, bucket y)` walked off the hot columns.
+/// Cloning restarts the scan, which is what [`SpatialIndex::from_points`] does.
+#[derive(Clone)]
+struct ColumnBuckets<'a> {
+    x: &'a [f32],
+    y: &'a [f32],
+    alive: &'a [u8],
+    bucket: i32,
+    i: usize,
+}
+
+impl Iterator for ColumnBuckets<'_> {
+    type Item = (usize, i32, i32);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.i < self.alive.len() {
+            let i = self.i;
+            self.i += 1;
+            if self.alive[i] == 0 {
+                continue;
+            }
+            return Some((i, self.x[i] as i32 / self.bucket, self.y[i] as i32 / self.bucket));
+        }
+        None
+    }
+}
 
 pub struct SpatialIndex {
     buckets: Buckets,
@@ -35,6 +63,21 @@ impl SpatialIndex {
                 .filter(|(_, org)| org.alive)
                 .map(|(i, org)| (i, org.x as i32 / bucket_size, org.y as i32 / bucket_size)),
             organisms.len(),
+            bucket_size,
+        )
+    }
+
+    /// Same index as [`Self::build`], reading `alive` / `x` / `y` from columns.
+    pub fn build_columns(columns: &OrganismColumns, bucket_size: i32) -> Self {
+        Self::from_points(
+            ColumnBuckets {
+                x: &columns.x,
+                y: &columns.y,
+                alive: &columns.alive,
+                bucket: bucket_size,
+                i: 0,
+            },
+            columns.len(),
             bucket_size,
         )
     }
@@ -441,5 +484,32 @@ mod tests {
         let mut buf = Vec::new();
         assert_eq!(first_unknown_nearby_lineage(&people, 0, &index, &mut buf), None);
         assert_eq!(buf.len(), 1);
+    }
+
+    #[test]
+    fn columns_build_the_same_index_as_the_structs() {
+        let mut people: Vec<_> = (0..400)
+            .map(|i| person(i, (i * 3 % 80) as f32 - 10.0, (i * 5 % 50) as f32 - 4.0))
+            .collect();
+        for (i, p) in people.iter_mut().enumerate() {
+            p.alive = i % 6 != 0;
+        }
+        let mut columns = OrganismColumns::new();
+        columns.sync_from(&people);
+        for bucket in [4, 8, 10] {
+            let from_structs = SpatialIndex::build(&people, bucket);
+            let from_columns = SpatialIndex::build_columns(&columns, bucket);
+            for x in -5..30 {
+                for y in -5..20 {
+                    assert_eq!(
+                        from_structs.query(x, y, 6),
+                        from_columns.query(x, y, 6),
+                        "bucket {bucket} at ({x}, {y})"
+                    );
+                }
+            }
+        }
+        let empty = OrganismColumns::new();
+        assert!(SpatialIndex::build_columns(&empty, 10).query(0, 0, 3).is_empty());
     }
 }
