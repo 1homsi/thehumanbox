@@ -35,6 +35,34 @@ const WELL: f32 = 0.5;
 
 const WORK_WELL: f32 = 0.6;
 
+/// A coarse step only drains. The rates sit above a hard winter, and from 32
+/// ticks up the person also needs a carried meal, so the granary trip is not
+/// one of the ticks that got skipped.
+const ENERGY_DRAIN_PER_TICK: f32 = 0.007;
+const WATER_DRAIN_PER_TICK: f32 = 0.0035;
+const CARRIED_MEAL: f32 = 0.30;
+const CARRIED_DRINK: f32 = 0.18;
+const STORE_FLOOR: f32 = 0.35;
+
+fn stores_cover(o: &Organism, step: u64) -> bool {
+    if step <= TOWN_STEP {
+        return true;
+    }
+    let meals = u64::from(o.inv_food) + u64::from(o.tools.get("winter_provisions").copied().unwrap_or(0));
+    let drinks = u64::from(o.inv_water);
+    // 16 ticks can run on whatever still covers the drain. 32 wants a meal,
+    // 64 wants two, and the longest step wants a drink as well.
+    let need = step / 32;
+    let drink_need = step / 64;
+    if meals < need || drinks < drink_need {
+        return false;
+    }
+    let span = step as f32;
+    let energy = o.energy + meals as f32 * CARRIED_MEAL - ENERGY_DRAIN_PER_TICK * span;
+    let hydration = o.hydration + drinks as f32 * CARRIED_DRINK - WATER_DRAIN_PER_TICK * span;
+    energy > STORE_FLOOR && hydration > STORE_FLOOR
+}
+
 const UNITS_EVERY: u64 = 8;
 
 const WAR_REACH: i32 = 48;
@@ -324,7 +352,10 @@ impl Simulation {
                         r.activity_at(phase) != Activity::Work
                             || (o.energy >= WORK_WELL && !o.work.is_some_and(|plan| plan.skill.feeds()))
                     });
-                unit.filter(|_| settled)
+                // An empty pocket on a long step drains through the meal they
+                // would have fetched. The 8-tick step is short enough that the
+                // floor still holds; longer ones need the food in hand.
+                unit.filter(|&id| settled && stores_cover(o, self.coarse_step(id)))
             })
             .collect()
     }
@@ -666,6 +697,53 @@ mod tests {
             sim.organisms[idx].work.as_mut().expect("a work plan").skill = skill;
             assert_eq!(sim.calm_town_of_each()[idx], None, "{skill:?}");
         }
+    }
+
+    #[test]
+    fn an_empty_pocket_does_not_skip_a_long_step() {
+        let mut sim = Simulation::new(42);
+        sim.tick_n(2_200);
+        sim.calm_towns = None;
+        sim.refresh_calm_towns();
+        sim.lod_units = sim.home_units();
+        if let Some(calm) = sim.calm_towns.as_mut() {
+            for started in calm.since.values_mut() {
+                *started = sim.tick_count.saturating_sub(2_000);
+            }
+        }
+        let idx = (0..sim.organisms.len())
+            .find(|&i| {
+                sim.lod_units[i].is_some() && sim.organisms[i].alive && sim.organisms[i].routine.is_some()
+            })
+            .expect("someone at home in a calm region");
+        let id = sim.lod_units[idx].expect("a calm home");
+        assert!(sim.coarse_step(id) > TOWN_STEP);
+        {
+            let o = &mut sim.organisms[idx];
+            o.journey = None;
+            o.mounted_vehicle = None;
+            o.water_ticks = 0;
+            o.last_action = Some(27);
+            o.energy = 0.95;
+            o.hydration = 0.95;
+            o.inv_food = 4;
+            o.inv_water = 4;
+            o.tools.remove("winter_provisions");
+            o.work = None;
+        }
+        for vehicle in &mut sim.vehicles {
+            vehicle.occupants.retain(|id| *id != sim.organisms[idx].id);
+        }
+        // A day-scale step needs the meals in hand. An empty pocket, or a
+        // couple of meals, stays on the per-tick path and can walk to food.
+        assert_eq!(sim.coarse_step(id), COARSE_MAX);
+        let fed = sim.calm_town_of_each()[idx];
+        assert!(fed.is_some());
+        sim.organisms[idx].inv_food = 0;
+        assert_eq!(sim.calm_town_of_each()[idx], None);
+        sim.organisms[idx].inv_food = 4;
+        sim.organisms[idx].energy = 0.62;
+        assert_eq!(sim.calm_town_of_each()[idx], fed);
     }
 
     #[test]
