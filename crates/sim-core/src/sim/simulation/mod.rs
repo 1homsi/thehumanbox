@@ -280,6 +280,14 @@ impl Simulation {
         Self::on_grid(seed, WorldGrid::blank())
     }
 
+    /// A year-one world whose tribes already speak apart. The usual `new`
+    /// world is unchanged; this is only for a player who asks for a head start.
+    pub fn new_head_start(seed: u64) -> Self {
+        let mut sim = Self::new(seed);
+        sim.plant_language_head_start();
+        sim
+    }
+
     fn on_grid(seed: u64, grid: WorldGrid) -> Self {
         let rng = ChaCha8Rng::seed_from_u64(seed);
         let mut physics = PhysicsEngine::new();
