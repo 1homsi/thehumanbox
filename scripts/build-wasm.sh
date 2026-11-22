@@ -19,8 +19,8 @@ set -euo pipefail
 # Both worlds match the native save fingerprint.
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 OUT_DIR=${1:-../../apps/web/src/wasm/sim-core}
-# Inside the SIMD package so the wasm cache and the uploaded artifact keep both.
-SCALAR_DIR=${SCALAR_OUT_DIR:-../../apps/web/src/wasm/sim-core/scalar}
+# Beside the SIMD package, including when the caller picks another output directory.
+SCALAR_DIR=${SCALAR_OUT_DIR:-"$OUT_DIR/scalar"}
 TARGET=${WASM_TARGET:-web}
 
 cd "$ROOT"

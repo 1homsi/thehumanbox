@@ -65,7 +65,8 @@ impl Simulation {
                 for k in 0..count {
                     let i = eligible[n + k];
                     let dist = dist[k];
-                    if dist > MATE_SEEK_MAX_TILES {
+                    // A NaN does not compare, so `>` would let it through. The scalar filter kept `d <= cap`.
+                    if unordered_or_above(dist, MATE_SEEK_MAX_TILES) {
                         continue;
                     }
                     let o = &self.organisms[i];
@@ -85,7 +86,7 @@ impl Simulation {
                     } else {
                         -1.0
                     };
-                    if score <= 0.0 {
+                    if score.partial_cmp(&0.0).is_none_or(|order| !order.is_gt()) {
                         continue;
                     }
                     let wins = best.is_none_or(|(bi, bs)| {
@@ -138,7 +139,7 @@ impl Simulation {
                 for k in 0..count {
                     let i = friends[n + k];
                     let d = dist[k];
-                    if d > FRIEND_SEEK_MAX_TILES {
+                    if unordered_or_above(d, FRIEND_SEEK_MAX_TILES) {
                         continue;
                     }
                     let key = (d * 10.0) as i32;
@@ -461,6 +462,11 @@ impl Simulation {
             },
         );
     }
+}
+
+/// True when `d` is NaN or past `cap`. Matches a filter of `d <= cap`.
+fn unordered_or_above(d: f32, cap: f32) -> bool {
+    d.partial_cmp(&cap).is_none_or(std::cmp::Ordering::is_gt)
 }
 
 /// `det_hypot` for up to four indexed organisms, starting at `start`.

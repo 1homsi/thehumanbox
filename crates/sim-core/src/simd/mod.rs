@@ -44,6 +44,13 @@ mod x86;
 
 const LANES: usize = 4;
 
+/// Release builds drop `debug_assert`, and the kernels then read a fixed width.
+/// A short slice has to fail here, before that read.
+#[inline(always)]
+fn require_equal_len(n: usize, lengths: &[usize]) {
+    assert!(lengths.iter().all(|&len| len == n), "simd slice lengths differ");
+}
+
 /// Positions and the previous smoothed velocity, one lane per organism.
 pub struct VelocityIn<'a> {
     pub x: &'a [f32],
@@ -67,9 +74,21 @@ pub struct VelocityOut<'a> {
 #[inline]
 pub fn integrate_velocity(input: &VelocityIn<'_>, alpha: f32, max_step: f32, out: &mut VelocityOut<'_>) {
     let n = input.x.len();
-    debug_assert!(input.y.len() == n && input.prev_x.len() == n && input.prev_y.len() == n);
-    debug_assert!(input.vx.len() == n && input.vy.len() == n && input.alive.len() == n);
-    debug_assert!(out.prev_x.len() == n && out.prev_y.len() == n && out.vx.len() == n && out.vy.len() == n);
+    require_equal_len(
+        n,
+        &[
+            input.y.len(),
+            input.prev_x.len(),
+            input.prev_y.len(),
+            input.vx.len(),
+            input.vy.len(),
+            input.alive.len(),
+            out.prev_x.len(),
+            out.prev_y.len(),
+            out.vx.len(),
+            out.vy.len(),
+        ],
+    );
     simd_kernel!(integrate_velocity_inner(
         input: &VelocityIn<'_>,
         alpha: f32,
@@ -143,8 +162,18 @@ pub fn integrate_velocity_columns(
     alpha: f32,
     max_step: f32,
 ) {
-    debug_assert!(y.len() == x.len() && prev_x.len() == x.len() && prev_y.len() == x.len());
-    debug_assert!(vx.len() == x.len() && vy.len() == x.len() && alive.len() == x.len());
+    let n = x.len();
+    require_equal_len(
+        n,
+        &[
+            y.len(),
+            prev_x.len(),
+            prev_y.len(),
+            vx.len(),
+            vy.len(),
+            alive.len(),
+        ],
+    );
     simd_kernel!(integrate_columns_inner(
         x: &[f32],
         y: &[f32],
@@ -179,22 +208,15 @@ pub fn integrate_velocity_columns(
             }
             i += LANES;
         }
-        let beta = 1.0 - alpha;
         for j in i..n {
             if alive[j] == 0 {
                 continue;
             }
-            let inst_x = x[j] - prev_x[j];
-            let inst_y = y[j] - prev_y[j];
-            prev_x[j] = x[j];
-            prev_y[j] = y[j];
-            if inst_x.abs() > max_step || inst_y.abs() > max_step {
-                vx[j] = 0.0;
-                vy[j] = 0.0;
-            } else {
-                vx[j] = alpha * inst_x + beta * vx[j];
-                vy[j] = alpha * inst_y + beta * vy[j];
-            }
+            let (px, py, nvx, nvy) = ema_lane(x[j], y[j], prev_x[j], prev_y[j], vx[j], vy[j], alpha, max_step);
+            prev_x[j] = px;
+            prev_y[j] = py;
+            vx[j] = nvx;
+            vy[j] = nvy;
         }
     });
     run_simd_kernel!(integrate_columns_inner(
@@ -231,7 +253,6 @@ pub fn integrate_velocity_scalar(
     max_step: f32,
     out: &mut VelocityOut<'_>,
 ) {
-    let beta = 1.0 - alpha;
     for i in 0..input.x.len() {
         if !input.alive[i] {
             out.prev_x[i] = input.prev_x[i];
@@ -240,24 +261,49 @@ pub fn integrate_velocity_scalar(
             out.vy[i] = input.vy[i];
             continue;
         }
-        let inst_x = input.x[i] - input.prev_x[i];
-        let inst_y = input.y[i] - input.prev_y[i];
-        out.prev_x[i] = input.x[i];
-        out.prev_y[i] = input.y[i];
-        if inst_x.abs() > max_step || inst_y.abs() > max_step {
-            out.vx[i] = 0.0;
-            out.vy[i] = 0.0;
-        } else {
-            out.vx[i] = alpha * inst_x + beta * input.vx[i];
-            out.vy[i] = alpha * inst_y + beta * input.vy[i];
-        }
+        let (px, py, vx, vy) = ema_lane(
+            input.x[i],
+            input.y[i],
+            input.prev_x[i],
+            input.prev_y[i],
+            input.vx[i],
+            input.vy[i],
+            alpha,
+            max_step,
+        );
+        out.prev_x[i] = px;
+        out.prev_y[i] = py;
+        out.vx[i] = vx;
+        out.vy[i] = vy;
+    }
+}
+
+/// One organism's EMA. Not inlined, so a NaN payload is the same on every path.
+#[inline(never)]
+fn ema_lane(
+    x: f32,
+    y: f32,
+    prev_x: f32,
+    prev_y: f32,
+    vx: f32,
+    vy: f32,
+    alpha: f32,
+    max_step: f32,
+) -> (f32, f32, f32, f32) {
+    let inst_x = x - prev_x;
+    let inst_y = y - prev_y;
+    if inst_x.abs() > max_step || inst_y.abs() > max_step {
+        (x, y, 0.0, 0.0)
+    } else {
+        let beta = 1.0 - alpha;
+        (x, y, alpha * inst_x + beta * vx, alpha * inst_y + beta * vy)
     }
 }
 
 /// `det_hypot(xs[i] - ox, ys[i] - oy)` for each lane.
 #[inline]
 pub fn hypot_distances(ox: f32, oy: f32, xs: &[f32], ys: &[f32], out: &mut [f32]) {
-    debug_assert!(xs.len() == ys.len() && out.len() == xs.len());
+    require_equal_len(xs.len(), &[ys.len(), out.len()]);
     simd_kernel!(hypot_distances_inner(ox: f32, oy: f32, xs: &[f32], ys: &[f32], out: &mut [f32]) {
         let n = xs.len();
         let mut i = 0;
@@ -290,7 +336,7 @@ pub fn hypot_distances_scalar(ox: f32, oy: f32, xs: &[f32], ys: &[f32], out: &mu
 /// Manhattan distance `|xs - ox| + |ys - oy|`.
 #[inline]
 pub fn l1_distances(ox: f32, oy: f32, xs: &[f32], ys: &[f32], out: &mut [f32]) {
-    debug_assert!(xs.len() == ys.len() && out.len() == xs.len());
+    require_equal_len(xs.len(), &[ys.len(), out.len()]);
     simd_kernel!(l1_distances_inner(ox: f32, oy: f32, xs: &[f32], ys: &[f32], out: &mut [f32]) {
         let n = xs.len();
         let mut i = 0;
@@ -318,7 +364,7 @@ pub fn l1_distances_scalar(ox: f32, oy: f32, xs: &[f32], ys: &[f32], out: &mut [
 /// `x as i32 / bucket` and `y as i32 / bucket`, the spatial index's cell.
 #[inline]
 pub fn bucket_coords(xs: &[f32], ys: &[f32], bucket: i32, out_x: &mut [i32], out_y: &mut [i32]) {
-    debug_assert!(xs.len() == ys.len() && out_x.len() == xs.len() && out_y.len() == xs.len());
+    require_equal_len(xs.len(), &[ys.len(), out_x.len(), out_y.len()]);
     simd_kernel!(bucket_coords_inner(
         xs: &[f32],
         ys: &[f32],
@@ -439,7 +485,20 @@ pub(crate) fn integrate4(
     alpha: f32,
     max_step: f32,
 ) -> ([f32; 4], [f32; 4], [f32; 4], [f32; 4]) {
-    integrate4_arch(x, y, prev_x, prev_y, vx, vy, alpha, max_step)
+    let (nx, ny, mut nvx, mut nvy) = integrate4_arch(x, y, prev_x, prev_y, vx, vy, alpha, max_step);
+    // Adding two NaNs does not keep one payload. A NaN lane goes through the
+    // same out-of-line step the scalar loop uses.
+    if nvx.iter().any(|v| v.is_nan()) || nvy.iter().any(|v| v.is_nan()) {
+        for k in 0..4 {
+            if !nvx[k].is_nan() && !nvy[k].is_nan() {
+                continue;
+            }
+            let (_, _, sx, sy) = ema_lane(x[k], y[k], prev_x[k], prev_y[k], vx[k], vy[k], alpha, max_step);
+            nvx[k] = sx;
+            nvy[k] = sy;
+        }
+    }
+    (nx, ny, nvx, nvy)
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -723,6 +782,67 @@ mod tests {
         assert!(vx[0] != 0.0 && vy[0] != 0.0, "exact cap keeps the ema");
         assert_eq!(vx[1], 0.0);
         assert_eq!(vy[1], 0.0);
+    }
+
+    #[test]
+    fn velocity_nan_payloads_in_a_full_group_match_scalar_bits() {
+        let nan_x = f32::from_bits(0x7fc0_0011);
+        let nan_v = f32::from_bits(0x7fc0_0022);
+        let x = [nan_x; 4];
+        let zeros = [0.0; 4];
+        let vx = [nan_v; 4];
+        let alive = [true; 4];
+        let input = VelocityIn {
+            x: &x,
+            y: &zeros,
+            prev_x: &zeros,
+            prev_y: &zeros,
+            vx: &vx,
+            vy: &zeros,
+            alive: &alive,
+        };
+        let mut got_x = [0f32; 4];
+        let mut got_y = [0f32; 4];
+        let mut got_vx = [0f32; 4];
+        let mut got_vy = [0f32; 4];
+        let mut exp_x = [0f32; 4];
+        let mut exp_y = [0f32; 4];
+        let mut exp_vx = [0f32; 4];
+        let mut exp_vy = [0f32; 4];
+        integrate_velocity(
+            &input,
+            0.4,
+            2.0,
+            &mut VelocityOut {
+                prev_x: &mut got_x,
+                prev_y: &mut got_y,
+                vx: &mut got_vx,
+                vy: &mut got_vy,
+            },
+        );
+        integrate_velocity_scalar(
+            &input,
+            0.4,
+            2.0,
+            &mut VelocityOut {
+                prev_x: &mut exp_x,
+                prev_y: &mut exp_y,
+                vx: &mut exp_vx,
+                vy: &mut exp_vy,
+            },
+        );
+        for i in 0..4 {
+            assert_eq!(got_vx[i].to_bits(), exp_vx[i].to_bits(), "vx {i}");
+            assert_eq!(got_vy[i].to_bits(), exp_vy[i].to_bits(), "vy {i}");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "simd slice lengths differ")]
+    fn a_short_output_is_rejected_before_the_raw_write() {
+        let xs = [1.0; 4];
+        let mut out = [];
+        hypot_distances(0.0, 0.0, &xs, &xs, &mut out);
     }
 
     #[test]
