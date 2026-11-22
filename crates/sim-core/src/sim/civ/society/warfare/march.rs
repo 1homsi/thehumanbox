@@ -40,11 +40,8 @@ impl Simulation {
                 (&battle.attacker_orgs, "marching to the battle"),
                 (&battle.defender_orgs, "hurrying to defend the tribe"),
             ] {
-                let mut side = 0usize;
+                let mut candidates = Vec::new();
                 for id in ids {
-                    if side >= MARCHERS {
-                        break;
-                    }
                     let Some(&i) = index.get(id) else { continue };
                     let o = &self.organisms[i];
                     if o.journey.is_some()
@@ -59,7 +56,22 @@ impl Simulation {
                     if chebyshev(here, target) <= AT_PLACE {
                         continue;
                     }
-                    if self.organisms[i].march_along_roads(&self.grid, target, thought, tick) {
+                    candidates.push(i);
+                }
+                let trips: Vec<_> = candidates
+                    .iter()
+                    .map(|&i| {
+                        let o = &self.organisms[i];
+                        ((o.x as i32, o.y as i32), target)
+                    })
+                    .collect();
+                let routes = crate::sim::par::plan_routes(&self.grid, &trips);
+                let mut side = 0usize;
+                for (&i, steps) in candidates.iter().zip(routes) {
+                    if side >= MARCHERS {
+                        break;
+                    }
+                    if self.organisms[i].march_prepared(steps, target, thought, tick) {
                         side += 1;
                         if thought == "marching to the battle" {
                             marched += 1;

@@ -433,13 +433,25 @@ impl Simulation {
             let Some([tx, ty]) = target else { continue };
             let label = format!("fleeing to {}", migration.host);
             let label = crate::text::prefix_chars(&label, 24).to_string();
-            for &i in &walkers {
+            let needing: Vec<usize> = walkers
+                .iter()
+                .copied()
+                .filter(|&i| {
+                    !self.organisms[i]
+                        .journey
+                        .as_ref()
+                        .is_some_and(|j| j.target == (tx, ty))
+                })
+                .collect();
+            let trips: Vec<_> = needing
+                .iter()
+                .map(|&i| ((self.organisms[i].x as i32, self.organisms[i].y as i32), (tx, ty)))
+                .collect();
+            let routes = crate::sim::par::plan_routes(&self.grid, &trips);
+            for (&i, steps) in needing.iter().zip(routes) {
                 let o = &mut self.organisms[i];
-                if o.journey.as_ref().is_some_and(|j| j.target == (tx, ty)) {
-                    continue;
-                }
                 o.work = None;
-                if !o.march_along_roads(&self.grid, (tx, ty), &label, tick) {
+                if !o.march_prepared(steps, (tx, ty), &label, tick) {
                     o.begin_journey((tx, ty), &label, tick);
                 }
             }

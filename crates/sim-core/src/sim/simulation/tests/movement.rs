@@ -322,7 +322,7 @@ fn wander_validation_clears_hazardous_existing_target() {
     sim.grid.set(80, 80, Tile::Grass);
     sim.grid.hazard[WorldGrid::idx(80, 80)] = 0.90;
 
-    sim.validate_or_assign_wander_target(idx, None);
+    sim.validate_or_assign_wander_target(idx, None, None);
 
     assert_ne!(sim.organisms[idx].wander_target, Some((80, 80)));
 }
