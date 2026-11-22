@@ -42,23 +42,29 @@ impl Simulation {
                 MATE_SEEK_MAX_TILES as i32 + 2,
                 f.spatial_buf,
             );
-            let target = f
-                .spatial_buf
-                .iter()
-                .map(|&i| (i, &self.organisms[i]))
-                .filter(|(_, o)| {
-                    o.alive
-                        && o.sex != my_sex
-                        && o.age > 1000
-                        && o.partner_id.is_none()
-                        && my_trust.get(o.id.as_str()).is_none_or(|&t| t > RIVAL_TRUST)
-                })
-                .map(|(i, o)| {
-                    let dist = (o.x - ox).det_hypot(o.y - oy);
-                    (i, o, dist)
-                })
-                .filter(|(_, _, d)| *d <= MATE_SEEK_MAX_TILES)
-                .map(|(i, o, dist)| {
+            let mut eligible = Vec::new();
+            for &i in f.spatial_buf.iter() {
+                let o = &self.organisms[i];
+                if o.alive
+                    && o.sex != my_sex
+                    && o.age > 1000
+                    && o.partner_id.is_none()
+                    && my_trust.get(o.id.as_str()).is_none_or(|&t| t > RIVAL_TRUST)
+                {
+                    eligible.push(i);
+                }
+            }
+            let mut best: Option<(usize, f32)> = None;
+            let mut n = 0;
+            while n < eligible.len() {
+                let (count, dist) = hypot_chunk(&self.organisms, ox, oy, &eligible, n);
+                for k in 0..count {
+                    let i = eligible[n + k];
+                    let dist = dist[k];
+                    if dist > MATE_SEEK_MAX_TILES {
+                        continue;
+                    }
+                    let o = &self.organisms[i];
                     let lineage_att = if o.lineage_id == *my_lid {
                         0.3
                     } else {
@@ -75,15 +81,23 @@ impl Simulation {
                     } else {
                         -1.0
                     };
-                    (i, o, score)
-                })
-                .filter(|(_, _, s)| *s > 0.0)
-                .max_by(|a, b| {
-                    a.2.partial_cmp(&b.2)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                        .then(a.0.cmp(&b.0))
-                })
-                .map(|(_, o, _)| (o.x as i32, o.y as i32));
+                    if score <= 0.0 {
+                        continue;
+                    }
+                    let wins = best.is_none_or(|(bi, bs)| {
+                        score
+                            .partial_cmp(&bs)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                            .then(i.cmp(&bi))
+                            == std::cmp::Ordering::Greater
+                    });
+                    if wins {
+                        best = Some((i, score));
+                    }
+                }
+                n += count;
+            }
+            let target = best.map(|(i, _)| (self.organisms[i].x as i32, self.organisms[i].y as i32));
             if let Some((tx, ty)) = target {
                 let mate_at = crate::world::grid::clamp_to_map(tx, ty);
                 self.organisms[idx].wander_target = Some(mate_at);
@@ -103,19 +117,37 @@ impl Simulation {
             // cluster has the densest friend network, producing a one-way
             // attractor that empties out the rest of the map.
             const FRIEND_SEEK_MAX_TILES: f32 = 60.0;
-            let best = self.organisms[idx]
+            let friends: Vec<usize> = self.organisms[idx]
                 .friends
                 .keys()
                 .filter_map(|fid| {
                     org_idx_by_id
                         .get(fid.as_str())
-                        .map(|&i| &self.organisms[i])
-                        .filter(|o| o.alive)
+                        .copied()
+                        .filter(|&i| self.organisms[i].alive)
                 })
-                .map(|o| (o, (o.x - ox).det_hypot(o.y - oy)))
-                .filter(|(_, d)| *d <= FRIEND_SEEK_MAX_TILES)
-                .min_by_key(|(_, d)| (*d * 10.0) as i32)
-                .map(|(o, _)| (o.x as i32, o.y as i32, o.name.clone()));
+                .collect();
+            let mut best: Option<(usize, i32)> = None;
+            let mut n = 0;
+            while n < friends.len() {
+                let (count, dist) = hypot_chunk(&self.organisms, ox, oy, &friends, n);
+                for k in 0..count {
+                    let i = friends[n + k];
+                    let d = dist[k];
+                    if d > FRIEND_SEEK_MAX_TILES {
+                        continue;
+                    }
+                    let key = (d * 10.0) as i32;
+                    if best.is_none_or(|(_, bk)| key < bk) {
+                        best = Some((i, key));
+                    }
+                }
+                n += count;
+            }
+            let best = best.map(|(i, _)| {
+                let o = &self.organisms[i];
+                (o.x as i32, o.y as i32, o.name.clone())
+            });
             if let Some((tx, ty, fname)) = best {
                 self.organisms[idx].wander_target = Some(crate::world::grid::clamp_to_map(tx, ty));
                 let short = crate::text::prefix_chars(&fname, 4);
@@ -144,25 +176,37 @@ impl Simulation {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
             spatial.query_into(ox as i32, oy as i32, 122, f.spatial_buf);
-            let candidate = f
-                .spatial_buf
-                .iter()
-                .map(|&i| (i, &self.organisms[i]))
-                .filter(|(i, o)| {
-                    *i != idx
-                        && o.alive
-                        && o.partner_id.is_none()
-                        && o.attracted_to.is_none()
-                        && o.age > 1000
-                        && o.sex != my_sex
-                        && self.organisms[idx]
-                            .org_trust
-                            .get(o.id.as_str())
-                            .is_none_or(|&t| t > RIVAL_TRUST)
-                        && (o.x - ox).det_hypot(o.y - oy) < 120.0
-                })
-                .map(|(i, _)| i)
-                .min();
+            let mut courted = Vec::new();
+            for &i in f.spatial_buf.iter() {
+                let o = &self.organisms[i];
+                if i != idx
+                    && o.alive
+                    && o.partner_id.is_none()
+                    && o.attracted_to.is_none()
+                    && o.age > 1000
+                    && o.sex != my_sex
+                    && self.organisms[idx]
+                        .org_trust
+                        .get(o.id.as_str())
+                        .is_none_or(|&t| t > RIVAL_TRUST)
+                {
+                    courted.push(i);
+                }
+            }
+            let mut candidate: Option<usize> = None;
+            let mut n = 0;
+            while n < courted.len() {
+                let (count, dist) = hypot_chunk(&self.organisms, ox, oy, &courted, n);
+                for k in 0..count {
+                    if dist[k] < 120.0 {
+                        let i = courted[n + k];
+                        if candidate.is_none_or(|best| i < best) {
+                            candidate = Some(i);
+                        }
+                    }
+                }
+                n += count;
+            }
             if let Some(ci) = candidate {
                 let cid = self.organisms[ci].id;
                 let cname = self.organisms[ci].name.clone();
@@ -299,20 +343,24 @@ impl Simulation {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let chat_target: Option<usize> = {
                     let partner_id = self.organisms[idx].partner_id.as_deref();
-                    spatial
+                    let nearby: Vec<usize> = spatial
                         .ordered_nearby(&self.organisms, ox, oy, 6)
-                        .filter(|(i, o)| {
-                            *i != idx
-                                && o.alive
-                                && partner_id != Some(o.id.as_str())
-                                && (o.x - ox).det_hypot(o.y - oy) < 6.0
-                        })
-                        .min_by(|(_, a), (_, b)| {
-                            let da = (a.x - ox).det_hypot(a.y - oy);
-                            let db = (b.x - ox).det_hypot(b.y - oy);
-                            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
-                        })
+                        .filter(|(i, o)| *i != idx && o.alive && partner_id != Some(o.id.as_str()))
                         .map(|(i, _)| i)
+                        .collect();
+                    let mut best: Option<(usize, f32)> = None;
+                    let mut n = 0;
+                    while n < nearby.len() {
+                        let (count, dist) = hypot_chunk(&self.organisms, ox, oy, &nearby, n);
+                        for k in 0..count {
+                            let d = dist[k];
+                            if d < 6.0 && best.is_none_or(|(_, bd)| d < bd) {
+                                best = Some((nearby[n + k], d));
+                            }
+                        }
+                        n += count;
+                    }
+                    best.map(|(i, _)| i)
                 };
                 if let Some(ci) = chat_target {
                     let their_lid = self.organisms[ci].lineage_id;
@@ -409,4 +457,23 @@ impl Simulation {
             },
         );
     }
+}
+
+/// `det_hypot` for up to four indexed organisms, starting at `start`.
+fn hypot_chunk(
+    organisms: &[crate::organism::organism::Organism],
+    ox: f32,
+    oy: f32,
+    indices: &[usize],
+    start: usize,
+) -> (usize, [f32; 4]) {
+    let count = (indices.len() - start).min(4);
+    let mut xs = [0f32; 4];
+    let mut ys = [0f32; 4];
+    for k in 0..count {
+        let o = &organisms[indices[start + k]];
+        xs[k] = o.x - ox;
+        ys[k] = o.y - oy;
+    }
+    (count, crate::simd::hypot4(xs, ys))
 }

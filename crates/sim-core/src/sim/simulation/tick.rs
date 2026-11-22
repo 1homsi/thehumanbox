@@ -562,21 +562,40 @@ impl Simulation {
 
         const VEL_EMA_ALPHA: f32 = 0.4;
         const MAX_PER_TICK: f32 = 2.0;
-        for o in self.organisms.iter_mut() {
-            if !o.alive {
-                continue;
+        // Four people at a time. The SIMD step matches the scalar EMA bit for bit,
+        // including the reset when a teleport jumps further than one step.
+        let mut i = 0;
+        while i < self.organisms.len() {
+            let count = (self.organisms.len() - i).min(4);
+            let mut xs = [0f32; 4];
+            let mut ys = [0f32; 4];
+            let mut px = [0f32; 4];
+            let mut py = [0f32; 4];
+            let mut vx = [0f32; 4];
+            let mut vy = [0f32; 4];
+            let mut alive = [false; 4];
+            for k in 0..count {
+                let o = &self.organisms[i + k];
+                xs[k] = o.x;
+                ys[k] = o.y;
+                px[k] = o.prev_x;
+                py[k] = o.prev_y;
+                vx[k] = o.vx_smooth;
+                vy[k] = o.vy_smooth;
+                alive[k] = o.alive;
             }
-            let inst_vx = o.x - o.prev_x;
-            let inst_vy = o.y - o.prev_y;
-            o.prev_x = o.x;
-            o.prev_y = o.y;
-            if inst_vx.abs() > MAX_PER_TICK || inst_vy.abs() > MAX_PER_TICK {
-                o.vx_smooth = 0.0;
-                o.vy_smooth = 0.0;
-                continue;
+            let (nx, ny, nvx, nvy) =
+                crate::simd::integrate4(xs, ys, px, py, vx, vy, VEL_EMA_ALPHA, MAX_PER_TICK);
+            for k in 0..count {
+                if alive[k] {
+                    let o = &mut self.organisms[i + k];
+                    o.prev_x = nx[k];
+                    o.prev_y = ny[k];
+                    o.vx_smooth = nvx[k];
+                    o.vy_smooth = nvy[k];
+                }
             }
-            o.vx_smooth = VEL_EMA_ALPHA * inst_vx + (1.0 - VEL_EMA_ALPHA) * o.vx_smooth;
-            o.vy_smooth = VEL_EMA_ALPHA * inst_vy + (1.0 - VEL_EMA_ALPHA) * o.vy_smooth;
+            i += count;
         }
 
         if self.tick_count.is_multiple_of(1200) {

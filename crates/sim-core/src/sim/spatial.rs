@@ -28,27 +28,19 @@ enum Buckets {
 
 impl SpatialIndex {
     pub fn build(organisms: &[Organism], bucket_size: i32) -> Self {
-        Self::from_points(
-            organisms
-                .iter()
-                .enumerate()
-                .filter(|(_, org)| org.alive)
-                .map(|(i, org)| (i, org.x as i32 / bucket_size, org.y as i32 / bucket_size)),
-            organisms.len(),
-            bucket_size,
-        )
+        let points = bucket_points(organisms.len(), bucket_size, |i| {
+            let org = &organisms[i];
+            org.alive.then_some((org.x, org.y))
+        });
+        Self::from_points(points.iter().copied(), organisms.len(), bucket_size)
     }
 
     pub fn build_animals(animals: &[Animal], bucket_size: i32) -> Self {
-        Self::from_points(
-            animals
-                .iter()
-                .enumerate()
-                .filter(|(_, a)| a.alive)
-                .map(|(i, a)| (i, a.x as i32 / bucket_size, a.y as i32 / bucket_size)),
-            animals.len(),
-            bucket_size,
-        )
+        let points = bucket_points(animals.len(), bucket_size, |i| {
+            let animal = &animals[i];
+            animal.alive.then_some((animal.x, animal.y))
+        });
+        Self::from_points(points.iter().copied(), animals.len(), bucket_size)
     }
 
     /// `points` are `(index, bucket x, bucket y)` in ascending index order.
@@ -227,6 +219,42 @@ impl SpatialIndex {
             }
         }
     }
+}
+
+/// Alive `(index, bucket x, bucket y)` in ascending index order. Bucket keys are
+/// `coord as i32 / bucket_size`, four at a time.
+fn bucket_points(
+    len: usize,
+    bucket_size: i32,
+    coord: impl Fn(usize) -> Option<(f32, f32)>,
+) -> Vec<(usize, i32, i32)> {
+    let mut points = Vec::new();
+    let mut i = 0;
+    while i < len {
+        let count = (len - i).min(4);
+        let mut xs = [0f32; 4];
+        let mut ys = [0f32; 4];
+        let mut keep = [false; 4];
+        let mut any = false;
+        for k in 0..count {
+            if let Some((x, y)) = coord(i + k) {
+                xs[k] = x;
+                ys[k] = y;
+                keep[k] = true;
+                any = true;
+            }
+        }
+        if any {
+            let (bx, by) = crate::simd::bucket4(xs, ys, bucket_size);
+            for k in 0..count {
+                if keep[k] {
+                    points.push((i + k, bx[k], by[k]));
+                }
+            }
+        }
+        i += count;
+    }
+    points
 }
 
 /// Preserve the old population-order first match. The index is built before

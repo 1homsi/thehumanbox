@@ -151,22 +151,35 @@ impl Organism {
         spatial.query_into(self.x as i32, self.y as i32, scan, nearby);
         let mut nearest_lid: Option<&str> = None;
         let mut nearest_d = 999.0f32;
-        for &i in nearby.iter() {
-            let other = &organisms[i];
-            if std::ptr::eq(other, self) || !other.alive {
-                continue;
+        let mut cursor = 0;
+        while cursor < nearby.len() {
+            let count = (nearby.len() - cursor).min(4);
+            let mut xs = [0f32; 4];
+            let mut ys = [0f32; 4];
+            for k in 0..count {
+                let other = &organisms[nearby[cursor + k]];
+                xs[k] = other.x;
+                ys[k] = other.y;
             }
-            let distance = (other.x - self.x).abs() + (other.y - self.y).abs();
-            if distance <= 5.0 {
-                org_near = 1;
-                if other.lineage_id == self.lineage_id {
-                    kin_near = 1;
+            let distances = crate::simd::l1_4(self.x, self.y, xs, ys);
+            for k in 0..count {
+                let other = &organisms[nearby[cursor + k]];
+                if std::ptr::eq(other, self) || !other.alive {
+                    continue;
+                }
+                let distance = distances[k];
+                if distance <= 5.0 {
+                    org_near = 1;
+                    if other.lineage_id == self.lineage_id {
+                        kin_near = 1;
+                    }
+                }
+                if distance < nearest_d && other.lineage_id != self.lineage_id {
+                    nearest_d = distance;
+                    nearest_lid = Some(&other.lineage_id);
                 }
             }
-            if distance < nearest_d && other.lineage_id != self.lineage_id {
-                nearest_d = distance;
-                nearest_lid = Some(&other.lineage_id);
-            }
+            cursor += count;
         }
 
         let food_tr = i32::from(grid.trail_above(ix, iy, TrailKind::Food, 5, 0.4));

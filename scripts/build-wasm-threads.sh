@@ -23,7 +23,7 @@ RUSTUP_TOOLCHAIN="$NIGHTLY" \
 RUSTFLAGS='--cfg getrandom_backend="wasm_js" -C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--shared-memory -C link-arg=--max-memory=1073741824 -C link-arg=--import-memory -C link-arg=--export=__wasm_init_tls -C link-arg=--export=__tls_size -C link-arg=--export=__tls_align -C link-arg=--export=__tls_base' \
   wasm-pack build crates/sim-core --target web --release --out-dir "$OUT_DIR" --out-name sim_core_threads \
   -- \
-  --features wasm-threads \
+  --features wasm-threads,wasm-simd \
   -Z build-std=panic_abort,std \
   --config 'profile.release.lto="fat"' \
   --config 'profile.release.codegen-units=1' \
