@@ -420,7 +420,12 @@ impl Simulation {
     }
 
     /// Distinct living homes, sorted by x then y. A camp shares one home, so the
-    /// founding search checks each place once. Rebuilt when a home moves.
+    /// founding search checks each place once.
+    ///
+    /// Homes are not in the hot columns (those hold position, life and tribe).
+    /// This list is filled from the organism structs on the sequential sense
+    /// pass, after the parallel neighbour reads, and dropped when a fork moves
+    /// a camp. The parallel passes never touch it.
     fn ensure_home_spots(&mut self) {
         if self.home_spots_ok {
             return;
@@ -506,5 +511,22 @@ mod home_spot_tests {
         sim.home_spots_ok = false;
         assert!(!sim.any_living_home_within(10, 10, 90));
         assert!(sim.any_living_home_within(700, 10, 5));
+    }
+
+    #[test]
+    fn a_fork_drops_packed_homes_and_keeps_the_hot_columns() {
+        let mut sim = Simulation::new_blank(3);
+        sim.organisms.push(person("founder", (10.0, 10.0), true));
+        sim.organisms[0].x = 10.0;
+        sim.organisms[0].y = 10.0;
+        sim.organisms[0].age = 2000;
+        sim.organism_columns.sync_from(&sim.organisms);
+        assert!(sim.any_living_home_within(10, 10, 5));
+        assert!(sim.home_spots_ok);
+        sim.fork_new_tribe(0, 220, 180);
+        assert!(!sim.home_spots_ok);
+        assert_eq!(sim.organism_columns.lineage[0], sim.organisms[0].lineage_id);
+        assert!(sim.any_living_home_within(220, 180, 5));
+        assert!(!sim.any_living_home_within(10, 10, 5));
     }
 }
