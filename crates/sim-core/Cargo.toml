@@ -23,6 +23,9 @@ rayon = { version = "1.10", optional = true }
 # Spread the parts of a tick that only read the world across the machine's cores (see `sim::par`). On for the
 # native builds (desktop, server, headless); the default browser build runs on one thread.
 parallel = ["dep:rayon"]
+# Compile the explicit wasm SIMD kernels (`simd128`). Off in the scalar fallback module, which is what a
+# browser without WASM SIMD loads. Native builds ignore this and pick SSE2 or NEON from the target arch.
+wasm-simd = []
 # The threaded browser build (scripts/build-wasm-threads.sh): `parallel` on a pool of Web Workers, which needs
 # SharedArrayBuffer, so the page must be cross-origin isolated. The page calls `initThreadPool` before the sim.
 wasm-threads = ["parallel", "dep:wasm-bindgen-rayon"]

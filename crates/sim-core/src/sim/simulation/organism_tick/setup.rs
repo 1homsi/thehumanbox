@@ -83,22 +83,28 @@ pub(super) fn kin_near_columns(
     let mine = cols.lineage[idx];
     let mut kin_near = 0usize;
     let mut hostile_near = false;
-    for &i in near {
-        if i == idx || cols.alive[i] == 0 {
-            continue;
+    let mut cursor = 0;
+    while cursor < near.len() {
+        let (count, dist) = crate::simd::l1_indexed_chunk(ox, oy, &cols.x, &cols.y, near, cursor);
+        for k in 0..count {
+            let i = near[cursor + k];
+            if i == idx || cols.alive[i] == 0 {
+                continue;
+            }
+            let dist = dist[k];
+            let other = cols.lineage[i];
+            // The distance test comes first: the lineage compare is a string compare.
+            if dist <= 5.0 && other == mine {
+                kin_near += 1;
+            } else if !hostile_near
+                && dist <= 6.0
+                && other != mine
+                && organisms[idx].attitude_toward(other.as_str()) < -0.2
+            {
+                hostile_near = true;
+            }
         }
-        let dist = (cols.x[i] - ox).abs() + (cols.y[i] - oy).abs();
-        let other = cols.lineage[i];
-        // The distance test comes first: the lineage compare is a string compare.
-        if dist <= 5.0 && other == mine {
-            kin_near += 1;
-        } else if !hostile_near
-            && dist <= 6.0
-            && other != mine
-            && organisms[idx].attitude_toward(other.as_str()) < -0.2
-        {
-            hostile_near = true;
-        }
+        cursor += count;
     }
     (kin_near, hostile_near)
 }

@@ -8,7 +8,8 @@ use crate::organism::organism::Organism;
 const MAX_DENSE_BUCKETS: i64 = 1 << 16;
 
 /// Living `(index, bucket x, bucket y)` walked off the hot columns.
-/// Cloning restarts the scan, which is what [`SpatialIndex::from_points`] does.
+/// `from_points` clones this before the first step, so each pass starts over.
+/// Bucket keys are `coord as i32 / bucket`, four lanes at a time.
 #[derive(Clone)]
 struct ColumnBuckets<'a> {
     x: &'a [f32],
@@ -16,21 +17,55 @@ struct ColumnBuckets<'a> {
     alive: &'a [u8],
     bucket: i32,
     i: usize,
+    base: usize,
+    slot: usize,
+    slots: usize,
+    keep: [bool; 4],
+    bx: [i32; 4],
+    by: [i32; 4],
 }
 
 impl Iterator for ColumnBuckets<'_> {
     type Item = (usize, i32, i32);
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.i < self.alive.len() {
-            let i = self.i;
-            self.i += 1;
-            if self.alive[i] == 0 {
+        loop {
+            if self.slot < self.slots {
+                let k = self.slot;
+                self.slot += 1;
+                if self.keep[k] {
+                    return Some((self.base + k, self.bx[k], self.by[k]));
+                }
                 continue;
             }
-            return Some((i, self.x[i] as i32 / self.bucket, self.y[i] as i32 / self.bucket));
+            if self.i >= self.alive.len() {
+                return None;
+            }
+            let count = (self.alive.len() - self.i).min(4);
+            let base = self.i;
+            let mut xs = [0f32; 4];
+            let mut ys = [0f32; 4];
+            let mut keep = [false; 4];
+            let mut any = false;
+            for k in 0..count {
+                if self.alive[base + k] != 0 {
+                    xs[k] = self.x[base + k];
+                    ys[k] = self.y[base + k];
+                    keep[k] = true;
+                    any = true;
+                }
+            }
+            self.base = base;
+            self.i = base + count;
+            self.slot = 0;
+            self.slots = count;
+            self.keep = keep;
+            if any {
+                let (bx, by) = crate::simd::bucket4(xs, ys, self.bucket);
+                self.bx = bx;
+                self.by = by;
+            }
         }
-        None
     }
 }
 
@@ -56,15 +91,11 @@ enum Buckets {
 
 impl SpatialIndex {
     pub fn build(organisms: &[Organism], bucket_size: i32) -> Self {
-        Self::from_points(
-            organisms
-                .iter()
-                .enumerate()
-                .filter(|(_, org)| org.alive)
-                .map(|(i, org)| (i, org.x as i32 / bucket_size, org.y as i32 / bucket_size)),
-            organisms.len(),
-            bucket_size,
-        )
+        let points = bucket_points(organisms.len(), bucket_size, |i| {
+            let org = &organisms[i];
+            org.alive.then_some((org.x, org.y))
+        });
+        Self::from_points(points.iter().copied(), organisms.len(), bucket_size)
     }
 
     /// Same index as [`Self::build`], reading `alive` / `x` / `y` from columns.
@@ -76,6 +107,12 @@ impl SpatialIndex {
                 alive: &columns.alive,
                 bucket: bucket_size,
                 i: 0,
+                base: 0,
+                slot: 0,
+                slots: 0,
+                keep: [false; 4],
+                bx: [0; 4],
+                by: [0; 4],
             },
             columns.len(),
             bucket_size,
@@ -83,15 +120,11 @@ impl SpatialIndex {
     }
 
     pub fn build_animals(animals: &[Animal], bucket_size: i32) -> Self {
-        Self::from_points(
-            animals
-                .iter()
-                .enumerate()
-                .filter(|(_, a)| a.alive)
-                .map(|(i, a)| (i, a.x as i32 / bucket_size, a.y as i32 / bucket_size)),
-            animals.len(),
-            bucket_size,
-        )
+        let points = bucket_points(animals.len(), bucket_size, |i| {
+            let animal = &animals[i];
+            animal.alive.then_some((animal.x, animal.y))
+        });
+        Self::from_points(points.iter().copied(), animals.len(), bucket_size)
     }
 
     /// `points` are `(index, bucket x, bucket y)` in ascending index order.
@@ -270,6 +303,42 @@ impl SpatialIndex {
             }
         }
     }
+}
+
+/// Alive `(index, bucket x, bucket y)` in ascending index order. Bucket keys are
+/// `coord as i32 / bucket_size`, four at a time.
+fn bucket_points(
+    len: usize,
+    bucket_size: i32,
+    coord: impl Fn(usize) -> Option<(f32, f32)>,
+) -> Vec<(usize, i32, i32)> {
+    let mut points = Vec::new();
+    let mut i = 0;
+    while i < len {
+        let count = (len - i).min(4);
+        let mut xs = [0f32; 4];
+        let mut ys = [0f32; 4];
+        let mut keep = [false; 4];
+        let mut any = false;
+        for k in 0..count {
+            if let Some((x, y)) = coord(i + k) {
+                xs[k] = x;
+                ys[k] = y;
+                keep[k] = true;
+                any = true;
+            }
+        }
+        if any {
+            let (bx, by) = crate::simd::bucket4(xs, ys, bucket_size);
+            for k in 0..count {
+                if keep[k] {
+                    points.push((i + k, bx[k], by[k]));
+                }
+            }
+        }
+        i += count;
+    }
+    points
 }
 
 /// Preserve the old population-order first match. The index is built before

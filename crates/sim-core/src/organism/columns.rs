@@ -230,22 +230,19 @@ impl OrganismColumns {
             self.vy[i] = o.vy_smooth;
             self.alive[i] = u8::from(o.alive);
         }
-        for i in 0..n {
-            if self.alive[i] == 0 {
-                continue;
-            }
-            let inst_vx = self.x[i] - self.prev_x[i];
-            let inst_vy = self.y[i] - self.prev_y[i];
-            self.prev_x[i] = self.x[i];
-            self.prev_y[i] = self.y[i];
-            if inst_vx.abs() > MAX_PER_TICK || inst_vy.abs() > MAX_PER_TICK {
-                self.vx[i] = 0.0;
-                self.vy[i] = 0.0;
-                continue;
-            }
-            self.vx[i] = VEL_EMA_ALPHA * inst_vx + (1.0 - VEL_EMA_ALPHA) * self.vx[i];
-            self.vy[i] = VEL_EMA_ALPHA * inst_vy + (1.0 - VEL_EMA_ALPHA) * self.vy[i];
-        }
+        // Four lanes on the contiguous motion columns. Dead slots stay put, and
+        // the bits match the scalar EMA, including the teleport reset.
+        crate::simd::integrate_velocity_columns(
+            &self.x,
+            &self.y,
+            &mut self.prev_x,
+            &mut self.prev_y,
+            &mut self.vx,
+            &mut self.vy,
+            &self.alive,
+            VEL_EMA_ALPHA,
+            MAX_PER_TICK,
+        );
         for (i, o) in organisms.iter_mut().enumerate() {
             if self.alive[i] == 0 {
                 continue;

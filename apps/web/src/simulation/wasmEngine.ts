@@ -1,5 +1,7 @@
 import init, { Sim } from '../wasm/sim-core/sim_core.js'
 import wasmUrl from '../wasm/sim-core/sim_core_bg.wasm?url'
+import initScalar, { Sim as ScalarSim } from '../wasm/sim-core/scalar/sim_core_scalar.js'
+import scalarWasmUrl from '../wasm/sim-core/scalar/sim_core_scalar_bg.wasm?url'
 import initThreadedWasm, {
   Sim as ThreadedSim,
   initThreadPool,
@@ -21,6 +23,7 @@ import {
   withTimeout,
   type SingleThreadReason,
 } from './wasmThreads'
+import { wasmSimdSupported } from './wasmSimd'
 
 /** The engine's class. Both builds export the same API, so the worker uses either one the same way. */
 export type SimClass = typeof Sim
@@ -41,8 +44,15 @@ export interface SimEngine {
  */
 export async function startSimEngine({ touch = false }: { touch?: boolean } = {}): Promise<SimEngine> {
   const startSingle = async () => {
-    await init({ module_or_path: wasmUrl })
-    return { Sim, threads: 1 }
+    // The SIMD module and the scalar module tick the same world. A browser that cannot
+    // validate WASM SIMD never instantiates the SIMD bytes.
+    if (wasmSimdSupported()) {
+      await init({ module_or_path: wasmUrl })
+      return { Sim, threads: 1 }
+    }
+    logger.warn('wasm', 'wasm SIMD unavailable; using the scalar engine')
+    await initScalar({ module_or_path: scalarWasmUrl })
+    return { Sim: ScalarSim as SimClass, threads: 1 }
   }
   if (!wantsThreads(self)) return { ...(await startSingle()), fallback: 'not_isolated' }
   if (mobileWebKit(navigator.userAgent, touch)) return { ...(await startSingle()), fallback: 'webkit' }

@@ -457,10 +457,23 @@ impl Simulation {
                 }
                 let (ox, oy) = (org.x, org.y);
                 animal_spatial.query_into(ox as i32, oy as i32, 8, animal_buf);
-                let animal_near = animal_buf.iter().any(|&a| {
-                    let a = &self.animals[a];
-                    a.alive && (a.x - ox).abs() + (a.y - oy).abs() <= 8.0
-                });
+                let mut animal_near = false;
+                let mut cursor = 0;
+                while cursor < animal_buf.len() && !animal_near {
+                    let count = (animal_buf.len() - cursor).min(4);
+                    let mut xs = [0f32; 4];
+                    let mut ys = [0f32; 4];
+                    let mut alive = [false; 4];
+                    for k in 0..count {
+                        let animal = &self.animals[animal_buf[cursor + k]];
+                        xs[k] = animal.x;
+                        ys[k] = animal.y;
+                        alive[k] = animal.alive;
+                    }
+                    let distance = crate::simd::l1_4(ox, oy, xs, ys);
+                    animal_near = (0..count).any(|k| alive[k] && distance[k] <= 8.0);
+                    cursor += count;
+                }
                 Some(
                     org.perceive_into(
                         &self.grid,

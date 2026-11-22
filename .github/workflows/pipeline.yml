@@ -563,6 +563,7 @@ jobs:
         run: |
           [[ "$NATIVE" =~ ^0x[0-9a-f]{16}$ ]] || { echo "no native fingerprint ('$NATIVE')" >&2; exit 1; }
           node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core --native "$NATIVE"
+          node scripts/check-wasm-determinism.mjs apps/web/src/wasm/sim-core/scalar --native "$NATIVE"
 
   build-frontend:
     name: Build frontend

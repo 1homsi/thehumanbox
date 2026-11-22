@@ -5,6 +5,7 @@ pub mod math;
 pub mod organism;
 pub mod physics;
 pub mod sim;
+pub mod simd;
 pub mod text;
 pub mod world;
 

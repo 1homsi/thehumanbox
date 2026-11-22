@@ -11,7 +11,7 @@
 // CI passes the value the simulation tests printed, so the native sim is not
 // compiled twice.
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -49,8 +49,14 @@ function fnv1a64(bytes) {
   return '0x' + h.toString(16).padStart(16, '0')
 }
 
-const mod = await import(pathToFileURL(path.join(wasmDir, 'sim_core.js')).href)
-mod.initSync({ module: readFileSync(path.join(wasmDir, 'sim_core_bg.wasm')) })
+const jsName = ['sim_core.js', 'sim_core_scalar.js'].find((name) => existsSync(path.join(wasmDir, name)))
+if (!jsName) {
+  console.error(`no sim_core.js in ${wasmDir}`)
+  process.exit(2)
+}
+const wasmName = `${jsName.replace(/\.js$/, '')}_bg.wasm`
+const mod = await import(pathToFileURL(path.join(wasmDir, jsName)).href)
+mod.initSync({ module: readFileSync(path.join(wasmDir, wasmName)) })
 const sim = new mod.Sim(BigInt(SEED))
 sim.tickN(TICKS)
 const got = fnv1a64(sim.serialize())
