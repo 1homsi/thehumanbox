@@ -68,6 +68,25 @@ const _: fn() = || {
 #[cfg(feature = "parallel")]
 const MIN_BATCH: usize = 16;
 
+/// One planned walk: from a tile, to a tile.
+pub(crate) type Trip = ((i32, i32), (i32, i32));
+
+/// Road routes for every trip, in the same order. Planning only reads the grid, so the routes do not
+/// depend on which core planned them; the caller applies them in order.
+pub(crate) fn plan_routes(
+    grid: &crate::world::grid::WorldGrid,
+    trips: &[Trip],
+) -> Vec<Option<Vec<(i32, i32)>>> {
+    map_with(
+        trips.len(),
+        || (),
+        |_, i| {
+            let (from, to) = trips[i];
+            crate::organism::plan_route(grid, from, to)
+        },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -116,9 +135,13 @@ mod tests {
                 rmp_serde::to_vec_named(&sim.to_save_state()).expect("a save")
             })
         };
+        let one = grow(1);
+        let four = grow(4);
+        let six = grow(6);
         assert!(
-            grow(1) == grow(4),
+            one == four,
             "the world grew differently on four cores than on one"
         );
+        assert!(one == six, "the world grew differently on six cores than on one");
     }
 }

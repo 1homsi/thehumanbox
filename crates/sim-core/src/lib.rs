@@ -5,6 +5,7 @@ pub mod math;
 pub mod organism;
 pub mod physics;
 pub mod sim;
+pub mod simd;
 pub mod text;
 pub mod world;
 
@@ -84,6 +85,15 @@ mod wasm_facade {
         pub fn blank(seed: u64) -> Sim {
             Sim {
                 inner: Simulation::new_blank(seed),
+                save: None,
+            }
+        }
+
+        /// Year one, with neighbouring tribes that already say different words.
+        #[wasm_bindgen(js_name = headStart)]
+        pub fn head_start(seed: u64) -> Sim {
+            Sim {
+                inner: Simulation::new_head_start(seed),
                 save: None,
             }
         }

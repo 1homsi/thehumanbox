@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { buildLocalSimEnv, rssLimitsMb, wantsEmptyWorld, withBlankWorld } from './sim-env'
+import {
+  buildLocalSimEnv,
+  rssLimitsMb,
+  wantsEmptyWorld,
+  wantsHeadStartWorld,
+  withBlankWorld,
+  withHeadStartWorld,
+} from './sim-env'
 import type { Settings } from './settings'
 
 function settings(overrides: Partial<Settings> = {}): Settings {
@@ -59,8 +66,15 @@ test('an empty world is asked of the simulation only when the renderer asks for 
   assert.equal(wantsEmptyWorld({ empty: 'yes' }), false)
   assert.equal(wantsEmptyWorld(undefined), false)
   assert.equal(wantsEmptyWorld(null), false)
+  assert.equal(wantsHeadStartWorld({ headStart: true }), true)
+  assert.equal(wantsHeadStartWorld({ headStart: 'yes' }), false)
+  assert.equal(wantsHeadStartWorld({ empty: true }), false)
+  assert.equal(wantsHeadStartWorld(undefined), false)
   const env = buildLocalSimEnv(settings(), 4321, {})
   assert.equal(withBlankWorld(env, true).THB_BLANK_WORLD, '1')
   assert.equal(withBlankWorld(env, false).THB_BLANK_WORLD, undefined)
   assert.equal(env.THB_BLANK_WORLD, undefined)
+  assert.equal(withHeadStartWorld(env, true).THB_HEAD_START, '1')
+  assert.equal(withHeadStartWorld(env, false).THB_HEAD_START, undefined)
+  assert.equal(env.THB_HEAD_START, undefined)
 })

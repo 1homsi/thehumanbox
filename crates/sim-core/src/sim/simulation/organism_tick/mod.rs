@@ -5,7 +5,10 @@ mod act;
 mod ageing;
 mod bonds;
 mod decide;
+mod observe;
 pub(super) use decide::Choice;
+use observe::SenseLook;
+
 mod home_heir;
 mod learning;
 mod mortality;
@@ -454,18 +457,37 @@ impl Simulation {
                 }
                 let (ox, oy) = (org.x, org.y);
                 animal_spatial.query_into(ox as i32, oy as i32, 8, animal_buf);
-                let animal_near = animal_buf.iter().any(|&a| {
-                    let a = &self.animals[a];
-                    a.alive && (a.x - ox).abs() + (a.y - oy).abs() <= 8.0
-                });
-                Some(org.perceive_into(
-                    &self.grid,
-                    &self.organisms,
-                    night,
-                    animal_near,
-                    spatial,
-                    perception_buf,
-                ))
+                let mut animal_near = false;
+                let mut cursor = 0;
+                while cursor < animal_buf.len() && !animal_near {
+                    let count = (animal_buf.len() - cursor).min(4);
+                    let mut xs = [0f32; 4];
+                    let mut ys = [0f32; 4];
+                    let mut alive = [false; 4];
+                    for k in 0..count {
+                        let animal = &self.animals[animal_buf[cursor + k]];
+                        xs[k] = animal.x;
+                        ys[k] = animal.y;
+                        alive[k] = animal.alive;
+                    }
+                    let distance = crate::simd::l1_4(ox, oy, xs, ys);
+                    animal_near = (0..count).any(|k| alive[k] && distance[k] <= 8.0);
+                    cursor += count;
+                }
+                Some(
+                    org.perceive_into(
+                        &self.grid,
+                        &self.organisms,
+                        night,
+                        animal_near,
+                        spatial,
+                        perception_buf,
+                        self.organism_columns
+                            .ready_for(self.organisms.len())
+                            .then(|| self.organism_columns.neighbours()),
+                        i,
+                    ),
+                )
             },
         )
     }
@@ -558,6 +580,8 @@ impl Simulation {
                     p.animal_near,
                     spatial,
                     perception_buf,
+                    None,
+                    p.idx,
                 );
                 org.q_table.get(&next).map_or(0.0, |row| {
                     crate::sim::actions::best_next_q(
@@ -791,6 +815,8 @@ impl Simulation {
         buffers: &mut TickBuffers,
         lineage_members: &mut FxHashMap<crate::intern::Sym, Vec<usize>>,
         perception: Option<String>,
+        look: &SenseLook,
+        crowd: Option<crate::sim::agents::wander::KinCrowd>,
     ) -> Sensed {
         let mut f = new_frame(
             idx,
@@ -803,8 +829,8 @@ impl Simulation {
             lineage_members,
         );
         f.pre_perception = perception;
-        self.org_setup(&mut f);
-        self.org_threats(&mut f);
+        self.org_setup(&mut f, look);
+        self.org_threats(&mut f, look, crowd);
         let sensed = f.take_sensed();
         self.org_ready_to_choose(&sensed);
         sensed
@@ -950,7 +976,20 @@ impl Simulation {
             animal_spatial,
             org_idx_by_id,
         };
-        let sensed = self.org_sense(idx, population_slots_used, &cx, buffers, lineage_members, None);
+        let mut awake = vec![false; self.organisms.len()];
+        awake[idx] = true;
+        let looks = self.sense_looks(&awake, spatial, animal_spatial, org_idx_by_id);
+        let crowds = self.kin_crowds(spatial, lineage_members, &awake);
+        let sensed = self.org_sense(
+            idx,
+            population_slots_used,
+            &cx,
+            buffers,
+            lineage_members,
+            None,
+            &looks[idx],
+            crowds[idx],
+        );
         let rng = decide::choice_rng(self.rng.random(), idx);
         let choice = {
             let mut available = Vec::new();

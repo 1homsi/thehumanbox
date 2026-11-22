@@ -31,17 +31,16 @@ impl Organism {
         );
     }
 
-    /// Sets out for `target` along the road route planned from here (a road costs less to walk, so the
-    /// route keeps to the roads where they go). `false` when no route exists or the journey is refused.
-    pub(crate) fn march_along_roads(
+    /// Sets out on a route already planned (a road costs less to walk, so the route keeps to the roads
+    /// where they go). `false` when there is no route or the journey is refused.
+    pub(crate) fn march_prepared(
         &mut self,
-        grid: &WorldGrid,
+        steps: Option<Vec<(i32, i32)>>,
         target: (i32, i32),
         description: &str,
         tick: u64,
     ) -> bool {
-        let here = (self.x as i32, self.y as i32);
-        let Some(steps) = crate::organism::navigation::plan_route(grid, here, target) else {
+        let Some(steps) = steps else {
             return false;
         };
         self.begin_journey(target, description, tick);

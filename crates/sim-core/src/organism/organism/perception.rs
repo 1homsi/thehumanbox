@@ -1,4 +1,5 @@
 use super::*;
+use crate::organism::columns::NeighbourCols;
 use crate::world::grid::{HEIGHT, WIDTH};
 
 impl Organism {
@@ -11,7 +12,7 @@ impl Organism {
         spatial: &crate::sim::spatial::SpatialIndex,
     ) -> String {
         let mut nearby = Vec::with_capacity(16);
-        self.perceive_into(grid, organisms, night, animal_near, spatial, &mut nearby)
+        self.perceive_into(grid, organisms, night, animal_near, spatial, &mut nearby, None, 0)
     }
 
     pub fn perceive_into(
@@ -22,6 +23,8 @@ impl Organism {
         animal_near: bool,
         spatial: &crate::sim::spatial::SpatialIndex,
         nearby: &mut Vec<usize>,
+        hot: Option<NeighbourCols<'_>>,
+        self_idx: usize,
     ) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let scan: i32 = if night {
@@ -151,22 +154,50 @@ impl Organism {
         spatial.query_into(self.x as i32, self.y as i32, scan, nearby);
         let mut nearest_lid: Option<&str> = None;
         let mut nearest_d = 999.0f32;
-        for &i in nearby.iter() {
-            let other = &organisms[i];
-            if std::ptr::eq(other, self) || !other.alive {
-                continue;
-            }
-            let distance = (other.x - self.x).abs() + (other.y - self.y).abs();
-            if distance <= 5.0 {
-                org_near = 1;
-                if other.lineage_id == self.lineage_id {
-                    kin_near = 1;
+        // Neighbours are a sparse index list. Four Manhattan distances at a time,
+        // from the hot columns when this pass synced them.
+        let mut cursor = 0;
+        while cursor < nearby.len() {
+            let (count, distances) = if let Some(hot) = hot {
+                crate::simd::l1_indexed_chunk(self.x, self.y, hot.x, hot.y, nearby, cursor)
+            } else {
+                let count = (nearby.len() - cursor).min(4);
+                let mut xs = [0f32; 4];
+                let mut ys = [0f32; 4];
+                for k in 0..count {
+                    let other = &organisms[nearby[cursor + k]];
+                    xs[k] = other.x;
+                    ys[k] = other.y;
+                }
+                (count, crate::simd::l1_4(self.x, self.y, xs, ys))
+            };
+            for k in 0..count {
+                let i = nearby[cursor + k];
+                let lid = if let Some(hot) = hot {
+                    if i == self_idx || !hot.alive_at(i) {
+                        continue;
+                    }
+                    hot.lineage[i].as_str()
+                } else {
+                    let other = &organisms[i];
+                    if std::ptr::eq(other, self) || !other.alive {
+                        continue;
+                    }
+                    other.lineage_id.as_str()
+                };
+                let distance = distances[k];
+                if distance <= 5.0 {
+                    org_near = 1;
+                    if lid == self.lineage_id.as_str() {
+                        kin_near = 1;
+                    }
+                }
+                if distance < nearest_d && lid != self.lineage_id.as_str() {
+                    nearest_d = distance;
+                    nearest_lid = Some(lid);
                 }
             }
-            if distance < nearest_d && other.lineage_id != self.lineage_id {
-                nearest_d = distance;
-                nearest_lid = Some(&other.lineage_id);
-            }
+            cursor += count;
         }
 
         let food_tr = i32::from(grid.trail_above(ix, iy, TrailKind::Food, 5, 0.4));

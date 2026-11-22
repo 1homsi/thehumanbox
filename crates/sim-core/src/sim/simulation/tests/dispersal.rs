@@ -28,7 +28,7 @@ fn curious_adults_choose_distant_land_expeditions() {
     let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
     sim.tick_count = hash % period;
 
-    sim.validate_or_assign_wander_target(idx, None);
+    sim.validate_or_assign_wander_target(idx, None, None);
 
     let target = sim.organisms[idx]
         .wander_target
@@ -493,6 +493,7 @@ fn a_new_tribe_leaves_as_a_band_on_one_journey() {
         o.y = fy;
     }
     sim.organisms[founder].age = 1200;
+    sim.organism_columns.sync_from(&sim.organisms);
 
     sim.fork_new_tribe(founder, 40, 40);
 
@@ -504,8 +505,14 @@ fn a_new_tribe_leaves_as_a_band_on_one_journey() {
         .filter(|o| o.alive && o.lineage_id == new)
         .collect();
     assert_eq!(band.len(), 5, "founder plus four followers");
-    for o in band {
+    for o in &band {
         assert_eq!(o.journey.as_ref().map(|j| j.target), Some((40, 40)));
         assert_eq!((o.home_x, o.home_y), (40.0, 40.0));
+    }
+    for (i, o) in sim.organisms.iter().enumerate() {
+        assert_eq!(
+            sim.organism_columns.lineage[i], o.lineage_id,
+            "hot columns kept a tribe's old lineage after it forked"
+        );
     }
 }

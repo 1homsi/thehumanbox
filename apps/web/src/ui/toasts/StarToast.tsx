@@ -8,16 +8,13 @@ import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import { t } from '../../i18n'
 
 export const STAR_PROMPT_KEY = 'thb-star-prompt-v2'
-/** v1 stored a bare 'shown' | 'dismissed' | 'starred'; only the starred outcome is carried over. */
+/** v1 stored a bare 'shown' | 'dismissed' | 'starred'; a star or a dismissal is carried over. */
 export const LEGACY_STAR_PROMPT_KEY = 'thb-star-prompt-v1'
-// A world must have been played for a little while before its first big moment can become an ask.
-export const STAR_MIN_PLAY_MS = 60_000
-// Late enough that the first minutes belong to the world, not to prompts.
-export const STAR_DELAY_MIN_MS = 3 * 60_000
-const STAR_DELAY_MAX_MS = 5 * 60_000
-// A dismissal is not forever: ask again after a week, at most three times.
-export const STAR_REASK_AFTER_MS = 7 * 24 * 60 * 60_000
-export const STAR_MAX_ASKS = 3
+// Nothing asks until the player has been in a world for about ten minutes.
+export const STAR_MIN_PLAY_MS = 10 * 60_000
+export const STAR_DELAY_MIN_MS = 10 * 60_000
+// One ask per player. A dismissal, a star, or a prompt that was already shown is not repeated.
+export const STAR_MAX_ASKS = 1
 
 export type StarPromptTrigger = 'first_settlement' | 'timer'
 
@@ -44,25 +41,27 @@ function writeState(state: StarPromptState): boolean {
   }
 }
 
+function remember(state: StarPromptState): ReadResult {
+  if (!writeState(state)) return { ok: false }
+  return { ok: true, state }
+}
+
 function readState(): ReadResult {
   try {
     const raw = window.localStorage.getItem(STAR_PROMPT_KEY)
+    const legacy = window.localStorage.getItem(LEGACY_STAR_PROMPT_KEY)
     if (!raw) {
-      // Players who already starred under v1 must never be asked again; dismissals may be re-asked.
-      if (window.localStorage.getItem(LEGACY_STAR_PROMPT_KEY) === 'starred') {
-        const migrated: StarPromptState = { asks: 1, starred: true }
-        if (!writeState(migrated)) return { ok: false }
-        return { ok: true, state: migrated }
-      }
+      // Players who already starred or dismissed under v1 are not asked again.
+      if (legacy === 'starred') return remember({ asks: 1, starred: true })
+      if (legacy === 'dismissed') return remember({ asks: 1, dismissedAt: Date.now() })
       return { ok: true, state: null }
     }
     const parsed = JSON.parse(raw) as StarPromptState
     if (typeof parsed.asks !== 'number') return { ok: true, state: null }
-    // A tab still on the v1 bundle can record a star after v2 state exists.
-    if (!parsed.starred && window.localStorage.getItem(LEGACY_STAR_PROMPT_KEY) === 'starred') {
-      const migrated: StarPromptState = { ...parsed, starred: true }
-      if (!writeState(migrated)) return { ok: false }
-      return { ok: true, state: migrated }
+    // A tab still on the v1 bundle can record a star or a dismissal after v2 state exists.
+    if (!parsed.starred && legacy === 'starred') return remember({ ...parsed, starred: true })
+    if (!parsed.starred && parsed.dismissedAt === undefined && legacy === 'dismissed') {
+      return remember({ ...parsed, asks: Math.max(parsed.asks, 1), dismissedAt: Date.now() })
     }
     return { ok: true, state: parsed }
   } catch {
@@ -70,16 +69,14 @@ function readState(): ReadResult {
   }
 }
 
-/** True when the prompt must stay hidden: already handled, out of asks, cooling down, or storage is unusable. */
+/** True when the prompt must stay hidden: already handled, or storage is unusable. */
 function alreadyAsked(): boolean {
   const read = readState()
   if (!read.ok) return true
   const state = read.state
   if (!state) return false
-  if (state.starred) return true
-  if (state.asks >= STAR_MAX_ASKS) return true
-  // Closing the tab mid-prompt is not a dismissal: ask again next visit.
-  return state.dismissedAt !== undefined && Date.now() - state.dismissedAt < STAR_REASK_AFTER_MS
+  if (state.starred || state.dismissedAt !== undefined) return true
+  return state.asks >= STAR_MAX_ASKS
 }
 
 function hasSettlement(world: WorldState): boolean {
@@ -87,19 +84,20 @@ function hasSettlement(world: WorldState): boolean {
 }
 
 /**
- * Asks once per visit for a star on GitHub, up to three times over the player's lifetime,
- * with a week between dismissals. The first settlement is the preferred moment; the old
- * three-to-five-minute timer remains as a fallback. Nothing is shown during the first minute
- * or while another card is on screen.
+ * Asks once for a star on GitHub, after about ten minutes in a world. A dismissal or a star
+ * is permanent. The first settlement is the preferred moment once that wait has passed;
+ * otherwise a timer asks. Nothing is shown before the wait, before a world exists, or while
+ * another card is on screen.
  */
 export function StarToast({ world = null }: { world?: WorldState | null }) {
   const [visible, setVisible] = useState(false)
   const [shownTrigger, setShownTrigger] = useState<StarPromptTrigger | null>(null)
   const requestMoment = useRef<(trigger: StarPromptTrigger) => void>(() => undefined)
   const settlementWatch = useRef<SettlementWatch | null>(null)
+  const inWorld = world != null
 
   useEffect(() => {
-    if (alreadyAsked()) return
+    if (!inWorld || alreadyAsked()) return
     const startedAt = Date.now()
     let timer: number | null = null
     let disposed = false
@@ -156,16 +154,13 @@ export function StarToast({ world = null }: { world?: WorldState | null }) {
     }
 
     requestMoment.current = request
-    timer = window.setTimeout(
-      () => request('timer'),
-      STAR_DELAY_MIN_MS + Math.random() * (STAR_DELAY_MAX_MS - STAR_DELAY_MIN_MS),
-    )
+    timer = window.setTimeout(() => request('timer'), STAR_DELAY_MIN_MS)
     return () => {
       disposed = true
       requestMoment.current = () => undefined
       if (timer !== null) window.clearTimeout(timer)
     }
-  }, [])
+  }, [inWorld])
 
   useEffect(() => {
     if (!world) {

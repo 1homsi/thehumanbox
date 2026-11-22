@@ -24,10 +24,13 @@ impl Simulation {
         // Cross-lineage learning only runs every 500 ticks. Build the spatial
         // index on that cadence so contact lookup stays local instead of
         // comparing every living pair.
-        let civ_spatial = self
-            .tick_count
-            .is_multiple_of(500)
-            .then(|| SpatialIndex::build(&self.organisms, 8));
+        let civ_spatial = self.tick_count.is_multiple_of(500).then(|| {
+            self.organism_columns.sync_from(&self.organisms);
+            let index = SpatialIndex::build_columns(&self.organism_columns, 8);
+            // World events below move people. The columns are stale until the next sync.
+            self.organism_columns.invalidate();
+            index
+        });
         crate::sim::civ_tick::tick_civ(self, civ_spatial.as_ref());
         self.tick_evening_gatherings();
         self.tick_school_places();
@@ -413,7 +416,8 @@ impl Simulation {
 
         let mut population_slots_used = growth::population_slots_used(&self.organisms);
 
-        let spatial = SpatialIndex::build(&self.organisms, 10);
+        self.organism_columns.sync_from(&self.organisms);
+        let spatial = SpatialIndex::build_columns(&self.organism_columns, 10);
         let animal_spatial = SpatialIndex::build_animals(&self.animals, 10);
         let mut buffers = TickBuffers::new();
         let mut org_idx_by_id: FxHashMap<crate::intern::Sym, usize> =
@@ -433,10 +437,12 @@ impl Simulation {
                 vehicle.route.clear();
             }
         }
-        self.separate_crowds();
-        // A person's turn runs in three passes over everyone. First they all sense, in order (setup and
-        // threats, which write to them); then they all choose at once, on all cores (see `sim::par`), from
-        // the world as the choosing begins; then each acts on their choice, in order, as before.
+        self.separate_crowds_indexed();
+        // A person's turn runs in three passes over everyone. First they all look at once (kin, strangers,
+        // beasts, and the kin a wander would count — reads of the world, on all cores; see `sim::par`), then
+        // each is written in order from what they saw. A tribe that splits redoes those reads for the people
+        // after the founder, who are the only ones that split can change. Then they all choose at once, from
+        // the world as the choosing begins, and each acts on their choice, in order, as before.
         let n = self.organisms.len();
         let now = self.tick_count;
         self.focus_points.retain(|&(_, _, until)| until > now);
@@ -446,6 +452,29 @@ impl Simulation {
         let tiers = self.town_tiers(&towns, &awake);
         self.lineage_lore(&awake);
         let mut perceived = self.perceive_all(&spatial, &animal_spatial, &awake);
+        let mut sensing = awake.clone();
+        for (on, tier) in sensing.iter_mut().zip(&tiers) {
+            if *tier == town_lod::Tier::Idle {
+                *on = false;
+            }
+        }
+        let mut looks = self.sense_looks(&sensing, &spatial, &animal_spatial, &org_idx_by_id);
+        // Who would count kin on this tick, judged before inner state moves a threshold. Anyone who only
+        // becomes eligible as their own state ticks scans inline, which is the same walk.
+        let mut scan = sensing.clone();
+        for (on, o) in scan.iter_mut().zip(&self.organisms) {
+            if *on
+                && (o.journey.is_some()
+                    || o.wander_target.is_some()
+                    || o.energy < 0.45
+                    || o.hydration < 0.45
+                    || o.age < 600
+                    || o.fear_level > 0.65)
+            {
+                *on = false;
+            }
+        }
+        let mut crowds = self.kin_crowds(&spatial, &lineage_members, &scan);
         let mut sensed: Vec<Option<organism_tick::Sensed>> = Vec::with_capacity(n);
         {
             let cx = organism_tick::TurnContext {
@@ -465,14 +494,29 @@ impl Simulation {
                     continue;
                 }
                 sensed.push(self.organisms[i].alive.then(|| {
-                    self.org_sense(
+                    let before = self.organisms[i].lineage_id;
+                    let sensed = self.org_sense(
                         i,
                         population_slots_used,
                         &cx,
                         &mut buffers,
                         &mut lineage_members,
                         perceived[i].take(),
-                    )
+                        &looks[i],
+                        crowds[i],
+                    );
+                    if self.organisms[i].lineage_id != before {
+                        self.refill_sense_looks(
+                            i + 1,
+                            &mut looks,
+                            &sensing,
+                            &spatial,
+                            &animal_spatial,
+                            &org_idx_by_id,
+                        );
+                        self.refill_kin_crowds(i + 1, &mut crowds, &spatial, &lineage_members, &scan);
+                    }
+                    sensed
                 }));
             }
         }
@@ -490,6 +534,8 @@ impl Simulation {
                 o.lod_turn = now;
             }
         }
+        // Choosing and acting write positions, needs and life through the structs.
+        self.organism_columns.invalidate();
         let tick_seed: u64 = self.rng.random();
         self.choosing_tribes = Some(crate::sim::civ::fields::tribe_people_and_plots(self));
         let mut choices = self.choose_all(&sensed, &spatial, tick_seed);
@@ -563,24 +609,7 @@ impl Simulation {
         self.glide(&tiers);
         self.learn_from_the_tick(&spatial);
 
-        const VEL_EMA_ALPHA: f32 = 0.4;
-        const MAX_PER_TICK: f32 = 2.0;
-        for o in self.organisms.iter_mut() {
-            if !o.alive {
-                continue;
-            }
-            let inst_vx = o.x - o.prev_x;
-            let inst_vy = o.y - o.prev_y;
-            o.prev_x = o.x;
-            o.prev_y = o.y;
-            if inst_vx.abs() > MAX_PER_TICK || inst_vy.abs() > MAX_PER_TICK {
-                o.vx_smooth = 0.0;
-                o.vy_smooth = 0.0;
-                continue;
-            }
-            o.vx_smooth = VEL_EMA_ALPHA * inst_vx + (1.0 - VEL_EMA_ALPHA) * o.vx_smooth;
-            o.vy_smooth = VEL_EMA_ALPHA * inst_vy + (1.0 - VEL_EMA_ALPHA) * o.vy_smooth;
-        }
+        self.organism_columns.smooth_velocity(&mut self.organisms);
 
         if self.tick_count.is_multiple_of(1200) {
             let dead_count = self

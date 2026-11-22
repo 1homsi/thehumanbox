@@ -395,6 +395,7 @@ impl Simulation {
             o.home_y = anchor_y as f32;
             o.begin_journey((anchor_x, anchor_y), "founding new tribe", tick);
         }
+        self.organism_columns.refresh_lineages(&self.organisms);
         self.organisms[idx].log_event(format!(
             "broke from the {} and set out with {} others to found the {}",
             old_name,

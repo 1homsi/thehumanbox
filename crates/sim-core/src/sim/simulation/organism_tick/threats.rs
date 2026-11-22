@@ -1,90 +1,51 @@
 use super::*;
-use crate::sim::simulation::animals::SUMMONED_ALARM;
 
 impl Simulation {
     /// Scan for dangerous animals, build the organism's perception of its surroundings, and note an emergency storm shelter.
-    pub(super) fn org_threats(&mut self, f: &mut OrgFrame<'_>) {
-        let animal_spatial = f.animal_spatial;
+    pub(super) fn org_threats(
+        &mut self,
+        f: &mut OrgFrame<'_>,
+        look: &super::observe::SenseLook,
+        crowd: Option<crate::sim::agents::wander::KinCrowd>,
+    ) {
         let idx = f.idx;
         let lineage_members = &mut *f.lineage_members;
         let night = f.night;
         let perception_buf = &mut *f.perception_buf;
         let spatial = f.spatial;
-        let spatial_buf = &mut *f.spatial_buf;
 
-        let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-        let fear_trait = self.organisms[idx].traits.fear;
-        // Someone who saw a person killed by a beast flees from further off.
-        let beast_wary = self.organisms[idx]
-            .lessons
-            .heeds(crate::organism::lessons::Lesson::Beasts);
-        let wolf_flee_radius = 6.0 + fear_trait * 8.0 + beast_wary * 6.0;
-
-        // Animal positions are stable until tick_animals, after all human
-        // actions. Query only local candidates, in original animal order.
-        let mut animal_near = false;
-        let mut wolf_threat: Option<(f32, f32, f32)> = None;
-        let mut threat_kind = AnimalKind::Wolf;
-        let mut threat_summoned = false;
-        let mut summoned_threat: Option<(f32, f32, f32)> = None;
-        // A summoned pack is heard from further off than a wild wolf (see SUMMONED_ALARM).
-        let alarm_radius = wolf_flee_radius.max(SUMMONED_ALARM);
-        animal_spatial.query_into(
-            ox as i32,
-            oy as i32,
-            alarm_radius.max(8.0).ceil() as i32,
-            spatial_buf,
-        );
-        spatial_buf.sort_unstable();
-        for &animal_idx in spatial_buf.iter() {
-            let a = &self.animals[animal_idx];
-            if !a.alive {
-                continue;
-            }
-            let d = (a.x - ox).abs() + (a.y - oy).abs();
-            if d <= 8.0 {
-                animal_near = true;
-            }
-            let radius = if a.summoned {
-                alarm_radius
-            } else {
-                wolf_flee_radius
-            };
-            if a.kind.hostile()
-                && !a.sleeping
-                && d <= radius
-                && wolf_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
-            {
-                wolf_threat = Some((d, a.x, a.y));
-                threat_kind = a.kind;
-                threat_summoned = a.summoned;
-            }
-            // The nearest summoned wolf is tracked on its own, so a wild wolf that is too far to act on
-            // does not hide the pack from the decision (see decide.rs).
-            if a.summoned
-                && a.kind.hostile()
-                && !a.sleeping
-                && d <= alarm_radius
-                && summoned_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
-            {
-                summoned_threat = Some((d, a.x, a.y));
-            }
-        }
+        let (ox, oy) = (look.ox, look.oy);
+        let fear_trait = look.fear_trait;
+        let animal_near = look.animal_near;
+        let wolf_threat = look.wolf_threat;
+        let threat_kind = look.threat_kind;
+        let threat_summoned = look.threat_summoned;
+        let summoned_threat = look.summoned_threat;
 
         let perception = match f.pre_perception.take() {
             Some(perception) => perception,
-            None => self.organisms[idx].perceive_into(
-                &self.grid,
-                &self.organisms,
-                night,
-                animal_near,
-                spatial,
-                perception_buf,
-            ),
+            None => {
+                let hot = self
+                    .organism_columns
+                    .ready_for(self.organisms.len())
+                    .then(|| self.organism_columns.neighbours());
+                self.organisms[idx].perceive_into(
+                    &self.grid,
+                    &self.organisms,
+                    night,
+                    animal_near,
+                    spatial,
+                    perception_buf,
+                    hot,
+                    idx,
+                )
+            }
         };
         let prior_lineage = self.organisms[idx].lineage_id;
-        self.validate_or_assign_wander_target_indexed(idx, spatial, lineage_members);
+        self.validate_or_assign_wander_target_indexed(idx, spatial, lineage_members, crowd);
         if self.organisms[idx].lineage_id != prior_lineage {
+            self.organism_columns
+                .note_lineage(idx, self.organisms[idx].lineage_id);
             if let Some(members) = lineage_members.get_mut(prior_lineage.as_str()) {
                 members.retain(|&member_idx| member_idx != idx);
             }

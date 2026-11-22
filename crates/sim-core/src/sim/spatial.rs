@@ -1,10 +1,73 @@
 use crate::hashing::FxHashMap as HashMap;
 use crate::organism::animal::Animal;
+use crate::organism::columns::OrganismColumns;
 use crate::organism::organism::Organism;
 
 /// More buckets than any real world needs (600x300 tiles in 10-tile buckets is
 /// 1,800); beyond this a sparse map is used instead of a dense grid.
 const MAX_DENSE_BUCKETS: i64 = 1 << 16;
+
+/// Living `(index, bucket x, bucket y)` walked off the hot columns.
+/// `from_points` clones this before the first step, so each pass starts over.
+/// Bucket keys are `coord as i32 / bucket`, four lanes at a time.
+#[derive(Clone)]
+struct ColumnBuckets<'a> {
+    x: &'a [f32],
+    y: &'a [f32],
+    alive: &'a [u8],
+    bucket: i32,
+    i: usize,
+    base: usize,
+    slot: usize,
+    slots: usize,
+    keep: [bool; 4],
+    bx: [i32; 4],
+    by: [i32; 4],
+}
+
+impl Iterator for ColumnBuckets<'_> {
+    type Item = (usize, i32, i32);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.slot < self.slots {
+                let k = self.slot;
+                self.slot += 1;
+                if self.keep[k] {
+                    return Some((self.base + k, self.bx[k], self.by[k]));
+                }
+                continue;
+            }
+            if self.i >= self.alive.len() {
+                return None;
+            }
+            let count = (self.alive.len() - self.i).min(4);
+            let base = self.i;
+            let mut xs = [0f32; 4];
+            let mut ys = [0f32; 4];
+            let mut keep = [false; 4];
+            let mut any = false;
+            for k in 0..count {
+                if self.alive[base + k] != 0 {
+                    xs[k] = self.x[base + k];
+                    ys[k] = self.y[base + k];
+                    keep[k] = true;
+                    any = true;
+                }
+            }
+            self.base = base;
+            self.i = base + count;
+            self.slot = 0;
+            self.slots = count;
+            self.keep = keep;
+            if any {
+                let (bx, by) = crate::simd::bucket4(xs, ys, self.bucket);
+                self.bx = bx;
+                self.by = by;
+            }
+        }
+    }
+}
 
 pub struct SpatialIndex {
     buckets: Buckets,
@@ -28,27 +91,40 @@ enum Buckets {
 
 impl SpatialIndex {
     pub fn build(organisms: &[Organism], bucket_size: i32) -> Self {
+        let points = bucket_points(organisms.len(), bucket_size, |i| {
+            let org = &organisms[i];
+            org.alive.then_some((org.x, org.y))
+        });
+        Self::from_points(points.iter().copied(), organisms.len(), bucket_size)
+    }
+
+    /// Same index as [`Self::build`], reading `alive` / `x` / `y` from columns.
+    pub fn build_columns(columns: &OrganismColumns, bucket_size: i32) -> Self {
         Self::from_points(
-            organisms
-                .iter()
-                .enumerate()
-                .filter(|(_, org)| org.alive)
-                .map(|(i, org)| (i, org.x as i32 / bucket_size, org.y as i32 / bucket_size)),
-            organisms.len(),
+            ColumnBuckets {
+                x: &columns.x,
+                y: &columns.y,
+                alive: &columns.alive,
+                bucket: bucket_size,
+                i: 0,
+                base: 0,
+                slot: 0,
+                slots: 0,
+                keep: [false; 4],
+                bx: [0; 4],
+                by: [0; 4],
+            },
+            columns.len(),
             bucket_size,
         )
     }
 
     pub fn build_animals(animals: &[Animal], bucket_size: i32) -> Self {
-        Self::from_points(
-            animals
-                .iter()
-                .enumerate()
-                .filter(|(_, a)| a.alive)
-                .map(|(i, a)| (i, a.x as i32 / bucket_size, a.y as i32 / bucket_size)),
-            animals.len(),
-            bucket_size,
-        )
+        let points = bucket_points(animals.len(), bucket_size, |i| {
+            let animal = &animals[i];
+            animal.alive.then_some((animal.x, animal.y))
+        });
+        Self::from_points(points.iter().copied(), animals.len(), bucket_size)
     }
 
     /// `points` are `(index, bucket x, bucket y)` in ascending index order.
@@ -227,6 +303,42 @@ impl SpatialIndex {
             }
         }
     }
+}
+
+/// Alive `(index, bucket x, bucket y)` in ascending index order. Bucket keys are
+/// `coord as i32 / bucket_size`, four at a time.
+fn bucket_points(
+    len: usize,
+    bucket_size: i32,
+    coord: impl Fn(usize) -> Option<(f32, f32)>,
+) -> Vec<(usize, i32, i32)> {
+    let mut points = Vec::new();
+    let mut i = 0;
+    while i < len {
+        let count = (len - i).min(4);
+        let mut xs = [0f32; 4];
+        let mut ys = [0f32; 4];
+        let mut keep = [false; 4];
+        let mut any = false;
+        for k in 0..count {
+            if let Some((x, y)) = coord(i + k) {
+                xs[k] = x;
+                ys[k] = y;
+                keep[k] = true;
+                any = true;
+            }
+        }
+        if any {
+            let (bx, by) = crate::simd::bucket4(xs, ys, bucket_size);
+            for k in 0..count {
+                if keep[k] {
+                    points.push((i + k, bx[k], by[k]));
+                }
+            }
+        }
+        i += count;
+    }
+    points
 }
 
 /// Preserve the old population-order first match. The index is built before
@@ -441,5 +553,32 @@ mod tests {
         let mut buf = Vec::new();
         assert_eq!(first_unknown_nearby_lineage(&people, 0, &index, &mut buf), None);
         assert_eq!(buf.len(), 1);
+    }
+
+    #[test]
+    fn columns_build_the_same_index_as_the_structs() {
+        let mut people: Vec<_> = (0..400)
+            .map(|i| person(i, (i * 3 % 80) as f32 - 10.0, (i * 5 % 50) as f32 - 4.0))
+            .collect();
+        for (i, p) in people.iter_mut().enumerate() {
+            p.alive = i % 6 != 0;
+        }
+        let mut columns = OrganismColumns::new();
+        columns.sync_from(&people);
+        for bucket in [4, 8, 10] {
+            let from_structs = SpatialIndex::build(&people, bucket);
+            let from_columns = SpatialIndex::build_columns(&columns, bucket);
+            for x in -5..30 {
+                for y in -5..20 {
+                    assert_eq!(
+                        from_structs.query(x, y, 6),
+                        from_columns.query(x, y, 6),
+                        "bucket {bucket} at ({x}, {y})"
+                    );
+                }
+            }
+        }
+        let empty = OrganismColumns::new();
+        assert!(SpatialIndex::build_columns(&empty, 10).query(0, 0, 3).is_empty());
     }
 }

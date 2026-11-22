@@ -10,7 +10,7 @@ import { CHECKPOINT_FAILED_ERROR } from "./sim-errors";
 import type { Settings } from "./settings";
 import { SIM_START_TIMEOUT_MS, waitForSimulation } from "./sim-ready";
 import { effectiveDataRoot, prepareDataRoot } from "./settings";
-import { buildLocalSimEnv, withBlankWorld } from "./sim-env";
+import { buildLocalSimEnv, withBlankWorld, withHeadStartWorld } from "./sim-env";
 import {
   acquireDataRootLock,
   type DataRootLock,
@@ -427,6 +427,7 @@ export async function startSimWithDataRootLock(
 
 export interface SimStartOptions {
   blankWorld?: boolean;
+  headStartWorld?: boolean;
 }
 
 async function startSimOnce(
@@ -507,9 +508,9 @@ async function startSimOnce(
     throw error;
   }
 
-  const env = withBlankWorld(
-    buildLocalSimEnv(settings, port),
-    options.blankWorld === true,
+  const env = withHeadStartWorld(
+    withBlankWorld(buildLocalSimEnv(settings, port), options.blankWorld === true),
+    options.headStartWorld === true && options.blankWorld !== true,
   );
   env.THB_DATA_LOCK_TOKEN = dataLock.token;
   env.THB_DESKTOP_PARENT_PID = String(process.pid);

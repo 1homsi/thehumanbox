@@ -46,6 +46,7 @@ type StartMsg = {
   autosaveEveryMs?: number
   reset?: boolean
   empty?: boolean
+  headStart?: boolean
   recoveryId?: string | null
   touch?: boolean
 }
@@ -516,9 +517,13 @@ async function retryReadStorage(): Promise<boolean> {
   return persist()
 }
 
-async function retryResetStorage(resetSeed: string, empty = false): Promise<boolean> {
+async function retryResetStorage(resetSeed: string, empty = false, headStart = false): Promise<boolean> {
   const recoveryId = await archiveAndDeleteWorld(worldId)
-  const candidate = empty ? Sim.blank(BigInt(resetSeed)) : new Sim(BigInt(resetSeed))
+  const candidate = empty
+    ? Sim.blank(BigInt(resetSeed))
+    : headStart
+      ? Sim.headStart(BigInt(resetSeed))
+      : new Sim(BigInt(resetSeed))
   replaceSimulation(candidate, resetSeed)
   if (empty) manuallyPaused = true
   markStorageReady(false)
@@ -819,7 +824,12 @@ async function start(msg: StartMsg) {
       post({ type: 'reset_done', recoveryId })
     } catch (e) {
       storageReady = false
-      rememberRetry({ kind: 'reset', seed: msg.seed, empty: msg.empty === true })
+      rememberRetry({
+        kind: 'reset',
+        seed: msg.seed,
+        empty: msg.empty === true,
+        headStart: msg.headStart === true,
+      })
       postError('reset_failed', 'could not reset local save', { error: e, retryable: true })
     }
   }
@@ -925,7 +935,8 @@ async function start(msg: StartMsg) {
   const generateAt = performance.now()
   if (!sim) {
     const empty = resetApplied && msg.empty === true
-    sim = empty ? Sim.blank(BigInt(seed)) : new Sim(BigInt(seed))
+    const headStart = resetApplied && msg.headStart === true && !empty
+    sim = empty ? Sim.blank(BigInt(seed)) : headStart ? Sim.headStart(BigInt(seed)) : new Sim(BigInt(seed))
     if (empty) manuallyPaused = true
   }
   const startup: WorkerStartup = {

@@ -36,6 +36,10 @@ const model = vi.hoisted(() => ({
   >(async () => ({ migrated: [], failed: [] })),
   removeMigrationLeftovers: vi.fn(async () => {}),
 }))
+vi.mock('../wasm/sim-core/scalar/sim_core_scalar.js', () => ({
+  default: vi.fn(async () => {}),
+  Sim: class {},
+}))
 vi.mock('../wasm/sim-core/sim_core.js', () => ({
   default: model.init,
   Sim: class {

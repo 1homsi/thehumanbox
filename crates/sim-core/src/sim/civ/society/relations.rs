@@ -295,6 +295,21 @@ impl Relations {
 
 pub const MOOD_SHARE: f32 = 0.7;
 
+fn tile_owner_at(
+    owners: &[crate::intern::Sym],
+    owner_at: &[u32],
+    tile_owner: &crate::hashing::FxHashMap<(i32, i32), crate::intern::Sym>,
+    x: i32,
+    y: i32,
+) -> Option<crate::intern::Sym> {
+    use crate::world::grid::WorldGrid;
+    if WorldGrid::in_bounds(x, y) {
+        owners.get(owner_at[WorldGrid::idx(x, y)] as usize).copied()
+    } else {
+        tile_owner.get(&(x, y)).copied()
+    }
+}
+
 impl Simulation {
     pub(crate) fn remember(&mut self, holder: &str, other: &str, kind: MemoryKind, delta: f32) {
         self.diplomacy
@@ -347,7 +362,6 @@ impl Simulation {
     pub(crate) fn border_contacts(&self) -> BTreeSet<(crate::intern::Sym, crate::intern::Sym)> {
         use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
         let mut contacts: BTreeSet<(crate::intern::Sym, crate::intern::Sym)> = BTreeSet::new();
-        let mut seen: Vec<crate::intern::Sym> = Vec::new();
         let mut owners: Vec<crate::intern::Sym> = Vec::new();
         let mut slots: crate::hashing::FxHashMap<usize, u32> = Default::default();
         let mut owner_at = vec![u32::MAX; WIDTH * HEIGHT];
@@ -360,25 +374,24 @@ impl Simulation {
                 owner_at[WorldGrid::idx(x, y)] = slot;
             }
         }
-        let owner_of = |x: i32, y: i32| -> Option<crate::intern::Sym> {
-            if WorldGrid::in_bounds(x, y) {
-                owners.get(owner_at[WorldGrid::idx(x, y)] as usize).copied()
-            } else {
-                self.tile_owner.get(&(x, y)).copied()
-            }
-        };
-        for (&lid, tiles) in &self.territory {
+        let tile_owner = &self.tile_owner;
+        let lineages: Vec<_> = self.territory.iter().map(|(&lid, tiles)| (lid, tiles)).collect();
+        let found = crate::sim::par::map_with(lineages.len(), Vec::new, |seen, i| {
+            let (lid, tiles) = lineages[i];
             seen.clear();
             for &(x, y) in tiles {
                 for (dx, dy) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
-                    if let Some(owner) = owner_of(x + dx, y + dy) {
+                    if let Some(owner) = tile_owner_at(&owners, &owner_at, tile_owner, x + dx, y + dy) {
                         if owner != lid && !seen.contains(&owner) {
                             seen.push(owner);
                         }
                     }
                 }
             }
-            for &other in &seen {
+            seen.clone()
+        });
+        for (&(lid, _), others) in lineages.iter().zip(&found) {
+            for &other in others {
                 contacts.insert((lid, other));
                 contacts.insert((other, lid));
             }
