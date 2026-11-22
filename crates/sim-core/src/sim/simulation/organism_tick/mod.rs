@@ -274,20 +274,20 @@ impl Simulation {
                 {
                     return true;
                 }
-                // Off the coarse step a quiet neighbour stays asleep. The animal
-                // scan waits for the step, with hunger, a command and a battle
-                // still able to wake them on the tick they happen.
-                if towns[i].is_some_and(|town| {
-                    !(self.tick_count + u64::from(town)).is_multiple_of(self.coarse_step(town))
-                }) {
-                    return false;
-                }
                 animal_spatial.query_into(x, y, 12, buf);
                 if buf.iter().any(|&a| {
                     let a = &self.animals[a];
                     a.alive && a.kind.hostile() && (a.x - o.x).abs() + (a.y - o.y).abs() <= 14.0
                 }) {
                     return true;
+                }
+                // Off the coarse step a quiet neighbour stays asleep. Hunger, a
+                // command, a battle and a hostile animal have already been able
+                // to wake them on this tick.
+                if towns[i].is_some_and(|town| {
+                    !(self.tick_count + u64::from(town)).is_multiple_of(self.coarse_step(town))
+                }) {
+                    return false;
                 }
                 let war_near = ongoing
                     .iter()

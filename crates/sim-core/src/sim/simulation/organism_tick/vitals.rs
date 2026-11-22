@@ -631,7 +631,20 @@ pub(super) fn integrate_closed(
     let e_hi = (e0 + rate).max(e0 + dt_f * rate);
     let h_lo = (h0 + h_rate).min(h0 + dt_f * h_rate);
     let h_hi = (h0 + h_rate).max(h0 + dt_f * h_rate);
-    if e_lo <= 0.6 || e_hi > 1.0 || h_lo <= 0.6 || h_hi > 1.0 {
+    // Shelter is applied before the drain and clamps at full. A net rate that
+    // stays under 1 can still have clipped that recovery, so the straight
+    // line would not match replaying the ticks.
+    let shelter_gain = if shelter > 0.0 {
+        0.0008 + shelter * 0.0022
+    } else {
+        0.0
+    };
+    let before_drain = if rate >= 0.0 {
+        e0 + (dt_f - 1.0) * rate + shelter_gain
+    } else {
+        e0 + shelter_gain
+    };
+    if e_lo <= 0.6 || e_hi > 1.0 || h_lo <= 0.6 || h_hi > 1.0 || before_drain > 1.0 {
         return false;
     }
     let shelter_health = if shelter > 0.0 {
@@ -792,5 +805,39 @@ mod closed_form {
             fast.health,
             slow.health
         );
+    }
+
+    #[test]
+    fn a_sheltered_body_already_full_is_left_to_the_tick_loop() {
+        let grid = WorldGrid::new(1);
+        let mut body = Organism::new(
+            "full",
+            "Full".into(),
+            40.0,
+            40.0,
+            1,
+            String::new(),
+            "clan",
+            20_000,
+            Traits::default(),
+        );
+        body.energy = 0.999;
+        body.hydration = 0.9;
+        body.health = 0.9;
+        body.age = 2_000;
+        body.infection = 0.0;
+        let climate = Climate {
+            night: false,
+            heat_thirst: 1.0,
+            heat_tire: 1.0,
+            hunger: 1.0,
+            season_temp: 0.0,
+            tick: 8_000,
+        };
+        assert!(
+            !integrate_closed(&mut body, 8, 8_000, 0.5, false, false, false, &climate, &grid, 40, 40,),
+            "shelter recovery would clamp before the drain"
+        );
+        assert!((body.energy - 0.999).abs() < 1e-6);
     }
 }

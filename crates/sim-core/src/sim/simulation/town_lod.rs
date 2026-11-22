@@ -73,6 +73,10 @@ pub(crate) struct CalmMap {
     hot: Vec<(i32, i32)>,
     busy: HashSet<String>,
     foes: HashMap<String, Vec<(i32, i32)>>,
+    /// Lineages in hunger, thirst or sickness. A hamlet of theirs is not calm.
+    starving: HashSet<String>,
+    /// Lineages whose granary is empty. Same exclusion as a town.
+    famine: HashSet<crate::intern::Sym>,
     /// Tick when each calm town or hamlet last became quiet. The step length
     /// is derived from this, so it survives a refresh that finds the same region still calm.
     since: HashMap<u32, u64>,
@@ -160,9 +164,16 @@ impl Simulation {
         }
         if !self.lod {
             self.calm_towns = Some(CalmMap::default());
+            self.lod_units.clear();
             return;
         }
+        // A new wake reason drops cached homes on this tick. A periodic refresh
+        // with the same reasons keeps them until the regular reassignment.
+        let wake_changed = self.calm_towns.as_ref().is_none_or(|c| c.stamp != stamp);
         let old_since = self.calm_towns.take().map(|c| c.since).unwrap_or_default();
+        if wake_changed {
+            self.lod_units.clear();
+        }
         let fronts: Vec<(&str, &str)> = self
             .diplomacy
             .wars
@@ -269,6 +280,8 @@ impl Simulation {
             hot,
             foes,
             busy: busy.into_iter().collect(),
+            starving,
+            famine,
             since,
             stamp,
         };
@@ -346,11 +359,14 @@ impl Simulation {
                     None if calm.busy.contains(o.lineage_id.as_str()) => (None, None),
                     None => {
                         let (cx, cy) = (home.0.div_euclid(HAMLET), home.1.div_euclid(HAMLET));
-                        if at_front(
-                            &calm.foes,
-                            &o.lineage_id,
-                            (cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2),
-                        ) {
+                        if calm.starving.contains(o.lineage_id.as_str())
+                            || calm.famine.contains(&o.lineage_id)
+                            || at_front(
+                                &calm.foes,
+                                &o.lineage_id,
+                                (cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2),
+                            )
+                        {
                             return (None, None);
                         }
                         let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
@@ -426,10 +442,13 @@ impl Simulation {
         &mut self,
         tiers: &[Tier],
         mut slots_used: usize,
-        lineage_counts: &FxHashMap<crate::intern::Sym, usize>,
+        lineage_counts: &mut FxHashMap<crate::intern::Sym, usize>,
         org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
     ) {
         let tick = self.tick_count;
+        // Idle ticks keep a conception check on the old 8-tick phase. The
+        // region's own step is a different tick, and dropping the idle check
+        // lowered births below the per-tick cadence.
         let due: Vec<usize> = (0..tiers.len())
             .filter(|&i| tiers[i] == Tier::Idle && (tick + i as u64).is_multiple_of(TOWN_STEP))
             .filter(|&i| {
@@ -457,7 +476,15 @@ impl Simulation {
                     org_idx_by_id,
                 },
             );
-            slots_used += self.organisms.len().saturating_sub(before);
+            let added = self.organisms.len().saturating_sub(before);
+            if added > 0 {
+                for child in &self.organisms[before..] {
+                    if super::growth::is_pending_birth(child) {
+                        *lineage_counts.entry(child.lineage_id).or_insert(0) += 1;
+                    }
+                }
+                slots_used += added;
+            }
         }
     }
 
