@@ -129,6 +129,100 @@ pub fn integrate_velocity(input: &VelocityIn<'_>, alpha: f32, max_step: f32, out
     run_simd_kernel!(integrate_velocity_inner(input, alpha, max_step, out));
 }
 
+/// In-place EMA on the organism columns. `alive` is `0` for a dead slot.
+/// `prev_*` and `v*` are updated in place; dead slots are left as they were.
+#[inline]
+pub fn integrate_velocity_columns(
+    x: &[f32],
+    y: &[f32],
+    prev_x: &mut [f32],
+    prev_y: &mut [f32],
+    vx: &mut [f32],
+    vy: &mut [f32],
+    alive: &[u8],
+    alpha: f32,
+    max_step: f32,
+) {
+    debug_assert!(y.len() == x.len() && prev_x.len() == x.len() && prev_y.len() == x.len());
+    debug_assert!(vx.len() == x.len() && vy.len() == x.len() && alive.len() == x.len());
+    simd_kernel!(integrate_columns_inner(
+        x: &[f32],
+        y: &[f32],
+        prev_x: &mut [f32],
+        prev_y: &mut [f32],
+        vx: &mut [f32],
+        vy: &mut [f32],
+        alive: &[u8],
+        alpha: f32,
+        max_step: f32,
+    ) {
+        let n = x.len();
+        let mut i = 0;
+        while i + LANES <= n {
+            let xs = unsafe { ptr::read_unaligned(x.as_ptr().add(i).cast()) };
+            let ys = unsafe { ptr::read_unaligned(y.as_ptr().add(i).cast()) };
+            let px = unsafe { ptr::read_unaligned(prev_x.as_ptr().add(i).cast()) };
+            let py = unsafe { ptr::read_unaligned(prev_y.as_ptr().add(i).cast()) };
+            let vx_l = unsafe { ptr::read_unaligned(vx.as_ptr().add(i).cast()) };
+            let vy_l = unsafe { ptr::read_unaligned(vy.as_ptr().add(i).cast()) };
+            let live = unsafe { ptr::read_unaligned(alive.as_ptr().add(i).cast::<[u8; LANES]>()) };
+            let (nx, ny, nvx, nvy) = integrate4(xs, ys, px, py, vx_l, vy_l, alpha, max_step);
+            for k in 0..LANES {
+                if live[k] == 0 {
+                    continue;
+                }
+                let j = i + k;
+                prev_x[j] = nx[k];
+                prev_y[j] = ny[k];
+                vx[j] = nvx[k];
+                vy[j] = nvy[k];
+            }
+            i += LANES;
+        }
+        let beta = 1.0 - alpha;
+        for j in i..n {
+            if alive[j] == 0 {
+                continue;
+            }
+            let inst_x = x[j] - prev_x[j];
+            let inst_y = y[j] - prev_y[j];
+            prev_x[j] = x[j];
+            prev_y[j] = y[j];
+            if inst_x.abs() > max_step || inst_y.abs() > max_step {
+                vx[j] = 0.0;
+                vy[j] = 0.0;
+            } else {
+                vx[j] = alpha * inst_x + beta * vx[j];
+                vy[j] = alpha * inst_y + beta * vy[j];
+            }
+        }
+    });
+    run_simd_kernel!(integrate_columns_inner(
+        x, y, prev_x, prev_y, vx, vy, alive, alpha, max_step
+    ));
+}
+
+/// Manhattan distance from `(ox, oy)` to indexed positions, up to four lanes.
+#[inline]
+pub fn l1_indexed_chunk(
+    ox: f32,
+    oy: f32,
+    xs: &[f32],
+    ys: &[f32],
+    indices: &[usize],
+    start: usize,
+) -> (usize, [f32; 4]) {
+    let count = (indices.len() - start).min(LANES);
+    let mut px = [0f32; LANES];
+    let mut py = [0f32; LANES];
+    for k in 0..count {
+        let i = indices[start + k];
+        px[k] = xs[i];
+        py[k] = ys[i];
+    }
+    (count, l1_4(ox, oy, px, py))
+}
+
 /// The scalar EMA, kept for the benchmark and as the definition the SIMD lanes have to match.
 #[inline]
 pub fn integrate_velocity_scalar(
@@ -288,7 +382,12 @@ pub(crate) fn hypot4(x: [f32; 4], y: [f32; 4]) -> [f32; 4] {
 
 /// Vector add does not propagate a NaN payload the way scalar `+` does, and
 /// `det_hypot` returns that scalar sum for a NaN argument. Finite lanes stay
-/// on the SIMD path.
+/// on the SIMD path. The scalar build calls `det_hypot` directly.
+#[cfg(any(
+    target_arch = "x86_64",
+    target_arch = "aarch64",
+    all(target_arch = "wasm32", feature = "wasm-simd"),
+))]
 #[inline]
 fn nan_lanes_from_libm(x: [f32; 4], y: [f32; 4], mut got: [f32; 4]) -> [f32; 4] {
     if x.iter().any(|v| v.is_nan()) || y.iter().any(|v| v.is_nan()) {

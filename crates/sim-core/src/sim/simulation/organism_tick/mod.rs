@@ -471,14 +471,20 @@ impl Simulation {
                     animal_near = (0..count).any(|k| alive[k] && distance[k] <= 8.0);
                     cursor += count;
                 }
-                Some(org.perceive_into(
-                    &self.grid,
-                    &self.organisms,
-                    night,
-                    animal_near,
-                    spatial,
-                    perception_buf,
-                ))
+                Some(
+                    org.perceive_into(
+                        &self.grid,
+                        &self.organisms,
+                        night,
+                        animal_near,
+                        spatial,
+                        perception_buf,
+                        self.organism_columns
+                            .ready_for(self.organisms.len())
+                            .then(|| self.organism_columns.neighbours()),
+                        i,
+                    ),
+                )
             },
         )
     }
@@ -571,6 +577,8 @@ impl Simulation {
                     p.animal_near,
                     spatial,
                     perception_buf,
+                    None,
+                    p.idx,
                 );
                 org.q_table.get(&next).map_or(0.0, |row| {
                     crate::sim::actions::best_next_q(

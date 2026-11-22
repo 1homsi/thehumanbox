@@ -73,18 +73,28 @@ impl Simulation {
 
         let perception = match f.pre_perception.take() {
             Some(perception) => perception,
-            None => self.organisms[idx].perceive_into(
-                &self.grid,
-                &self.organisms,
-                night,
-                animal_near,
-                spatial,
-                perception_buf,
-            ),
+            None => {
+                let hot = self
+                    .organism_columns
+                    .ready_for(self.organisms.len())
+                    .then(|| self.organism_columns.neighbours());
+                self.organisms[idx].perceive_into(
+                    &self.grid,
+                    &self.organisms,
+                    night,
+                    animal_near,
+                    spatial,
+                    perception_buf,
+                    hot,
+                    idx,
+                )
+            }
         };
         let prior_lineage = self.organisms[idx].lineage_id;
         self.validate_or_assign_wander_target_indexed(idx, spatial, lineage_members);
         if self.organisms[idx].lineage_id != prior_lineage {
+            self.organism_columns
+                .note_lineage(idx, self.organisms[idx].lineage_id);
             if let Some(members) = lineage_members.get_mut(prior_lineage.as_str()) {
                 members.retain(|&member_idx| member_idx != idx);
             }

@@ -67,6 +67,7 @@ export interface DesktopBridge {
     exportActive(): Promise<{ exported: boolean; filePath?: string; hash?: string }>
     resetLocal(options?: {
       empty?: boolean
+      headStart?: boolean
     }): Promise<{ reset: boolean; exported?: boolean; filePath?: string; port?: number }>
   }
   on(

@@ -233,7 +233,7 @@ fn shared_perception_query_preserves_social_and_attitude_fields() {
                 let fresh = people[0].perceive(&grid, &people, night, false, &spatial);
                 reusable.push(usize::MAX);
                 let perception =
-                    people[0].perceive_into(&grid, &people, night, false, &spatial, &mut reusable);
+                    people[0].perceive_into(&grid, &people, night, false, &spatial, &mut reusable, None, 0);
                 assert_eq!(perception, fresh);
                 assert!(!reusable.contains(&usize::MAX));
                 let fields: Vec<char> = perception.chars().collect();

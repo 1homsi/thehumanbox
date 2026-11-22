@@ -13,7 +13,6 @@ import {
   STAR_MAX_ASKS,
   STAR_MIN_PLAY_MS,
   STAR_PROMPT_KEY,
-  STAR_REASK_AFTER_MS,
   StarToast,
 } from './StarToast'
 
@@ -42,7 +41,6 @@ function state() {
 
 beforeEach(() => {
   vi.useFakeTimers()
-  vi.spyOn(Math, 'random').mockReturnValue(0)
   vi.mocked(trackEvent).mockClear()
   Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true })
 })
@@ -55,7 +53,9 @@ afterEach(() => {
   if (flags.photoMode) useUIStore.getState().setViewFlag('photoMode', false)
 })
 
-function mount(world: WorldState | null = null) {
+const TEN_MINUTES_MS = 10 * 60_000
+
+function mount(world: WorldState | null = worldWith()) {
   const host = document.createElement('div')
   document.body.append(host)
   const root = createRoot(host)
@@ -89,6 +89,51 @@ const timerHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_
 const momentHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_first_settlement`
 
 describe('StarToast', () => {
+  it('shows one soft nudge after ten minutes in a world and never again once dismissed', () => {
+    expect(STAR_MIN_PLAY_MS).toBe(TEN_MINUTES_MS)
+    expect(STAR_DELAY_MIN_MS).toBe(TEN_MINUTES_MS)
+    expect(STAR_MAX_ASKS).toBe(1)
+
+    const update = mount(null)
+    wait(TEN_MINUTES_MS)
+    expect(toast()).toBeNull()
+    expect(shownCalls()).toHaveLength(0)
+
+    update(worldWith())
+    wait(TEN_MINUTES_MS - 1)
+    expect(toast()).toBeNull()
+    wait(1)
+    expect(toast()?.textContent).toContain('Enjoying your world?')
+    expect(trackEvent).toHaveBeenCalledWith('star_prompt_shown', {
+      trigger: 'timer',
+      play_ms: TEN_MINUTES_MS,
+      ask_number: 1,
+    })
+
+    act(() => (toast()?.querySelector('.desktop-toast-close') as HTMLButtonElement).click())
+    expect(toast()).toBeNull()
+    expect(state()).toMatchObject({ asks: 1 })
+    expect(typeof state().dismissedAt).toBe('number')
+    expect(trackEvent).toHaveBeenCalledWith('star_prompt_dismissed', { trigger: 'timer' })
+
+    mount()
+    wait(TEN_MINUTES_MS)
+    expect(toast()).toBeNull()
+    expect(shownCalls()).toHaveLength(1)
+  })
+
+  it('holds a first settlement until ten minutes, then asks once', () => {
+    const update = mount(worldWith())
+    update(worldWith([settlement()], 600))
+    wait(TEN_MINUTES_MS - 1)
+    expect(toast()).toBeNull()
+    expect(shownCalls()).toHaveLength(0)
+    wait(1)
+    expect(toast()?.textContent).toContain('Your first settlement!')
+    expect(shownCalls()).toHaveLength(1)
+    expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_settlement', play_ms: TEN_MINUTES_MS })
+  })
+
   it('uses the timer as a fallback and links to the tagged repository URL', () => {
     mount()
     wait(STAR_DELAY_MIN_MS - 1)
@@ -106,8 +151,10 @@ describe('StarToast', () => {
 
   it('shows at the first settlement and records the moment trigger', () => {
     const update = mount(worldWith())
-    wait(STAR_MIN_PLAY_MS)
     update(worldWith([settlement()], 600))
+    wait(STAR_MIN_PLAY_MS - 1)
+    expect(toast()).toBeNull()
+    wait(1)
     expect(toast()).not.toBeNull()
     expect(toast()?.textContent).toContain('Your first settlement!')
     expect(toast()?.querySelector('a')?.getAttribute('href')).toBe(momentHref)
@@ -136,9 +183,11 @@ describe('StarToast', () => {
   it('does not mistake a settlement already in a loaded world for a new moment', () => {
     const update = mount(worldWith([settlement()], 4_000))
     update(worldWith([settlement()], 4_100))
-    wait(STAR_MIN_PLAY_MS)
+    wait(STAR_DELAY_MIN_MS - 1)
     expect(toast()).toBeNull()
     expect(shownCalls()).toHaveLength(0)
+    wait(1)
+    expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'timer' })
   })
 
   it('shows at most once when more moments and the fallback arrive', () => {
@@ -169,37 +218,27 @@ describe('StarToast', () => {
   })
 
   it('stays away once it has run out of asks', () => {
-    window.localStorage.setItem(
-      STAR_PROMPT_KEY,
-      JSON.stringify({ asks: STAR_MAX_ASKS, dismissedAt: Date.now() - STAR_REASK_AFTER_MS - 1 }),
-    )
+    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: STAR_MAX_ASKS, dismissedAt: 0 }))
     mount()
     wait(STAR_DELAY_MIN_MS * 4)
     expect(toast()).toBeNull()
   })
 
-  it('asks again after the cooldown, and never again once starred', () => {
-    const stale = Date.now() - STAR_REASK_AFTER_MS - 1
-    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1, dismissedAt: stale }))
+  it('never asks again after a dismissal, and never again once starred', () => {
+    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1, dismissedAt: 0 }))
     mount()
-    wait(STAR_DELAY_MIN_MS)
-    expect(toast()).not.toBeNull()
-    expect(state().asks).toBe(2)
-
-    act(() => (toast()?.querySelector('.desktop-toast-secondary') as HTMLButtonElement).click())
+    wait(STAR_DELAY_MIN_MS * 4)
     expect(toast()).toBeNull()
-    expect(state().dismissedAt).toBeGreaterThan(stale)
+    expect(shownCalls()).toHaveLength(0)
+    expect(state().asks).toBe(1)
 
-    window.localStorage.setItem(
-      STAR_PROMPT_KEY,
-      JSON.stringify({ asks: 1, starred: true, dismissedAt: stale }),
-    )
+    window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1, starred: true, dismissedAt: 0 }))
     mount()
     wait(STAR_DELAY_MIN_MS * 4)
     expect(toast()).toBeNull()
   })
 
-  it('carries over a v1 star but re-asks a v1 dismissal', () => {
+  it('carries over a v1 star and a v1 dismissal', () => {
     window.localStorage.setItem(LEGACY_STAR_PROMPT_KEY, 'starred')
     mount()
     wait(STAR_DELAY_MIN_MS * 4)
@@ -209,8 +248,11 @@ describe('StarToast', () => {
     window.localStorage.clear()
     window.localStorage.setItem(LEGACY_STAR_PROMPT_KEY, 'dismissed')
     mount()
-    wait(STAR_DELAY_MIN_MS)
-    expect(toast()).not.toBeNull()
+    wait(STAR_DELAY_MIN_MS * 4)
+    expect(toast()).toBeNull()
+    expect(shownCalls()).toHaveLength(0)
+    expect(state()).toMatchObject({ asks: 1 })
+    expect(typeof state().dismissedAt).toBe('number')
   })
 
   it('keeps a star recorded in another tab when the stale toast is dismissed', () => {
