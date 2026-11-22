@@ -103,7 +103,8 @@ pub(crate) struct CalmMap {
     foes: HashMap<String, Vec<(i32, i32)>>,
     /// Lineages in hunger, thirst or sickness. A hamlet of theirs is not calm.
     starving: HashSet<String>,
-    /// Lineages whose granary is empty. Same exclusion as a town.
+    /// Lineages whose granary spoiled empty. A granary that was simply used
+    /// down to nothing is not a famine.
     famine: HashSet<crate::intern::Sym>,
     /// Tick when each calm town or hamlet last became quiet. The step length
     /// is derived from this, so it survives a refresh that finds the same region still calm.
@@ -160,7 +161,18 @@ impl Simulation {
             mix(outbreak.epicenter[1] as u64);
             mix(outbreak.affected_count as u64);
         }
-        mix(self.physics.fire_tiles().count() as u64);
+        let mut fires: Vec<(i32, i32)> = self
+            .physics
+            .fire_tiles()
+            .filter(|&(x, y)| self.grid.get(x, y) == Tile::Fire)
+            .map(|(x, y)| (x.div_euclid(FIRE_CELL), y.div_euclid(FIRE_CELL)))
+            .collect();
+        fires.sort_unstable();
+        fires.dedup();
+        for (cx, cy) in fires {
+            mix(cx as u64);
+            mix(cy as u64);
+        }
         mix(self.festivals.len() as u64);
         mix(self.diplomacy.wars.iter().filter(|w| w.active()).count() as u64);
         for (lineage, peril) in &self.tribe_peril {
@@ -179,6 +191,18 @@ impl Simulation {
             mix(id
                 .bytes()
                 .fold(0u64, |acc, b| acc.wrapping_mul(131).wrapping_add(u64::from(b))));
+            // The town whose wake they stand in, not the tile. Walking inside
+            // that range does not rebuild the map; crossing into it does.
+            if let Some(o) = self.organisms.iter().find(|o| o.alive && o.id == id) {
+                let at = (o.x as i32, o.y as i32);
+                let near = self
+                    .towns
+                    .iter()
+                    .filter(|t| chebyshev((t.center[0], t.center[1]), at) <= EVENT_REACH)
+                    .map(|t| t.id)
+                    .min();
+                mix(u64::from(near.unwrap_or(u32::MAX)));
+            }
         }
         h
     }
@@ -390,20 +414,22 @@ impl Simulation {
                     });
                     match town {
                         Some(&(id, _)) => (calm.towns.contains(&id).then_some(id), None),
-                        None if calm.busy.contains(o.lineage_id.as_str()) => (None, None),
                         None => {
                             let (cx, cy) = (home.0.div_euclid(HAMLET), home.1.div_euclid(HAMLET));
-                            if calm.starving.contains(o.lineage_id.as_str())
+                            let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
+                            let blocked = calm.busy.contains(o.lineage_id.as_str())
+                                || calm.starving.contains(o.lineage_id.as_str())
                                 || calm.famine.contains(&o.lineage_id)
                                 || at_front(
                                     &calm.foes,
                                     &o.lineage_id,
                                     (cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2),
-                                )
-                            {
-                                return (None, None);
+                                );
+                            if blocked {
+                                // Drop the quiet clock so the hamlet restarts at
+                                // the short step once the interruption ends.
+                                return (None, Some((id, false)));
                             }
-                            let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
                             let quiet = calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2));
                             (quiet.then_some(id), Some((id, quiet)))
                         }

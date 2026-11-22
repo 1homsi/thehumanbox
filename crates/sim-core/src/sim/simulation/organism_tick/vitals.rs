@@ -148,28 +148,38 @@ impl Simulation {
             );
         }
 
-        if self.organisms[idx].inv_water >= 2
-            && crate::sim::simulation::town_lod::due(self.tick_count, f.dt, 7, idx as u64)
-        {
+        // One gift per 7 ticks. A long step is a single visit to this function,
+        // so it hands out every gift the skipped ticks would have.
+        let shares = if f.dt <= super::TOWN_STEP {
+            u64::from(super::due(self.tick_count, f.dt, 7, idx as u64))
+        } else {
+            f.dt / 7
+        };
+        if self.organisms[idx].inv_water >= 2 && shares > 0 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let lid = &self.organisms[idx].lineage_id;
+            let lid = self.organisms[idx].lineage_id;
             ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
                 i != idx
                     && o.alive
                     && o.hydration < 0.30
                     && (o.x - sx).abs() + (o.y - sy).abs() < 2.5
-                    && o.lineage_id == *lid
+                    && o.lineage_id == lid
             });
-            let recipient = spatial_buf
-                .iter()
-                .map(|&i| (i, &self.organisms[i]))
-                .min_by(|a, b| {
-                    a.1.hydration
-                        .partial_cmp(&b.1.hydration)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
-                .map(|(i, _)| i);
-            if let Some(ri) = recipient {
+            for _ in 0..shares {
+                if self.organisms[idx].inv_water < 2 {
+                    break;
+                }
+                let recipient = spatial_buf
+                    .iter()
+                    .copied()
+                    .filter(|&i| self.organisms[i].alive && self.organisms[i].hydration < 0.30)
+                    .min_by(|a, b| {
+                        self.organisms[*a]
+                            .hydration
+                            .partial_cmp(&self.organisms[*b].hydration)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                let Some(ri) = recipient else { break };
                 self.organisms[idx].inv_water -= 1;
                 self.organisms[ri].hydration = (self.organisms[ri].hydration + 0.22).min(1.0);
                 let recipient_id = self.organisms[ri].id;
