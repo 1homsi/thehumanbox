@@ -260,16 +260,17 @@ pub fn bucket_coords_scalar(xs: &[f32], ys: &[f32], bucket: i32, out_x: &mut [i3
 #[cfg(target_arch = "x86_64")]
 #[inline]
 pub(crate) fn hypot4(x: [f32; 4], y: [f32; 4]) -> [f32; 4] {
-    unsafe { x86::hypot4(x, y) }
+    nan_lanes_from_libm(x, y, unsafe { x86::hypot4(x, y) })
 }
 #[cfg(target_arch = "aarch64")]
 #[inline]
 pub(crate) fn hypot4(x: [f32; 4], y: [f32; 4]) -> [f32; 4] {
-    unsafe { aarch64::hypot4(x, y) }
+    nan_lanes_from_libm(x, y, unsafe { aarch64::hypot4(x, y) })
 }
 #[cfg(all(target_arch = "wasm32", feature = "wasm-simd"))]
+#[inline]
 pub(crate) fn hypot4(x: [f32; 4], y: [f32; 4]) -> [f32; 4] {
-    unsafe { wasm::hypot4(x, y) }
+    nan_lanes_from_libm(x, y, unsafe { wasm::hypot4(x, y) })
 }
 #[cfg(not(any(
     target_arch = "x86_64",
@@ -283,6 +284,21 @@ pub(crate) fn hypot4(x: [f32; 4], y: [f32; 4]) -> [f32; 4] {
         x[2].det_hypot(y[2]),
         x[3].det_hypot(y[3]),
     ]
+}
+
+/// Vector add does not propagate a NaN payload the way scalar `+` does, and
+/// `det_hypot` returns that scalar sum for a NaN argument. Finite lanes stay
+/// on the SIMD path.
+#[inline]
+fn nan_lanes_from_libm(x: [f32; 4], y: [f32; 4], mut got: [f32; 4]) -> [f32; 4] {
+    if x.iter().any(|v| v.is_nan()) || y.iter().any(|v| v.is_nan()) {
+        for k in 0..4 {
+            if x[k].is_nan() || y[k].is_nan() {
+                got[k] = x[k].det_hypot(y[k]);
+            }
+        }
+    }
+    got
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -516,9 +532,9 @@ mod tests {
             let expect = x[k].det_hypot(y[k]);
             assert!(
                 bits_eq(got[k], expect),
-                "hypot({}, {}) lane {k}: got {:08x} expect {:08x}",
-                x[k],
-                y[k],
+                "hypot({:08x}, {:08x}) lane {k}: got {:08x} expect {:08x}",
+                x[k].to_bits(),
+                y[k].to_bits(),
                 got[k].to_bits(),
                 expect.to_bits()
             );
