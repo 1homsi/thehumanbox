@@ -5,7 +5,25 @@ use crate::sim::cosmos::DAY_LENGTH;
 
 pub(crate) const TOWN_STEP: u64 = 8;
 
+/// Longest closed step a region takes once it has been calm for a few days.
+pub(crate) const COARSE_MAX: u64 = 64;
+
 const CALM_EVERY: u64 = 60;
+
+/// A town that has only just gone quiet keeps the 8-tick step. Longer quiet
+/// stretches double it, up to a day-scale step, so a fresh calm patch still
+/// resolves births on the old cadence.
+pub(crate) fn step_for(calm_for: u64) -> u64 {
+    if calm_for >= 1_800 {
+        COARSE_MAX
+    } else if calm_for >= 600 {
+        32
+    } else if calm_for >= 120 {
+        16
+    } else {
+        TOWN_STEP
+    }
+}
 
 const EVENT_REACH: i32 = 40;
 
@@ -55,6 +73,12 @@ pub(crate) struct CalmMap {
     hot: Vec<(i32, i32)>,
     busy: HashSet<String>,
     foes: HashMap<String, Vec<(i32, i32)>>,
+    /// Tick when each calm town or hamlet last became quiet. The step length
+    /// is derived from this, so it survives a refresh that finds the same region still calm.
+    since: HashMap<u32, u64>,
+    /// Fingerprint of the wake reasons. A change rebuilds the map on that tick
+    /// instead of waiting out `CALM_EVERY`.
+    stamp: u64,
 }
 
 fn at_front(foes: &HashMap<String, Vec<(i32, i32)>>, lineage: &str, p: (i32, i32)) -> bool {
@@ -69,14 +93,76 @@ impl CalmMap {
 }
 
 impl Simulation {
+    /// How many ticks a calm town or hamlet skips between aggregate steps.
+    pub(super) fn coarse_step(&self, id: u32) -> u64 {
+        let Some(calm) = self.calm_towns.as_ref() else {
+            return TOWN_STEP;
+        };
+        let Some(&since) = calm.since.get(&id) else {
+            return TOWN_STEP;
+        };
+        step_for(self.tick_count.saturating_sub(since))
+    }
+
+    /// Wake reasons that must drop a calm region on the tick they appear.
+    /// Counts and places only: no walk over the people.
+    fn hot_stamp(&self) -> u64 {
+        let mut h = 0xcbf2_9ce4_8422_2325u64;
+        let mut mix = |v: u64| {
+            h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+        };
+        for battle in self.battles.iter().filter(|b| b.ended_tick.is_none()) {
+            mix(battle.location.0 as u64);
+            mix(battle.location.1 as u64);
+        }
+        for &(x, y, _) in &self.focus_points {
+            mix(x as u64);
+            mix(y as u64);
+        }
+        for &(x, y, _) in &self.flood_tiles {
+            mix(x as u64);
+            mix(y as u64);
+        }
+        for outbreak in &self.outbreaks {
+            mix(outbreak.epicenter[0] as u64);
+            mix(outbreak.epicenter[1] as u64);
+            mix(outbreak.affected_count as u64);
+        }
+        mix(self.physics.fire_tiles().count() as u64);
+        mix(self.festivals.len() as u64);
+        mix(self.diplomacy.wars.iter().filter(|w| w.active()).count() as u64);
+        for (lineage, peril) in &self.tribe_peril {
+            mix(lineage
+                .bytes()
+                .fold(0u64, |acc, b| acc.wrapping_mul(131).wrapping_add(u64::from(b))));
+            mix(peril.cause as u64);
+        }
+        for building in &self.buildings {
+            if building.kind == crate::sim::tech::buildings::BuildingKind::Granary && building.stock == 0 {
+                mix(u64::from(building.id));
+                mix(building.spoiled_tick.unwrap_or(0));
+            }
+        }
+        if let Some(id) = self.followed.as_deref() {
+            mix(id
+                .bytes()
+                .fold(0u64, |acc, b| acc.wrapping_mul(131).wrapping_add(u64::from(b))));
+        }
+        h
+    }
+
     pub(super) fn refresh_calm_towns(&mut self) {
-        if self.calm_towns.is_some() && !self.tick_count.is_multiple_of(CALM_EVERY) {
+        let stamp = self.hot_stamp();
+        if self.calm_towns.as_ref().is_some_and(|c| c.stamp == stamp)
+            && !self.tick_count.is_multiple_of(CALM_EVERY)
+        {
             return;
         }
         if !self.lod {
             self.calm_towns = Some(CalmMap::default());
             return;
         }
+        let old_since = self.calm_towns.take().map(|c| c.since).unwrap_or_default();
         let fronts: Vec<(&str, &str)> = self
             .diplomacy
             .wars
@@ -109,6 +195,7 @@ impl Simulation {
             .collect();
         hot.extend(self.focus_points.iter().map(|&(x, y, _)| (x, y)));
         hot.extend(self.flood_tiles.iter().map(|&(x, y, _)| (x, y)));
+        hot.extend(self.outbreaks.iter().map(|o| (o.epicenter[0], o.epicenter[1])));
         let mut fires: Vec<(i32, i32)> = self
             .physics
             .fire_tiles()
@@ -127,11 +214,38 @@ impl Simulation {
                 hot.push((o.x as i32, o.y as i32));
             }
         }
+        let starving: HashSet<String> = self
+            .tribe_peril
+            .iter()
+            .filter(|(_, peril)| {
+                matches!(
+                    peril.cause,
+                    crate::sim::civ::peril::PerilCause::Hunger
+                        | crate::sim::civ::peril::PerilCause::Thirst
+                        | crate::sim::civ::peril::PerilCause::Sickness
+                )
+            })
+            .map(|(lineage, _)| lineage.clone())
+            .collect();
+        let famine: HashSet<crate::intern::Sym> = self
+            .buildings
+            .iter()
+            .filter(|b| {
+                b.kind == crate::sim::tech::buildings::BuildingKind::Granary
+                    && b.is_operational()
+                    && b.stock == 0
+                    && b.spoiled_tick.is_some()
+            })
+            .filter_map(|b| b.owner_lineage)
+            .collect();
         let towns: HashSet<u32> = self
             .towns
             .iter()
             .filter(|t| {
-                !busy.contains(t.lineage.as_str()) && !at_front(&foes, &t.lineage, (t.center[0], t.center[1]))
+                !busy.contains(t.lineage.as_str())
+                    && !starving.contains(t.lineage.as_str())
+                    && !famine.contains(&t.lineage)
+                    && !at_front(&foes, &t.lineage, (t.center[0], t.center[1]))
             })
             .filter(|t| {
                 hot.iter()
@@ -139,11 +253,24 @@ impl Simulation {
             })
             .map(|t| t.id)
             .collect();
+        let tick = self.tick_count;
+        let mut since: HashMap<u32, u64> = HashMap::default();
+        for (&id, &started) in &old_since {
+            if id >= HAMLETS {
+                since.insert(id, started);
+            }
+        }
+        for &id in &towns {
+            let started = old_since.get(&id).copied().unwrap_or(tick);
+            since.insert(id, started);
+        }
         let map = CalmMap {
             towns,
             hot,
             foes,
             busy: busy.into_iter().collect(),
+            since,
+            stamp,
         };
         self.calm_towns = Some(map);
     }
@@ -169,6 +296,9 @@ impl Simulation {
             .iter()
             .zip(&self.lod_units)
             .map(|(o, &unit)| {
+                // Travellers stay on the per-tick path. Folding a journey into
+                // the coarse step pulled people off the meetings where births
+                // happen.
                 let settled = o.alive
                     && o.journey.is_none()
                     && o.mounted_vehicle.is_none()
@@ -186,26 +316,24 @@ impl Simulation {
             .collect()
     }
 
-    fn home_units(&self) -> Vec<Option<u32>> {
+    fn home_units(&mut self) -> Vec<Option<u32>> {
         let n = self.organisms.len();
-        let Some(calm) = self.calm_towns.as_ref() else {
-            return vec![None; n];
-        };
-        let mut towns: HashMap<&str, Vec<TownSpot>> = HashMap::default();
-        for t in &self.towns {
-            towns
-                .entry(t.lineage.as_str())
-                .or_default()
-                .push((t.id, (t.center[0], t.center[1])));
-        }
-        let organisms = &self.organisms;
-        crate::sim::par::map_with(
-            n,
-            || (),
-            |_, i| {
+        let assigned = {
+            let Some(calm) = self.calm_towns.as_ref() else {
+                return vec![None; n];
+            };
+            let mut towns: HashMap<&str, Vec<TownSpot>> = HashMap::default();
+            for t in &self.towns {
+                towns
+                    .entry(t.lineage.as_str())
+                    .or_default()
+                    .push((t.id, (t.center[0], t.center[1])));
+            }
+            let organisms = &self.organisms;
+            crate::sim::par::map_with(n, || (), |_, i| {
                 let o = &organisms[i];
                 if !o.alive {
-                    return None;
+                    return (None, None);
                 }
                 let home = (o.home_x as i32, o.home_y as i32);
                 let town = towns.get(o.lineage_id.as_str()).and_then(|list| {
@@ -214,8 +342,8 @@ impl Simulation {
                         .min_by_key(|&&(id, c)| (chebyshev(c, home), id))
                 });
                 match town {
-                    Some(&(id, _)) => calm.towns.contains(&id).then_some(id),
-                    None if calm.busy.contains(o.lineage_id.as_str()) => None,
+                    Some(&(id, _)) => (calm.towns.contains(&id).then_some(id), None),
+                    None if calm.busy.contains(o.lineage_id.as_str()) => (None, None),
                     None => {
                         let (cx, cy) = (home.0.div_euclid(HAMLET), home.1.div_euclid(HAMLET));
                         if at_front(
@@ -223,15 +351,28 @@ impl Simulation {
                             &o.lineage_id,
                             (cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2),
                         ) {
-                            return None;
+                            return (None, None);
                         }
                         let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
-                        calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2))
-                            .then_some(id)
+                        let quiet = calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2));
+                        (quiet.then_some(id), Some((id, quiet)))
                     }
                 }
-            },
-        )
+            })
+        };
+        let tick = self.tick_count;
+        if let Some(calm) = self.calm_towns.as_mut() {
+            for (_, note) in &assigned {
+                if let Some((id, quiet)) = note {
+                    if *quiet {
+                        calm.since.entry(*id).or_insert(tick);
+                    } else {
+                        calm.since.swap_remove(id);
+                    }
+                }
+            }
+        }
+        assigned.into_iter().map(|(unit, _)| unit).collect()
     }
 
     pub(super) fn town_tiers(&self, towns: &[Option<u32>], awake: &[bool]) -> Vec<Tier> {
@@ -241,7 +382,7 @@ impl Simulation {
             .zip(awake)
             .map(|(town, &awake)| match town {
                 Some(id) if !awake => {
-                    if (tick + u64::from(*id)).is_multiple_of(TOWN_STEP) {
+                    if (tick + u64::from(*id)).is_multiple_of(self.coarse_step(*id)) {
                         Tier::Step
                     } else {
                         Tier::Idle
@@ -271,42 +412,119 @@ impl Simulation {
             if tier != Tier::Idle {
                 continue;
             }
-            let o = &self.organisms[i];
-            let Some(r) = o.routine else {
+            let Some(target) = self.stride_target(i, phase) else {
                 continue;
             };
-            let activity = r.activity_at(phase);
-            let target = match (activity, o.work) {
-                (Activity::Work, Some(plan)) => Some(plan.spot),
-                _ => r.place_of(activity),
-            };
-            let Some(target) = target else {
-                continue;
-            };
-            let here = (o.x as i32, o.y as i32);
-            let gap = chebyshev(here, target);
-            if gap <= 2 {
-                continue;
+            self.step_toward(i, target);
+        }
+    }
+
+    /// Conception keeps the old 8-tick cadence while the rest of a long step is
+    /// skipped. The step's own turn rolls as well; this covers the idle ticks,
+    /// so a quiet stretch does not lower the birth rate.
+    pub(super) fn coarse_conceptions(
+        &mut self,
+        tiers: &[Tier],
+        mut slots_used: usize,
+        lineage_counts: &FxHashMap<crate::intern::Sym, usize>,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
+    ) {
+        let tick = self.tick_count;
+        let due: Vec<usize> = (0..tiers.len())
+            .filter(|&i| tiers[i] == Tier::Idle && (tick + i as u64).is_multiple_of(TOWN_STEP))
+            .filter(|&i| {
+                self.organisms
+                    .get(i)
+                    .is_some_and(|o| o.alive && o.sex == crate::organism::organism::Sex::Female)
+            })
+            .collect();
+        for idx in due {
+            if slots_used >= self.population_limit {
+                break;
             }
-            let reach = |p: (i32, i32)| {
-                (
-                    chebyshev(p, target),
-                    (p.0 - target.0).abs() + (p.1 - target.1).abs(),
-                )
-            };
-            let best = DIRECTIONS
-                .iter()
-                .map(|&(dx, dy)| (here.0 + dx, here.1 + dy))
-                .filter(|&(x, y)| {
-                    let tile = self.grid.get(x, y);
-                    tile.walkable() && !self.grid.is_wet(tile, x, y)
-                })
-                .min_by_key(|&p| reach(p));
-            if let Some(p) = best.filter(|&p| reach(p) < reach(here)) {
-                let o = &mut self.organisms[i];
-                o.x += (p.0 - here.0) as f32;
-                o.y += (p.1 - here.1) as f32;
+            let before = self.organisms.len();
+            crate::sim::growth::try_reproduce(
+                idx,
+                &mut self.organisms,
+                &self.grid,
+                tick,
+                &mut self.events,
+                &mut self.rng,
+                crate::sim::growth::ReproductionPopulation {
+                    slots_used,
+                    limit: self.population_limit,
+                    lineage_counts,
+                    org_idx_by_id,
+                },
+            );
+            slots_used += self.organisms.len().saturating_sub(before);
+        }
+    }
+
+    /// Walk one person up to `steps` tiles along the routine they would have
+    /// followed on the idle ticks a coarse step skipped.
+    #[cfg(test)]
+    pub(super) fn stride(&mut self, idx: usize, steps: u64) {
+        let phase = self.tick_count % DAY_LENGTH;
+        let Some(target) = self.stride_target(idx, phase) else {
+            return;
+        };
+        for _ in 0..steps {
+            if !self.step_toward(idx, target) {
+                break;
             }
+        }
+    }
+
+    /// A journey in progress is the walk the skipped ticks would have taken.
+    /// Otherwise the person keeps to the routine place.
+    fn stride_target(&self, idx: usize, phase: u64) -> Option<(i32, i32)> {
+        let o = &self.organisms[idx];
+        if let Some(journey) = &o.journey {
+            return Some(journey.target);
+        }
+        self.routine_target(idx, phase)
+    }
+
+    fn routine_target(&self, idx: usize, phase: u64) -> Option<(i32, i32)> {
+        let o = &self.organisms[idx];
+        let r = o.routine?;
+        let activity = r.activity_at(phase);
+        match (activity, o.work) {
+            (Activity::Work, Some(plan)) => Some(plan.spot),
+            _ => r.place_of(activity),
+        }
+    }
+
+    /// One greedy step toward `target`, the same step the idle glide takes.
+    /// Returns whether the person moved.
+    fn step_toward(&mut self, idx: usize, target: (i32, i32)) -> bool {
+        let o = &self.organisms[idx];
+        let here = (o.x as i32, o.y as i32);
+        if chebyshev(here, target) <= 2 {
+            return false;
+        }
+        let reach = |p: (i32, i32)| {
+            (
+                chebyshev(p, target),
+                (p.0 - target.0).abs() + (p.1 - target.1).abs(),
+            )
+        };
+        let best = DIRECTIONS
+            .iter()
+            .map(|&(dx, dy)| (here.0 + dx, here.1 + dy))
+            .filter(|&(x, y)| {
+                let tile = self.grid.get(x, y);
+                tile.walkable() && !self.grid.is_wet(tile, x, y)
+            })
+            .min_by_key(|&p| reach(p));
+        if let Some(p) = best.filter(|&p| reach(p) < reach(here)) {
+            let o = &mut self.organisms[idx];
+            o.x += (p.0 - here.0) as f32;
+            o.y += (p.1 - here.1) as f32;
+            true
+        } else {
+            false
         }
     }
 }
@@ -416,5 +634,166 @@ mod tests {
         assert_eq!(chance(0.1, 1), 0.1);
         let p = chance(0.1, 8);
         assert!((p - (1.0 - 0.9f32.powi(8))).abs() < 1e-6);
+    }
+
+    #[test]
+    fn a_quiet_stretch_lengthens_the_step_up_to_a_day() {
+        assert_eq!(step_for(0), TOWN_STEP);
+        assert_eq!(step_for(119), TOWN_STEP);
+        assert_eq!(step_for(120), 16);
+        assert_eq!(step_for(599), 16);
+        assert_eq!(step_for(600), 32);
+        assert_eq!(step_for(1_799), 32);
+        assert_eq!(step_for(1_800), COARSE_MAX);
+        assert_eq!(step_for(9_000), COARSE_MAX);
+    }
+
+    #[test]
+    fn a_command_wakes_a_calm_town_on_the_tick_it_arrives() {
+        let mut sim = Simulation::new(42);
+        sim.tick_n(1300);
+        sim.calm_towns = None;
+        sim.refresh_calm_towns();
+        let town = sim
+            .towns
+            .iter()
+            .find(|t| sim.calm_towns.as_ref().is_some_and(|c| c.towns.contains(&t.id)))
+            .cloned()
+            .expect("a calm town");
+        let step = sim.coarse_step(town.id);
+        assert!((TOWN_STEP..=COARSE_MAX).contains(&step) && step.is_power_of_two());
+        sim.refresh_calm_towns();
+        assert!(sim
+            .calm_towns
+            .as_ref()
+            .is_some_and(|c| c.towns.contains(&town.id)));
+        sim.focus_points
+            .push((town.center[0], town.center[1], sim.tick_count + 100));
+        sim.refresh_calm_towns();
+        assert!(
+            !sim.calm_towns
+                .as_ref()
+                .is_some_and(|c| c.towns.contains(&town.id)),
+            "a command on the town waited for the calm refresh"
+        );
+    }
+
+    #[test]
+    fn a_plague_and_a_famine_keep_a_town_awake() {
+        use crate::sim::civ::peril::{Peril, PerilCause};
+        use crate::sim::medicine::{DiseaseKind, Outbreak};
+        let mut sim = Simulation::new(42);
+        sim.tick_n(1300);
+        sim.calm_towns = None;
+        sim.refresh_calm_towns();
+        let town = sim
+            .towns
+            .iter()
+            .find(|t| sim.calm_towns.as_ref().is_some_and(|c| c.towns.contains(&t.id)))
+            .cloned()
+            .expect("a calm town");
+        sim.outbreaks.push(Outbreak {
+            kind: DiseaseKind::Plague,
+            epicenter: [town.center[0], town.center[1]],
+            started_tick: sim.tick_count,
+            affected_count: 3,
+            deaths: 0,
+        });
+        sim.refresh_calm_towns();
+        assert!(!sim
+            .calm_towns
+            .as_ref()
+            .is_some_and(|c| c.towns.contains(&town.id)));
+        sim.outbreaks.clear();
+        sim.calm_towns = None;
+        sim.refresh_calm_towns();
+        assert!(sim
+            .calm_towns
+            .as_ref()
+            .is_some_and(|c| c.towns.contains(&town.id)));
+        sim.tribe_peril.insert(
+            town.lineage.to_string(),
+            Peril {
+                population: 4,
+                peak: 20,
+                cause: PerilCause::Hunger,
+                since: sim.tick_count,
+            },
+        );
+        sim.refresh_calm_towns();
+        assert!(!sim
+            .calm_towns
+            .as_ref()
+            .is_some_and(|c| c.towns.contains(&town.id)));
+    }
+
+    #[test]
+    fn a_journey_stays_on_the_per_tick_path_even_after_a_long_calm() {
+        use crate::organism::organism::Journey;
+        let mut sim = Simulation::new(42);
+        sim.tick_n(1300);
+        sim.calm_towns = None;
+        sim.refresh_calm_towns();
+        sim.lod_units = sim.home_units();
+        if let Some(calm) = sim.calm_towns.as_mut() {
+            for started in calm.since.values_mut() {
+                *started = sim.tick_count.saturating_sub(200);
+            }
+        }
+        let idx = (0..sim.organisms.len())
+            .find(|&i| {
+                sim.lod_units[i].is_some()
+                    && sim.organisms[i].alive
+                    && sim.organisms[i].routine.is_some()
+                    && sim.organisms[i].journey.is_none()
+            })
+            .expect("someone at home in a calm region");
+        let id = sim.lod_units[idx].expect("a calm home");
+        assert!(sim.coarse_step(id) > TOWN_STEP);
+        let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+        {
+            let o = &mut sim.organisms[idx];
+            o.journey = Some(Journey {
+                target: (x + 24, y),
+                description: "walking".to_string(),
+                expires_at: sim.tick_count + 800,
+            });
+            o.energy = 0.9;
+            o.hydration = 0.9;
+            o.last_action = Some(1);
+            o.water_ticks = 0;
+            o.mounted_vehicle = None;
+            if let Some(plan) = o.work.as_mut() {
+                plan.skill = crate::organism::skills::Skill::Woodcutting;
+            }
+        }
+        assert_eq!(sim.calm_town_of_each()[idx], None);
+        let x0 = sim.organisms[idx].x;
+        sim.stride(idx, 16);
+        let moved = (sim.organisms[idx].x - x0).abs();
+        assert!(
+            moved >= 10.0,
+            "a 16-tick stride moved {moved} tiles toward the journey"
+        );
+    }
+
+    #[test]
+    fn the_same_seed_takes_the_same_coarse_steps() {
+        fn digest(sim: &Simulation) -> (u64, u64, u32) {
+            let alive = sim.organisms.iter().filter(|o| o.alive).count() as u32;
+            let hash = sim.organisms.iter().fold(sim.history.births, |acc, o| {
+                acc.wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                    ^ u64::from(o.age)
+                    ^ (o.x.to_bits() as u64)
+                    ^ (o.y.to_bits() as u64).rotate_left(17)
+                    ^ u64::from(o.alive)
+            });
+            (hash, sim.history.births, alive)
+        }
+        let mut a = Simulation::new(7);
+        let mut b = Simulation::new(7);
+        a.tick_n(180);
+        b.tick_n(180);
+        assert_eq!(digest(&a), digest(&b));
     }
 }

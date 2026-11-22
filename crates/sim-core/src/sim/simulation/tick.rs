@@ -604,6 +604,7 @@ impl Simulation {
 
         self.dormant_upkeep(&dormant, &spatial, &animal_spatial);
         self.glide(&tiers);
+        self.coarse_conceptions(&tiers, population_slots_used, &lineage_counts, &org_idx_by_id);
         self.learn_from_the_tick(&spatial);
 
         self.organism_columns.smooth_velocity(&mut self.organisms);

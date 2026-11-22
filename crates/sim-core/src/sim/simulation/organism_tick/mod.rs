@@ -243,13 +243,13 @@ impl Simulation {
                     || match towns[i] {
                         None => (self.tick_count + i as u64).is_multiple_of(LOD_EVERY),
                         Some(town) => {
-                            (self.tick_count + u64::from(town)).is_multiple_of(TOWN_STEP)
-                                && due(
-                                    self.tick_count,
-                                    TOWN_STEP,
-                                    LOD_EVERY,
-                                    LOD_EVERY - i as u64 % LOD_EVERY,
-                                )
+                            let step = self.coarse_step(town);
+                            // A longer step is an aggregate update. Full turns wait for a
+                            // wake reason (needs, a command, a battle, a storm) so a quiet
+                            // region does not pay for a decision every minute.
+                            step == TOWN_STEP
+                                && (self.tick_count + u64::from(town)).is_multiple_of(step)
+                                && due(self.tick_count, step, LOD_EVERY, LOD_EVERY - i as u64 % LOD_EVERY)
                         }
                     }
                     || o.energy < 0.35
@@ -274,16 +274,20 @@ impl Simulation {
                 {
                     return true;
                 }
+                // Off the coarse step a quiet neighbour stays asleep. The animal
+                // scan waits for the step, with hunger, a command and a battle
+                // still able to wake them on the tick they happen.
+                if towns[i].is_some_and(|town| {
+                    !(self.tick_count + u64::from(town)).is_multiple_of(self.coarse_step(town))
+                }) {
+                    return false;
+                }
                 animal_spatial.query_into(x, y, 12, buf);
                 if buf.iter().any(|&a| {
                     let a = &self.animals[a];
                     a.alive && a.kind.hostile() && (a.x - o.x).abs() + (a.y - o.y).abs() <= 14.0
                 }) {
                     return true;
-                }
-                if towns[i].is_some_and(|town| !(self.tick_count + u64::from(town)).is_multiple_of(TOWN_STEP))
-                {
-                    return false;
                 }
                 let war_near = ongoing
                     .iter()
@@ -532,20 +536,41 @@ impl Simulation {
                 let water_near = vitals::water_near(grid, cx, cy);
                 let ritual = climate.night && o.discoveries.has(Hot::Ritual);
                 let fire_near = ritual && vitals::campfire_near(grid, cx, cy);
-                for back in (0..dt).rev() {
-                    let at = tick - back;
-                    let climate = climate.at(at);
-                    vitals::shelter_comfort(o, shelter, || upkeep_roll(at, i));
-                    vitals::drain_and_eat(o, water_near, &climate, shelter);
-                    vitals::weather_and_sickness(o, grid, &climate, cx, cy, shelter);
-                    if ritual {
-                        vitals::ritual_warmth(o, fire_near);
+                let spread = if spatial_buf.is_empty() {
+                    0.0
+                } else {
+                    vitals::caught_infection(o, i, spatial_buf, |j| neighbours[j]) - o.infection
+                };
+                let closed = spread == 0.0
+                    && vitals::integrate_closed(
+                        o,
+                        dt,
+                        tick,
+                        shelter,
+                        water_near,
+                        tile == Tile::Fire,
+                        ritual && fire_near,
+                        &climate,
+                        grid,
+                        cx,
+                        cy,
+                    );
+                if !closed {
+                    for back in (0..dt).rev() {
+                        let at = tick - back;
+                        let climate = climate.at(at);
+                        vitals::shelter_comfort(o, shelter, || upkeep_roll(at, i));
+                        vitals::drain_and_eat(o, water_near, &climate, shelter);
+                        vitals::weather_and_sickness(o, grid, &climate, cx, cy, shelter);
+                        if ritual {
+                            vitals::ritual_warmth(o, fire_near);
+                        }
+                        if o.infection < 0.8 {
+                            let caught = vitals::caught_infection(o, i, spatial_buf, |j| neighbours[j]);
+                            fell_sick |= vitals::set_infection(o, caught);
+                        }
+                        ageing::body_ageing(o, tile == Tile::Fire, at);
                     }
-                    if o.infection < 0.8 {
-                        let caught = vitals::caught_infection(o, i, spatial_buf, |j| neighbours[j]);
-                        fell_sick |= vitals::set_infection(o, caught);
-                    }
-                    ageing::body_ageing(o, tile == Tile::Fire, at);
                 }
                 (in_water, fell_sick)
             },
@@ -916,7 +941,9 @@ impl Simulation {
             self.org_apply_choice(&mut f, choice);
             self.org_act(&mut f);
             if f.action >= 8 {
-                for _ in 1..f.dt {
+                // A coarse step repeats a craft a few times, not once per skipped tick.
+                let extra = if f.dormant { f.dt.min(TOWN_STEP) } else { f.dt };
+                for _ in 1..extra {
                     self.org_act(&mut f);
                 }
             }
