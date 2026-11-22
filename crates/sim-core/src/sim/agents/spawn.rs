@@ -339,11 +339,7 @@ impl Simulation {
             if !self.is_good_land_target(tx, ty) {
                 continue;
             }
-            let too_close = self.organisms.iter().any(|o| {
-                o.alive
-                    && (o.home_x as i32 - tx).abs() + (o.home_y as i32 - ty).abs() < MIN_DIST_FROM_OTHER_HOMES
-            });
-            if too_close {
+            if self.any_living_home_within(tx, ty, MIN_DIST_FROM_OTHER_HOMES) {
                 continue;
             }
             return Some((tx, ty));
@@ -419,5 +415,95 @@ impl Simulation {
             None,
             Some((anchor_x, anchor_y)),
         );
+        self.home_spots_ok = false;
+    }
+
+    /// Distinct living homes, sorted by x then y. A camp shares one home, so the
+    /// founding search checks each place once. Rebuilt when a home moves.
+    fn ensure_home_spots(&mut self) {
+        if self.home_spots_ok {
+            return;
+        }
+        self.home_spots.clear();
+        self.home_spots.extend(
+            self.organisms
+                .iter()
+                .filter(|o| o.alive)
+                .map(|o| (o.home_x as i32, o.home_y as i32)),
+        );
+        self.home_spots.sort_unstable();
+        self.home_spots.dedup();
+        self.home_spots_ok = true;
+    }
+
+    /// True when some living person's home is within `dist` Manhattan tiles.
+    /// Same answer as scanning `organisms` in order: the check is a boolean.
+    pub(crate) fn any_living_home_within(&mut self, tx: i32, ty: i32, dist: i32) -> bool {
+        self.ensure_home_spots();
+        if dist <= 0 || self.home_spots.is_empty() {
+            return false;
+        }
+        let reach = dist - 1;
+        let lo = self.home_spots.partition_point(|&(x, _)| x < tx - reach);
+        let hi = self.home_spots.partition_point(|&(x, _)| x <= tx + reach);
+        self.home_spots[lo..hi]
+            .iter()
+            .any(|&(hx, hy)| (hx - tx).abs() + (hy - ty).abs() < dist)
+    }
+}
+
+#[cfg(test)]
+mod home_spot_tests {
+    use super::*;
+    use crate::organism::traits::Traits;
+
+    fn person(id: &str, home: (f32, f32), alive: bool) -> Organism {
+        let mut o = Organism::new(
+            id,
+            id.to_string(),
+            home.0,
+            home.1,
+            0,
+            String::new(),
+            "L",
+            1000,
+            Traits::default(),
+        );
+        o.home_x = home.0;
+        o.home_y = home.1;
+        o.alive = alive;
+        o
+    }
+
+    #[test]
+    fn packed_homes_match_a_full_scan_and_skip_the_dead() {
+        let mut sim = Simulation::new_blank(1);
+        sim.organisms.push(person("a", (10.0, 10.0), true));
+        sim.organisms.push(person("a2", (10.2, 10.8), true));
+        sim.organisms.push(person("b", (400.0, 200.0), true));
+        sim.organisms.push(person("c", (50.0, 10.0), false));
+        let brute = |sim: &Simulation, tx: i32, ty: i32, dist: i32| {
+            sim.organisms
+                .iter()
+                .any(|o| o.alive && (o.home_x as i32 - tx).abs() + (o.home_y as i32 - ty).abs() < dist)
+        };
+        for (tx, ty, dist) in [
+            (10, 10, 90),
+            (99, 10, 90),
+            (100, 10, 90),
+            (200, 200, 90),
+            (10, 10, 1),
+        ] {
+            assert_eq!(
+                sim.any_living_home_within(tx, ty, dist),
+                brute(&sim, tx, ty, dist),
+                "{tx},{ty},{dist}"
+            );
+        }
+        sim.organisms[0].home_x = 700.0;
+        sim.organisms[1].home_x = 700.0;
+        sim.home_spots_ok = false;
+        assert!(!sim.any_living_home_within(10, 10, 90));
+        assert!(sim.any_living_home_within(700, 10, 5));
     }
 }
