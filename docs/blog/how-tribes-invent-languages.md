@@ -40,9 +40,9 @@ fn gen_word(rng: &mut impl Rng) -> String {
 }
 ```
 
-That gives words like `ka`, `mibo` or `zute`. With 17 consonants and 5 vowels there are 85 one-syllable words and 7,225 two-syllable ones, so different founders almost never land on the same word for the same thing by chance.
+That gives words like `ka`, `mibo` or `zute`. With 17 consonants and 5 vowels there are 85 one-syllable words and 7,225 two-syllable ones, so two founders rarely land on the same word for the same thing, though it does happen.
 
-When the world spawns its first people, each one gets a fresh `Vocabulary::generate`, a random word for every concept. At that moment nobody understands anybody. Everything after that is about how words get copied, changed and forgotten.
+When the world spawns its first people, each one gets a fresh `Vocabulary::generate`, a random word for every concept. At that moment people mostly don't understand each other, apart from the odd chance match. Everything after that is about how words get copied, changed and forgotten.
 
 ## Inheritance with mutation
 
@@ -161,7 +161,7 @@ if tick.saturating_sub(last) > threshold_ticks {
 
 Speaking, hearing a call, or adopting a word through convergence all touch the concept and reset its clock. The `last == 0` branch is a bug fix that's still visible in the comment: at first, "never used" was read as "last used at tick 0", so the moment a world passed tick 5,000 everyone forgot every word they hadn't personally said.
 
-A forgotten slot matters later. When the word comes back, it comes from whoever the person hears next, which may not be their own tribe.
+A forgotten slot matters later. Borrowing only swaps words where both people already have one, so a forgotten word comes back through convergence: the person picks up whatever word the group they share knowledge with uses. If that group includes friendly neighbours, it may not be their own tribe's old word.
 
 ## Food calls: where drift has consequences
 
@@ -202,7 +202,7 @@ struct Word {
 }
 ```
 
-Generated words are at most four letters, so they always fit. Anything longer (only possible from an old save) goes into a small side list. According to the comment on `Vocabulary`, this keeps a vocabulary near 5 KB where a `String` per slot took 14 KB. The save format didn't change: custom `Serialize`/`Deserialize` impls still read and write the old `HashMap<String, String>` shape, and a test runs the compact and old representations side by side to check they stay identical and draw the same random numbers.
+Generated words are at most four letters, so they always fit. Anything longer (only possible from an old save) goes into a small side list. According to the comment on `Vocabulary`, this keeps a vocabulary near 5 KB where a `String` per slot took 14 KB. The JSON format didn't change: for human-readable serializers, custom `Serialize`/`Deserialize` impls still read and write the old `HashMap<String, String>` shape (binary serializers get a packed word string instead). A test runs the compact and old representations side by side to check they stay identical and draw the same random numbers.
 
 ## The perf work merged this week
 
