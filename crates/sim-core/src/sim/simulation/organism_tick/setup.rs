@@ -2,11 +2,8 @@ use super::*;
 
 impl Simulation {
     /// Tick start: remember the vitals this tick will be judged against, take stock of kin and hostile neighbours, and apply passive and rival territory pressure.
-    pub(super) fn org_setup(&mut self, f: &mut OrgFrame<'_>) {
+    pub(super) fn org_setup(&mut self, f: &mut OrgFrame<'_>, look: &super::observe::SenseLook) {
         let idx = f.idx;
-        let org_idx_by_id = f.org_idx_by_id;
-        let spatial = f.spatial;
-        let spatial_buf = &mut *f.spatial_buf;
 
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
@@ -16,85 +13,23 @@ impl Simulation {
         let prev_inv_food = self.organisms[idx].inv_food;
         let prev_inv_water = self.organisms[idx].inv_water;
 
-        {
-            let org = &self.organisms[idx];
-            let ox = org.x as i32;
-            let oy = org.y as i32;
-            spatial.query_into(ox, oy, 6, spatial_buf);
-            let mut kin_near: usize = 0;
-            let mut hostile_near = false;
-            for &i in spatial_buf.iter() {
-                if i == idx {
-                    continue;
-                }
-                let o = &self.organisms[i];
-                if !o.alive {
-                    continue;
-                }
-                let dist = (o.x - org.x).abs() + (o.y - org.y).abs();
-                // The distance test comes first: the lineage compare is a string compare.
-                if dist <= 5.0 && o.lineage_id == org.lineage_id {
-                    kin_near += 1;
-                } else if !hostile_near
-                    && dist <= 6.0
-                    && o.lineage_id != org.lineage_id
-                    && org.attitude_toward(&o.lineage_id) < -0.2
-                {
-                    hostile_near = true;
-                }
-            }
-            let near_shelter = org.near_shelter(&self.grid, &self.buildings);
-            let weather_kind = self.weather.kind;
-            let tick_now = self.tick_count;
-            self.organisms[idx].tick_inner_state(
-                kin_near,
-                near_shelter,
-                hostile_near,
-                weather_kind,
-                tick_now,
-                night,
-            );
-        }
+        let weather_kind = self.weather.kind;
+        let tick_now = self.tick_count;
+        self.organisms[idx].tick_inner_state(
+            look.kin_near,
+            look.near_shelter,
+            look.hostile_near,
+            weather_kind,
+            tick_now,
+            night,
+        );
 
-        {
-            let my_lid = &self.organisms[idx].lineage_id;
-            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(my_lid.as_str()) {
-                if let Some(&elder_idx) = org_idx_by_id.get(elder_id.as_str()) {
-                    let ex = self.organisms[elder_idx].home_x;
-                    let ey = self.organisms[elder_idx].home_y;
-                    let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-                    if (ox - ex).abs() + (oy - ey).abs() < 20.0 {
-                        // Query the spatial index around the home instead of
-                        // scanning every organism — this block runs per-tick
-                        // for every organism near its lineage's elder home.
-                        spatial.query_into(ex as i32, ey as i32, 12, spatial_buf);
-                        let mut v: Vec<String> = Vec::new();
-                        for &i in spatial_buf.iter() {
-                            let o = &self.organisms[i];
-                            if !o.alive || o.lineage_id == *my_lid {
-                                continue;
-                            }
-                            if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
-                                v.push(o.lineage_id.to_string());
-                            }
-                        }
-                        v
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    Vec::new()
-                }
-            } else {
-                Vec::new()
-            };
-            for intruder_lid in intruders {
-                let att = self.organisms[idx]
-                    .lineage_attitudes
-                    .entry(intruder_lid.into())
-                    .or_insert(0.0);
-                *att = (*att - 0.0015).max(-1.0);
-            }
+        for &intruder_lid in &look.intruders {
+            let att = self.organisms[idx]
+                .lineage_attitudes
+                .entry(intruder_lid)
+                .or_insert(0.0);
+            *att = (*att - 0.0015).max(-1.0);
         }
 
         // Passive territory: organisms gradually stamp their lineage onto land they inhabit.

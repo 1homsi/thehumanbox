@@ -8,20 +8,133 @@ use crate::sim::spatial::SpatialIndex;
 use crate::world::grid::{HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 
+/// Kin standing within 8 tiles, summed in index order, and how many of the lineage are alive.
+/// The wander pass reads this instead of scanning again; a tribe that splits recomputes it for the
+/// people after the founder.
+#[derive(Clone, Copy)]
+pub(crate) struct KinCrowd {
+    sumx: f32,
+    sumy: f32,
+    count: u32,
+    lineage_total: usize,
+}
+
 impl Simulation {
+    /// Kin crowds for everyone `need` marks, in index order. Reading only: positions, who is alive, lineages.
+    pub(crate) fn kin_crowds(
+        &self,
+        spatial: &SpatialIndex,
+        lineage_members: &FxHashMap<crate::intern::Sym, Vec<usize>>,
+        need: &[bool],
+    ) -> Vec<Option<KinCrowd>> {
+        self.kin_crowds_from(0, need.len(), spatial, lineage_members, need)
+    }
+
+    pub(crate) fn refill_kin_crowds(
+        &self,
+        from: usize,
+        crowds: &mut [Option<KinCrowd>],
+        spatial: &SpatialIndex,
+        lineage_members: &FxHashMap<crate::intern::Sym, Vec<usize>>,
+        need: &[bool],
+    ) {
+        if from >= crowds.len() {
+            return;
+        }
+        let tail = self.kin_crowds_from(from, crowds.len(), spatial, lineage_members, need);
+        for (slot, crowd) in crowds[from..].iter_mut().zip(tail) {
+            *slot = crowd;
+        }
+    }
+
+    fn kin_crowds_from(
+        &self,
+        start: usize,
+        end: usize,
+        spatial: &SpatialIndex,
+        lineage_members: &FxHashMap<crate::intern::Sym, Vec<usize>>,
+        need: &[bool],
+    ) -> Vec<Option<KinCrowd>> {
+        let count = end.saturating_sub(start);
+        crate::sim::par::map_with(
+            count,
+            || Vec::with_capacity(32),
+            |buf, k| {
+                let i = start + k;
+                if i >= need.len() || !need[i] || !self.organisms[i].alive {
+                    return None;
+                }
+                Some(self.kin_crowd_at(i, spatial, lineage_members, buf))
+            },
+        )
+    }
+
+    fn kin_crowd_at(
+        &self,
+        idx: usize,
+        spatial: &SpatialIndex,
+        lineage_members: &FxHashMap<crate::intern::Sym, Vec<usize>>,
+        buf: &mut Vec<usize>,
+    ) -> KinCrowd {
+        let (lid, mx, my, my_id) = {
+            let org = &self.organisms[idx];
+            (org.lineage_id, org.x, org.y, org.id)
+        };
+        // Same window as `ordered_nearby`: the query is padded by 2, then the walk keeps distance <= 8,
+        // and the indices are sorted so the sum is the one a single thread would add up.
+        spatial.query_into(mx as i32, my as i32, 10, buf);
+        buf.sort_unstable();
+        let mut sumx = 0.0f32;
+        let mut sumy = 0.0f32;
+        let mut count = 0u32;
+        for &i in buf.iter() {
+            let o = &self.organisms[i];
+            if !o.alive || o.id == my_id || o.lineage_id != lid {
+                continue;
+            }
+            let d = (o.x - mx).abs() + (o.y - my).abs();
+            if d <= 8.0 {
+                sumx += o.x;
+                sumy += o.y;
+                count += 1;
+            }
+        }
+        let lineage_total = if count >= 2 {
+            lineage_members
+                .get(lid.as_str())
+                .into_iter()
+                .flatten()
+                .filter(|&&member_idx| {
+                    let o = &self.organisms[member_idx];
+                    o.alive && o.lineage_id == lid
+                })
+                .count()
+        } else {
+            0
+        };
+        KinCrowd {
+            sumx,
+            sumy,
+            count,
+            lineage_total,
+        }
+    }
+
     pub(crate) fn validate_or_assign_wander_target_indexed(
         &mut self,
         idx: usize,
         spatial: &SpatialIndex,
         lineage_members: &FxHashMap<crate::intern::Sym, Vec<usize>>,
+        crowd: Option<KinCrowd>,
     ) {
-        self.validate_or_assign_wander_target(idx, Some((spatial, lineage_members)));
+        self.validate_or_assign_wander_target(idx, Some((spatial, lineage_members)), crowd);
     }
 
     pub(crate) fn validate_or_assign_wander_target(
         &mut self,
         idx: usize,
         indexed: Option<(&SpatialIndex, &FxHashMap<crate::intern::Sym, Vec<usize>>)>,
+        crowd: Option<KinCrowd>,
     ) {
         if let Some(journey) = self.organisms[idx].journey.clone() {
             let org = &self.organisms[idx];
@@ -73,52 +186,60 @@ impl Simulation {
         if self.organisms[idx].age < 600 || self.organisms[idx].fear_level > 0.65 {
             return;
         }
-
         let lid = self.organisms[idx].lineage_id;
         let (mx, my) = (self.organisms[idx].x, self.organisms[idx].y);
-        let mut sumx = 0.0f32;
-        let mut sumy = 0.0f32;
-        let mut count = 0u32;
-        let my_id = &self.organisms[idx].id;
-        let mut visit = |o: &crate::organism::organism::Organism| {
-            if !o.alive || o.id == *my_id || o.lineage_id != lid {
-                return;
-            }
-            let d = (o.x - mx).abs() + (o.y - my).abs();
-            if d <= 8.0 {
-                sumx += o.x;
-                sumy += o.y;
-                count += 1;
-            }
-        };
-        if let Some((spatial, _)) = indexed {
-            for (_, o) in spatial.ordered_nearby(&self.organisms, mx, my, 8) {
-                visit(o);
-            }
+        let (sumx, sumy, count, lineage_total) = if let Some(crowd) = crowd {
+            (crowd.sumx, crowd.sumy, crowd.count, crowd.lineage_total)
         } else {
-            for o in &self.organisms {
-                visit(o);
+            let mut sumx = 0.0f32;
+            let mut sumy = 0.0f32;
+            let mut count = 0u32;
+            let my_id = self.organisms[idx].id;
+            let mut visit = |o: &crate::organism::organism::Organism| {
+                if !o.alive || o.id == my_id || o.lineage_id != lid {
+                    return;
+                }
+                let d = (o.x - mx).abs() + (o.y - my).abs();
+                if d <= 8.0 {
+                    sumx += o.x;
+                    sumy += o.y;
+                    count += 1;
+                }
+            };
+            if let Some((spatial, _)) = indexed {
+                for (_, o) in spatial.ordered_nearby(&self.organisms, mx, my, 8) {
+                    visit(o);
+                }
+            } else {
+                for o in &self.organisms {
+                    visit(o);
+                }
             }
-        }
+            let lineage_total = if count >= 2 {
+                if let Some((_, lineage_members)) = indexed {
+                    lineage_members
+                        .get(lid.as_str())
+                        .into_iter()
+                        .flatten()
+                        .filter(|&&member_idx| {
+                            let o = &self.organisms[member_idx];
+                            o.alive && o.lineage_id == lid
+                        })
+                        .count()
+                } else {
+                    self.organisms
+                        .iter()
+                        .filter(|o| o.alive && o.lineage_id == lid)
+                        .count()
+                }
+            } else {
+                0
+            };
+            (sumx, sumy, count, lineage_total)
+        };
         if count >= 2 {
             let curiosity = self.organisms[idx].traits.curiosity;
             let age = self.organisms[idx].age;
-            let lineage_total = if let Some((_, lineage_members)) = indexed {
-                lineage_members
-                    .get(lid.as_str())
-                    .into_iter()
-                    .flatten()
-                    .filter(|&&member_idx| {
-                        let o = &self.organisms[member_idx];
-                        o.alive && o.lineage_id == lid
-                    })
-                    .count()
-            } else {
-                self.organisms
-                    .iter()
-                    .filter(|o| o.alive && o.lineage_id == lid)
-                    .count()
-            };
             let population_limit = self.population_limit();
             let overcrowded = lineage_total >= lineage_overcrowding_threshold(population_limit);
             let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;

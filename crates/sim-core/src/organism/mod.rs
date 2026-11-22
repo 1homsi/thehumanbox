@@ -6,6 +6,7 @@ pub mod family_words;
 pub mod lessons;
 pub mod memory;
 mod navigation;
+pub(crate) use navigation::plan_route;
 #[allow(clippy::module_inception)]
 pub mod organism;
 pub mod people_index;

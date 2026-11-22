@@ -5,7 +5,10 @@ mod act;
 mod ageing;
 mod bonds;
 mod decide;
+mod observe;
 pub(super) use decide::Choice;
+use observe::SenseLook;
+
 mod home_heir;
 mod learning;
 mod mortality;
@@ -791,6 +794,8 @@ impl Simulation {
         buffers: &mut TickBuffers,
         lineage_members: &mut FxHashMap<crate::intern::Sym, Vec<usize>>,
         perception: Option<String>,
+        look: &SenseLook,
+        crowd: Option<crate::sim::agents::wander::KinCrowd>,
     ) -> Sensed {
         let mut f = new_frame(
             idx,
@@ -803,8 +808,8 @@ impl Simulation {
             lineage_members,
         );
         f.pre_perception = perception;
-        self.org_setup(&mut f);
-        self.org_threats(&mut f);
+        self.org_setup(&mut f, look);
+        self.org_threats(&mut f, look, crowd);
         let sensed = f.take_sensed();
         self.org_ready_to_choose(&sensed);
         sensed
@@ -950,7 +955,20 @@ impl Simulation {
             animal_spatial,
             org_idx_by_id,
         };
-        let sensed = self.org_sense(idx, population_slots_used, &cx, buffers, lineage_members, None);
+        let mut awake = vec![false; self.organisms.len()];
+        awake[idx] = true;
+        let looks = self.sense_looks(&awake, spatial, animal_spatial, org_idx_by_id);
+        let crowds = self.kin_crowds(spatial, lineage_members, &awake);
+        let sensed = self.org_sense(
+            idx,
+            population_slots_used,
+            &cx,
+            buffers,
+            lineage_members,
+            None,
+            &looks[idx],
+            crowds[idx],
+        );
         let rng = decide::choice_rng(self.rng.random(), idx);
         let choice = {
             let mut available = Vec::new();

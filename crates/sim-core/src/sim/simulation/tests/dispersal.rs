@@ -28,7 +28,7 @@ fn curious_adults_choose_distant_land_expeditions() {
     let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
     sim.tick_count = hash % period;
 
-    sim.validate_or_assign_wander_target(idx, None);
+    sim.validate_or_assign_wander_target(idx, None, None);
 
     let target = sim.organisms[idx]
         .wander_target
