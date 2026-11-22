@@ -343,38 +343,42 @@ impl Simulation {
                     .push((t.id, (t.center[0], t.center[1])));
             }
             let organisms = &self.organisms;
-            crate::sim::par::map_with(n, || (), |_, i| {
-                let o = &organisms[i];
-                if !o.alive {
-                    return (None, None);
-                }
-                let home = (o.home_x as i32, o.home_y as i32);
-                let town = towns.get(o.lineage_id.as_str()).and_then(|list| {
-                    list.iter()
-                        .filter(|&&(_, c)| chebyshev(c, home) <= HOME_REACH)
-                        .min_by_key(|&&(id, c)| (chebyshev(c, home), id))
-                });
-                match town {
-                    Some(&(id, _)) => (calm.towns.contains(&id).then_some(id), None),
-                    None if calm.busy.contains(o.lineage_id.as_str()) => (None, None),
-                    None => {
-                        let (cx, cy) = (home.0.div_euclid(HAMLET), home.1.div_euclid(HAMLET));
-                        if calm.starving.contains(o.lineage_id.as_str())
-                            || calm.famine.contains(&o.lineage_id)
-                            || at_front(
-                                &calm.foes,
-                                &o.lineage_id,
-                                (cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2),
-                            )
-                        {
-                            return (None, None);
-                        }
-                        let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
-                        let quiet = calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2));
-                        (quiet.then_some(id), Some((id, quiet)))
+            crate::sim::par::map_with(
+                n,
+                || (),
+                |_, i| {
+                    let o = &organisms[i];
+                    if !o.alive {
+                        return (None, None);
                     }
-                }
-            })
+                    let home = (o.home_x as i32, o.home_y as i32);
+                    let town = towns.get(o.lineage_id.as_str()).and_then(|list| {
+                        list.iter()
+                            .filter(|&&(_, c)| chebyshev(c, home) <= HOME_REACH)
+                            .min_by_key(|&&(id, c)| (chebyshev(c, home), id))
+                    });
+                    match town {
+                        Some(&(id, _)) => (calm.towns.contains(&id).then_some(id), None),
+                        None if calm.busy.contains(o.lineage_id.as_str()) => (None, None),
+                        None => {
+                            let (cx, cy) = (home.0.div_euclid(HAMLET), home.1.div_euclid(HAMLET));
+                            if calm.starving.contains(o.lineage_id.as_str())
+                                || calm.famine.contains(&o.lineage_id)
+                                || at_front(
+                                    &calm.foes,
+                                    &o.lineage_id,
+                                    (cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2),
+                                )
+                            {
+                                return (None, None);
+                            }
+                            let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
+                            let quiet = calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2));
+                            (quiet.then_some(id), Some((id, quiet)))
+                        }
+                    }
+                },
+            )
         };
         let tick = self.tick_count;
         if let Some(calm) = self.calm_towns.as_mut() {
