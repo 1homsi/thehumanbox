@@ -446,11 +446,19 @@ impl Simulation {
         org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
     ) {
         let tick = self.tick_count;
-        // Idle ticks keep a conception check on the old 8-tick phase. The
-        // region's own step is a different tick, and dropping the idle check
-        // lowered births below the per-tick cadence.
+        // A region still on the 8-tick step rolls inside its own turn. Once the
+        // step is longer, the idle ticks in between keep that same phase so the
+        // quiet stretch does not drop a conception check.
         let due: Vec<usize> = (0..tiers.len())
-            .filter(|&i| tiers[i] == Tier::Idle && (tick + i as u64).is_multiple_of(TOWN_STEP))
+            .filter(|&i| {
+                tiers[i] == Tier::Idle
+                    && (tick + i as u64).is_multiple_of(TOWN_STEP)
+                    && self
+                        .lod_units
+                        .get(i)
+                        .and_then(|id| *id)
+                        .is_some_and(|id| self.coarse_step(id) > TOWN_STEP)
+            })
             .filter(|&i| {
                 self.organisms
                     .get(i)
