@@ -2,11 +2,8 @@ use super::*;
 
 impl Simulation {
     /// Tick start: remember the vitals this tick will be judged against, take stock of kin and hostile neighbours, and apply passive and rival territory pressure.
-    pub(super) fn org_setup(&mut self, f: &mut OrgFrame<'_>) {
+    pub(super) fn org_setup(&mut self, f: &mut OrgFrame<'_>, look: &super::observe::SenseLook) {
         let idx = f.idx;
-        let org_idx_by_id = f.org_idx_by_id;
-        let spatial = f.spatial;
-        let spatial_buf = &mut *f.spatial_buf;
 
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
@@ -16,66 +13,23 @@ impl Simulation {
         let prev_inv_food = self.organisms[idx].inv_food;
         let prev_inv_water = self.organisms[idx].inv_water;
 
-        {
-            let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-            spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
-            let (kin_near, hostile_near) = if self.organism_columns.ready_for(self.organisms.len()) {
-                debug_assert_eq!(self.organism_columns.x[idx].to_bits(), ox.to_bits());
-                kin_near_columns(&self.organism_columns, &self.organisms, idx, spatial_buf)
-            } else {
-                kin_near_structs(&self.organisms, idx, spatial_buf)
-            };
-            let near_shelter = self.organisms[idx].near_shelter(&self.grid, &self.buildings);
-            let weather_kind = self.weather.kind;
-            let tick_now = self.tick_count;
-            self.organisms[idx].tick_inner_state(
-                kin_near,
-                near_shelter,
-                hostile_near,
-                weather_kind,
-                tick_now,
-                night,
-            );
-        }
+        let weather_kind = self.weather.kind;
+        let tick_now = self.tick_count;
+        self.organisms[idx].tick_inner_state(
+            look.kin_near,
+            look.near_shelter,
+            look.hostile_near,
+            weather_kind,
+            tick_now,
+            night,
+        );
 
-        {
-            let my_lid = &self.organisms[idx].lineage_id;
-            let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(my_lid.as_str()) {
-                if let Some(&elder_idx) = org_idx_by_id.get(elder_id.as_str()) {
-                    let ex = self.organisms[elder_idx].home_x;
-                    let ey = self.organisms[elder_idx].home_y;
-                    let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-                    if (ox - ex).abs() + (oy - ey).abs() < 20.0 {
-                        // Query the spatial index around the home instead of
-                        // scanning every organism — this block runs per-tick
-                        // for every organism near its lineage's elder home.
-                        spatial.query_into(ex as i32, ey as i32, 12, spatial_buf);
-                        intruders_near(
-                            &self.organisms,
-                            self.organism_columns
-                                .ready_for(self.organisms.len())
-                                .then(|| self.organism_columns.neighbours()),
-                            my_lid,
-                            ex,
-                            ey,
-                            spatial_buf,
-                        )
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    Vec::new()
-                }
-            } else {
-                Vec::new()
-            };
-            for intruder_lid in intruders {
-                let att = self.organisms[idx]
-                    .lineage_attitudes
-                    .entry(intruder_lid.into())
-                    .or_insert(0.0);
-                *att = (*att - 0.0015).max(-1.0);
-            }
+        for &intruder_lid in &look.intruders {
+            let att = self.organisms[idx]
+                .lineage_attitudes
+                .entry(intruder_lid)
+                .or_insert(0.0);
+            *att = (*att - 0.0015).max(-1.0);
         }
 
         // Passive territory: organisms gradually stamp their lineage onto land they inhabit.
@@ -119,7 +73,7 @@ impl Simulation {
 }
 
 /// Kin within 5 tiles and a hostile neighbour within 6, from the hot columns.
-fn kin_near_columns(
+pub(super) fn kin_near_columns(
     cols: &crate::organism::columns::OrganismColumns,
     organisms: &[Organism],
     idx: usize,
@@ -149,7 +103,7 @@ fn kin_near_columns(
     (kin_near, hostile_near)
 }
 
-fn kin_near_structs(organisms: &[Organism], idx: usize, near: &[usize]) -> (usize, bool) {
+pub(super) fn kin_near_structs(organisms: &[Organism], idx: usize, near: &[usize]) -> (usize, bool) {
     let org = &organisms[idx];
     let mut kin_near = 0usize;
     let mut hostile_near = false;
@@ -176,14 +130,14 @@ fn kin_near_structs(organisms: &[Organism], idx: usize, near: &[usize]) -> (usiz
     (kin_near, hostile_near)
 }
 
-fn intruders_near(
+pub(super) fn intruders_near(
     organisms: &[Organism],
     hot: Option<crate::organism::columns::NeighbourCols<'_>>,
     my_lid: &crate::intern::Sym,
     ex: f32,
     ey: f32,
     near: &[usize],
-) -> Vec<String> {
+) -> Vec<crate::intern::Sym> {
     let mut v = Vec::new();
     if let Some(hot) = hot {
         for &i in near {
@@ -191,7 +145,7 @@ fn intruders_near(
                 continue;
             }
             if (hot.x[i] - ex).abs() + (hot.y[i] - ey).abs() < 12.0 {
-                v.push(hot.lineage[i].to_string());
+                v.push(hot.lineage[i]);
             }
         }
     } else {
@@ -201,7 +155,7 @@ fn intruders_near(
                 continue;
             }
             if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
-                v.push(o.lineage_id.to_string());
+                v.push(o.lineage_id);
             }
         }
     }

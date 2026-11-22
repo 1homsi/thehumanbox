@@ -198,10 +198,12 @@ impl Simulation {
                 .or_default()
                 .push((t.id, (t.center[0], t.center[1])));
         }
-        let mut cells: HashMap<u32, bool> = HashMap::default();
-        self.organisms
-            .iter()
-            .map(|o| {
+        let organisms = &self.organisms;
+        crate::sim::par::map_with(
+            n,
+            || (),
+            |_, i| {
+                let o = &organisms[i];
                 if !o.alive {
                     return None;
                 }
@@ -224,14 +226,12 @@ impl Simulation {
                             return None;
                         }
                         let id = HAMLETS + (cy.max(0) as u32) * 1024 + cx.max(0) as u32;
-                        let quiet = *cells.entry(id).or_insert_with(|| {
-                            calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2))
-                        });
-                        quiet.then_some(id)
+                        calm.quiet_at((cx * HAMLET + HAMLET / 2, cy * HAMLET + HAMLET / 2))
+                            .then_some(id)
                     }
                 }
-            })
-            .collect()
+            },
+        )
     }
 
     pub(super) fn town_tiers(&self, towns: &[Option<u32>], awake: &[bool]) -> Vec<Tier> {
