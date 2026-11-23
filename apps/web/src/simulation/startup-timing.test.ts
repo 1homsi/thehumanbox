@@ -49,6 +49,16 @@ describe('the worker startup report', () => {
     expect(trackEvent).toHaveBeenCalledWith('world_startup', { ...startup, page_ms: 100, cores: null })
   })
 
+  it('tags the world start with the mode the worker actually opened', () => {
+    reportWorldStartup(readStartup(startup)!, 100, 4, 'head_start_reddit')
+    expect(trackEvent).toHaveBeenCalledWith('world_startup', {
+      ...startup,
+      page_ms: 100,
+      cores: 4,
+      start_mode: 'head_start_reddit',
+    })
+  })
+
   it('keeps the engine of every start for Stats for nerds', () => {
     reportWorldStartup(readStartup(startup)!, 100, 8)
     expect(useSimEngine.getState().engine).toEqual({ engine: 'single', threads: 1, fallback: 'slow' })

@@ -47,6 +47,8 @@ type StartMsg = {
   reset?: boolean
   empty?: boolean
   headStart?: boolean
+  /** Head start because the visit came from Reddit, not because Settings asked for it. */
+  redditHeadStart?: boolean
   recoveryId?: string | null
   touch?: boolean
 }
@@ -933,9 +935,15 @@ async function start(msg: StartMsg) {
   const restoreMs = since(restoreAt)
   startupPhase = 'generate'
   const generateAt = performance.now()
+  let generatedHeadStart = false
+  let generatedEmpty = false
   if (!sim) {
     const empty = resetApplied && msg.empty === true
-    const headStart = resetApplied && msg.headStart === true && !empty
+    // An explicit reset may ask for a head start. A first visit may too, but only when no save was
+    // found: a save that could not be read is still a save, and is never replaced by a head-start world.
+    const headStart = msg.headStart === true && !empty && (resetApplied || (saved === null && storageReady))
+    generatedEmpty = empty
+    generatedHeadStart = headStart
     sim = empty ? Sim.blank(BigInt(seed)) : headStart ? Sim.headStart(BigInt(seed)) : new Sim(BigInt(seed))
     if (empty) manuallyPaused = true
   }
@@ -952,6 +960,15 @@ async function start(msg: StartMsg) {
   logger.info('wasm', 'world started', startup)
 
   startupPhase = 'ready'
+  const startMode = restored
+    ? 'resume'
+    : generatedEmpty
+      ? 'empty'
+      : generatedHeadStart
+        ? msg.redditHeadStart === true
+          ? 'head_start_reddit'
+          : 'head_start'
+        : 'year_one'
   post({
     type: 'ready',
     restored,
@@ -959,6 +976,7 @@ async function start(msg: StartMsg) {
     persistenceReady: storageReady,
     paused: manuallyPaused,
     startup,
+    startMode,
   })
 
   emit(true)

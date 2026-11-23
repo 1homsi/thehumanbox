@@ -54,13 +54,19 @@ export function reportWorldStartup(
   startup: WorkerStartup,
   pageMs: number,
   cores: number | null = globalThis.navigator?.hardwareConcurrency ?? null,
+  startMode?: string,
 ): void {
   useSimEngine.setState({
     engine: { engine: startup.engine, threads: startup.threads, fallback: startup.fallback },
   })
   if (reported) return
   reported = true
-  trackEvent('world_startup', { ...startup, page_ms: Math.round(pageMs), cores })
+  trackEvent('world_startup', {
+    ...startup,
+    page_ms: Math.round(pageMs),
+    cores,
+    ...(startMode ? { start_mode: startMode } : {}),
+  })
 }
 
 /** Tests only. */

@@ -9,6 +9,8 @@ const model = vi.hoisted(() => ({
   deltaFrame: vi.fn(),
   fullFrame: vi.fn(),
   fromSerialized: vi.fn<(seed: bigint, bytes: Uint8Array) => unknown>(),
+  headStart: vi.fn(),
+  blank: vi.fn(),
   loadWorld: vi.fn(
     async (): Promise<{ blob: Uint8Array; seed: string; tick: number; savedAt: number } | null> => null,
   ),
@@ -45,6 +47,14 @@ vi.mock('../wasm/sim-core/sim_core.js', () => ({
   Sim: class {
     static fromSerialized(seed: bigint, bytes: Uint8Array) {
       return model.fromSerialized(seed, bytes)
+    }
+    static headStart(seed: bigint) {
+      model.headStart(seed)
+      return new this()
+    }
+    static blank(seed: bigint) {
+      model.blank(seed)
+      return new this()
     }
     tickN(n: number) {
       model.tickN(n)
@@ -163,6 +173,8 @@ beforeEach(async () => {
   model.tick = 0n
   model.loadWorld.mockReset().mockResolvedValue(null)
   model.fromSerialized.mockReset()
+  model.headStart.mockReset()
+  model.blank.mockReset()
   model.init.mockReset().mockResolvedValue(undefined)
   model.serialize.mockReset().mockImplementation(() => new Uint8Array([1]))
   model.slicesLeft = 0
@@ -965,6 +977,96 @@ describe('browser simulation scheduling', () => {
     expect(model.tickN).toHaveBeenCalledOnce()
     expect(vi.getTimerCount()).toBe(0)
     consoleError.mockRestore()
+  })
+
+  function restoredSim(tick: bigint) {
+    return {
+      tickCount: () => tick,
+      free: () => {},
+      deltaFrameBytes: () => new Uint8Array([0x80]),
+      fullFrameBytes: () => new Uint8Array([0x80]),
+      serialize: () => new Uint8Array([1]),
+      serializeBegin: () => {},
+      serializeChunk: () => new Uint8Array([1]),
+      tickN: () => {},
+    }
+  }
+
+  it('plants a head-start world only when nothing is saved, and names a Reddit one', async () => {
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '42', headStart: true, redditHeadStart: true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(model.headStart).toHaveBeenCalledWith(42n)
+    expect(model.blank).not.toHaveBeenCalled()
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ready', restored: false, startMode: 'head_start_reddit' }),
+    )
+
+    model.loadWorld.mockResolvedValue({ blob: new Uint8Array([1]), seed: '42', tick: 9, savedAt: 1 })
+    model.fromSerialized.mockReturnValue(restoredSim(9n))
+    model.headStart.mockClear()
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '42', headStart: true, redditHeadStart: true })
+    await vi.waitFor(() => expect(model.fromSerialized).toHaveBeenCalled())
+    expect(model.headStart).not.toHaveBeenCalled()
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ready', restored: true, startMode: 'resume' }),
+    )
+  })
+
+  it('keeps an explicit head-start reset distinct from the Reddit default, and a plain start at year one', async () => {
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '7', reset: true, headStart: true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(model.archiveAndDeleteWorld).toHaveBeenCalled()
+    expect(model.headStart).toHaveBeenCalledWith(7n)
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ready', restored: false, startMode: 'head_start' }),
+    )
+
+    model.headStart.mockClear()
+    model.blank.mockClear()
+    await restartWorker({})
+    send({
+      type: 'start',
+      id: 'test',
+      seed: '7',
+      reset: true,
+      empty: true,
+      headStart: true,
+      redditHeadStart: true,
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(model.blank).toHaveBeenCalledWith(7n)
+    expect(model.headStart).not.toHaveBeenCalled()
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ready', restored: false, startMode: 'empty' }),
+    )
+
+    model.headStart.mockClear()
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '7' })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(model.headStart).not.toHaveBeenCalled()
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ready', restored: false, startMode: 'year_one' }),
+    )
+  })
+
+  it('does not plant a head-start world over a save that cannot be read', async () => {
+    model.loadWorld.mockResolvedValue({ blob: new Uint8Array([1]), seed: '42', tick: 4, savedAt: 1 })
+    model.fromSerialized.mockImplementation(() => {
+      throw new Error('invalid saved world')
+    })
+    await restartWorker({})
+    send({ type: 'start', id: 'test', seed: '42', headStart: true, redditHeadStart: true })
+    await vi.waitFor(() =>
+      expect(worker.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'ready' })),
+    )
+    expect(model.headStart).not.toHaveBeenCalled()
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ready', restored: false, startMode: 'year_one' }),
+    )
   })
 
   it('answers a command that throws and reports the crash', async () => {

@@ -30,6 +30,7 @@ import {
   hasOwnWorldHeadStartRequest,
   hasOwnWorldResetRequest,
 } from './worldSource'
+import { freshWorldUsesHeadStart, resolveWorldStart } from './worldStart'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../shared/desktop'
 import { isDesktopStartupPending } from '../shared/desktopStartup'
@@ -399,6 +400,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           seed?: string
           outcome?: unknown
           startup?: unknown
+          startMode?: string
           code?: string
           detail?: string
           phase?: string
@@ -414,7 +416,14 @@ export function useSimulation(source: WorldSource = 'native'): {
             worldReady = true
             if (m.paused === true) setRuntimeState((current) => ({ ...current, paused: true }))
             const startup = readStartup(m.startup)
-            if (startup) reportWorldStartup(startup, performance.now())
+            if (startup) {
+              reportWorldStartup(
+                startup,
+                performance.now(),
+                undefined,
+                typeof m.startMode === 'string' ? m.startMode : undefined,
+              )
+            }
           }
           if (!announced) {
             announced = true
@@ -531,13 +540,23 @@ export function useSimulation(source: WorldSource = 'native'): {
       const ownSeed = getOwnWorldSeed()
       // Stars belong to the world they were made in; a world that starts with another seed is a new one.
       useUIStore.getState().bindStarredWorld(ownSeed)
+      // The worker resumes a save when one exists. This only chooses the world to plant when it does not.
+      const freshStart = resolveWorldStart({
+        search: window.location.search,
+        referrer: document.referrer,
+        hasSavedWorld: false,
+        explicitReset: hasOwnWorldResetRequest(),
+        explicitEmpty: hasOwnWorldEmptyRequest(),
+        explicitHeadStart: hasOwnWorldHeadStartRequest(),
+      })
       worker.postMessage({
         type: 'start',
         id: OWN_WORLD_ID,
         seed: ownSeed,
         reset: hasOwnWorldResetRequest(),
         empty: hasOwnWorldEmptyRequest(),
-        headStart: hasOwnWorldHeadStartRequest(),
+        headStart: freshWorldUsesHeadStart(freshStart),
+        redditHeadStart: freshStart === 'head_start_reddit',
         recoveryId: getOwnWorldRecoveryRequest(),
         touch: navigator.maxTouchPoints > 1,
       })
