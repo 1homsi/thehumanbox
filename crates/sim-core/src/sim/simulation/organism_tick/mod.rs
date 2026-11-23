@@ -446,7 +446,14 @@ impl Simulation {
         } else {
             self.routine_step(s.idx)
         };
+        let has_errand = o.journey.is_none()
+            && o.is_rooted()
+            && o.wander_target.is_some_and(|t| {
+                let gap = crate::organism::mind::chebyshev((o.x as i32, o.y as i32), t);
+                gap > 3 && gap <= crate::organism::mind::ERRAND_REACH && !o.route.borrow().recently_blocked(t)
+            });
         let at_a_loose_end = pursued.is_none()
+            && !has_errand
             && step.as_ref().is_none_or(|r| r.action == usize::MAX)
             && o.last_action.is_none_or(|a| a < 8 || step.is_some());
         if at_a_loose_end {
@@ -471,12 +478,6 @@ impl Simulation {
                 .map(str::to_string),
         };
         let mut origin = "dormant";
-        let has_errand = o.journey.is_none()
-            && o.is_rooted()
-            && o.wander_target.is_some_and(|t| {
-                let gap = crate::organism::mind::chebyshev((o.x as i32, o.y as i32), t);
-                gap > 3 && gap <= crate::organism::mind::ERRAND_REACH && !o.route.borrow().recently_blocked(t)
-            });
         let action = match (step, o.last_action.map(usize::from)) {
             _ if pursued.is_some() => {
                 origin = if o.intent.is_some() {

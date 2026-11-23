@@ -289,7 +289,7 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
     let primary = match tool {
         // A boat is set down on water beside land.
         "boat" => s.shore,
-        "bless_forest" => s.wood,
+        "bless_forest" | "plant_mushroom" => s.wood,
         "frost" | "bless_river" | "tsunami" => s.lake,
         "douse" | "rain_patch" => s.fire,
         "repair" => s.building,
