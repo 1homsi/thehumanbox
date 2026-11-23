@@ -856,7 +856,12 @@ impl OrgsHotSoa {
             .round()
             .clamp(i16::MIN as f32, i16::MAX as f32) as i16;
         // i16::MIN sentinel = no target
-        let (enc_tx, enc_ty) = match o.wander_target {
+        let facing = o
+            .intent
+            .map(|intent| intent.target)
+            .or(o.wander_target)
+            .or(o.work.map(|plan| plan.spot));
+        let (enc_tx, enc_ty) = match facing {
             Some((tx, ty)) => (tx as i16, ty as i16),
             None => (i16::MIN, i16::MIN),
         };

@@ -2,6 +2,7 @@ import { SPRITE_HIDDEN, SPRITE_UNTEXTURED, type SpriteLayer } from 'xipjs'
 
 export const ATTACHED_SNAP = 1
 export const ATTACHED_UNTEXTURED = 2
+export const ATTACHED_MIRROR = 4
 
 type Slots = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array
 
@@ -52,6 +53,7 @@ export class AttachedSprites {
   offX = new Float32Array(0)
   offY = new Float32Array(0)
   snap = new Uint8Array(0)
+  mirror = new Uint8Array(0)
   /** Per-frame rotation in radians per millisecond (0 = static). */
   spin = new Float32Array(0)
   /** Phase of a one-pixel bob (the emote bubble's), or NaN for none. */
@@ -88,6 +90,7 @@ export class AttachedSprites {
     this.offX[k] = offX
     this.offY[k] = offY
     this.snap[k] = options & ATTACHED_SNAP ? 1 : 0
+    this.mirror[k] = options & ATTACHED_MIRROR ? 1 : 0
     this.spin[k] = spin
     this.bob[k] = bob
     const layer = this.layer
@@ -111,6 +114,7 @@ export class AttachedSprites {
     this.offX = copy(this.offX, Float32Array)
     this.offY = copy(this.offY, Float32Array)
     this.snap = copy(this.snap, Uint8Array)
+    this.mirror = copy(this.mirror, Uint8Array)
     this.spin = copy(this.spin, Float32Array)
     this.bob = copy(this.bob, Float32Array)
   }
@@ -120,7 +124,14 @@ export class AttachedSprites {
    * position, rotation or visibility changed are touched (a range from the first to the last of them);
    * `touchAll` touches the whole layer, as a reference for tests.
    */
-  place(ownerX: Float32Array, ownerY: Float32Array, hidden: Uint8Array, now: number, touchAll = false): void {
+  place(
+    ownerX: Float32Array,
+    ownerY: Float32Array,
+    hidden: Uint8Array,
+    now: number,
+    touchAll = false,
+    flipped?: Uint8Array,
+  ): void {
     const layer = this.layer
     const { x, y, w, h, flags, rotation } = layer
     let lo = this.count
@@ -133,12 +144,13 @@ export class AttachedSprites {
       } else {
         let nx: number
         let ny: number
+        const turned = flipped !== undefined && this.mirror[k] !== 0 && flipped[o] !== 0
         if (this.snap[k] !== 0) {
-          nx = Math.round(ownerX[o] + this.offX[k]) + w[k] / 2
+          nx = Math.round(ownerX[o] + (turned ? 1 - this.offX[k] - w[k] : this.offX[k])) + w[k] / 2
           ny = Math.round(ownerY[o] + this.offY[k]) + h[k] / 2
           if (this.bob[k] === this.bob[k]) ny += Math.round(Math.sin(now / 420 + this.bob[k]) * 1.2)
         } else {
-          nx = ownerX[o] + this.offX[k]
+          nx = ownerX[o] + (turned ? 1 - this.offX[k] : this.offX[k])
           ny = ownerY[o] + this.offY[k]
         }
         changed = storeF32(x, k, nx)

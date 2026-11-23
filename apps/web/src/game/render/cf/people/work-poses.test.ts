@@ -29,7 +29,24 @@ function sprites(layer: SpriteLayer) {
 }
 
 describe('work poses written straight into sprites', () => {
-  const activities: WorkActivity[] = ['build', 'chop', 'mine', 'farm', 'gather', 'hunt', 'rest']
+  const activities: WorkActivity[] = [
+    'build',
+    'chop',
+    'mine',
+    'till',
+    'dig',
+    'farm',
+    'gather',
+    'hunt',
+    'craft',
+    'cook',
+    'eat',
+    'drink',
+    'talk',
+    'dance',
+    'fight',
+    'rest',
+  ]
 
   it('draw the same quads as the canvas painter through the recorder', () => {
     const canvas = recorder()

@@ -76,6 +76,9 @@ fn staged_world() -> (Simulation, Stage) {
             }
         }
     }
+    if WorldGrid::in_bounds(cx + 6, cy) {
+        sim.grid.set(cx + 6, cy, Tile::Grass);
+    }
     let fire = (cx - 4, cy);
     sim.grid.set(fire.0, fire.1, Tile::Fire);
     *sim.grid.fire_intensity_mut(fire.0, fire.1) = 1.0;
@@ -286,7 +289,7 @@ fn targets(tool: &str, cmd: &Value, s: &Stage) -> Vec<Value> {
     let primary = match tool {
         // A boat is set down on water beside land.
         "boat" => s.shore,
-        "bless_forest" => s.wood,
+        "bless_forest" | "plant_mushroom" => s.wood,
         "frost" | "bless_river" | "tsunami" => s.lake,
         "douse" | "rain_patch" => s.fire,
         "repair" => s.building,

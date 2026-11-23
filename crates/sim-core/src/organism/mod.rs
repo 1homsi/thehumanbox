@@ -6,6 +6,7 @@ pub mod decision_bias;
 pub mod family_words;
 pub mod lessons;
 pub mod memory;
+pub mod mind;
 mod navigation;
 pub(crate) use navigation::plan_route;
 #[allow(clippy::module_inception)]

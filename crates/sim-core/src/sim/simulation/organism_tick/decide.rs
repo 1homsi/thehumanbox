@@ -15,6 +15,7 @@ pub(in crate::sim::simulation) struct Choice {
     /// Fleeing a threat: where to keep running, and the fear it put them in.
     pub(super) flight: Option<(Option<(i32, i32)>, f32)>,
     pub(super) plan: Option<super::DormantPlan>,
+    pub(super) mind: crate::organism::mind::IntentOp,
 }
 
 /// An action, its thought, where the choice came from, and a flight's course and fear.
@@ -23,6 +24,7 @@ type ChoiceParts = (
     Option<String>,
     &'static str,
     Option<(Option<(i32, i32)>, f32)>,
+    crate::organism::mind::IntentOp,
 );
 
 /// The random numbers one person's choice draws on, from the tick's seed and their place in the list: the
@@ -92,7 +94,7 @@ impl Simulation {
     ) -> Choice {
         let o = &self.organisms[s.idx];
         let at = (o.x as i32, o.y as i32);
-        let (action, thought, origin, flight) =
+        let (action, thought, origin, flight, mind) =
             self.choose_from(s, spatial, available_buf, spatial_buf, &mut rng, people);
         Choice {
             action,
@@ -102,6 +104,7 @@ impl Simulation {
             rng,
             flight,
             plan: None,
+            mind,
         }
     }
 
@@ -117,7 +120,13 @@ impl Simulation {
         let idx = s.idx;
         let (ox, oy) = (s.ox, s.oy);
         if let Some((action, thought)) = s.storm_build.clone() {
-            return (action, thought, "emergency_reflex", None);
+            return (
+                action,
+                thought,
+                "emergency_reflex",
+                None,
+                crate::organism::mind::IntentOp::Done,
+            );
         }
         if let Some(((dist, wx, wy), from_pack)) = self.flight(s) {
             let fdx = (ox - wx).signum();
@@ -182,6 +191,7 @@ impl Simulation {
                 Some(format!("{}! run!", s.threat_kind.name())),
                 "emergency_reflex",
                 Some(((!wet_target).then_some((tx, ty)), fear)),
+                crate::organism::mind::IntentOp::Done,
             );
         }
         let org = &self.organisms[idx];
@@ -205,7 +215,8 @@ impl Simulation {
         spatial.query_into(oa_ix, oa_iy, 16, spatial_buf);
         // Preserve population order for tie-breaking and resource followers.
         spatial_buf.sort_unstable();
-        let chosen = org.choose_action_with_neighbors(
+        let mut mind = crate::organism::mind::IntentOp::Keep;
+        let chosen = org.decide(
             &self.grid,
             &self.buildings,
             self.tick_count,
@@ -219,8 +230,13 @@ impl Simulation {
             available_buf,
             Some(spatial_buf),
             people,
+            &mut mind,
         );
-        let origin = if active_wander_action == Some(chosen.0) {
+        let origin = if matches!(mind, crate::organism::mind::IntentOp::Set(_))
+            || (org.intent.is_some() && mind == crate::organism::mind::IntentOp::Keep)
+        {
+            "intent"
+        } else if active_wander_action == Some(chosen.0) {
             "soft_wander"
         } else if active_directive
             .as_deref()
@@ -232,7 +248,52 @@ impl Simulation {
         } else {
             "seed_or_explore"
         };
-        (chosen.0, chosen.1, origin, None)
+        (chosen.0, chosen.1, origin, None, mind)
+    }
+
+    pub(super) fn apply_mind(&mut self, idx: usize, op: crate::organism::mind::IntentOp, dormant: bool) {
+        use crate::organism::mind::IntentOp;
+        if op != IntentOp::Keep {
+            self.learn_from_a_spent_intent(idx);
+        }
+        let o = &mut self.organisms[idx];
+        if !dormant {
+            o.rethink = false;
+        }
+        if o.journey.is_none() && o.is_rooted() {
+            let here = (o.x as i32, o.y as i32);
+            if o.wander_target
+                .is_some_and(|t| crate::organism::mind::chebyshev(here, t) <= 3)
+            {
+                o.wander_target = None;
+            }
+        }
+        match op {
+            IntentOp::Keep => {}
+            IntentOp::Set(intent) => o.intent = Some(intent),
+            IntentOp::Done => o.intent = None,
+            IntentOp::Rethink => {
+                o.intent = None;
+                o.rethink = true;
+            }
+        }
+    }
+
+    fn learn_from_a_spent_intent(&mut self, idx: usize) {
+        use crate::organism::mind::{chebyshev, Purpose, SIGHT};
+        let Some(intent) = self.organisms[idx].intent else {
+            return;
+        };
+        let o = &mut self.organisms[idx];
+        let here = (o.x as i32, o.y as i32);
+        if intent.purpose != Purpose::Food || chebyshev(here, intent.target) > SIGHT {
+            return;
+        }
+        if self.grid.get(intent.target.0, intent.target.1) != Tile::Food && o.energy < 0.95 {
+            if let Some(v) = o.food_memory.get_mut(&intent.target) {
+                *v *= 0.15;
+            }
+        }
     }
 
     /// Make a person's choice count, in their turn: a ferry or a boat takes precedence, a flight sets their
@@ -250,7 +311,9 @@ impl Simulation {
             let (mut available, mut nearby) = (Vec::new(), Vec::new());
             self.org_choose(&sensed, f.spatial, &mut available, &mut nearby, choice.rng, None)
         };
+        self.apply_mind(idx, choice.mind, f.dormant);
         let (action, new_thought, decision_origin) = if let Some(boat_action) = self.boat_action(idx) {
+            self.organisms[idx].intent = None;
             boat_action
         } else {
             if let Some((target, fear)) = choice.flight {

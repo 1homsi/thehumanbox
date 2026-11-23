@@ -89,6 +89,23 @@ needs on entry and writes back the ones it changed.
    situation. Registered actions (`registered/`) join the same pipeline.
 3. **Choose** (`organism/choose_action.rs`): survival needs first, then
    epsilon-greedy over learned Q values with novelty seeds and directives.
+   A choice that sets off somewhere becomes an **intent** (`organism/mind.rs`):
+   a purpose, a target, what to do on arrival and how long it is worth
+   pursuing. The intent is kept on the person and followed on every later
+   tick, awake or dormant, and by the calm-town glide, until it is reached,
+   blocked, past its time or outranked (hunger, thirst, night, a storm, fear).
+   Reaching it wakes the person to decide what comes next. The day's routine
+   is one source of intents ("going to work"), so the routine and the choice
+   no longer pull a person two ways. Forethought sits here too: a walk to
+   remembered food or water starts while there is still time to arrive, and
+   someone out late starts for home before dark and stays the night.
+   Someone the routine leaves at a loose end gets a **pastime**
+   (`agents/routine.rs`): children run a game together on the village ground,
+   elders take a turn round the square and sit, a worker with no work looks
+   round the village while the work search (`agents/daily_work.rs`) retries.
+   Settled people ("rooted": a town, a workshop or a usual work spot, and all
+   children and elders) no longer get the random far-off wander hint, and
+   they walk a nearby errand (an outing, a friend, a parent) to the end.
 4. **Apply** (`actions/mod.rs`, one module per action family): returns a reward.
 5. **Learn** (`organism/organism/learning.rs`): Q-learning with a bounded
    four-decision trace. The temporal-difference error also updates recent
