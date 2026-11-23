@@ -287,10 +287,13 @@ impl Simulation {
                 o.rethink = true;
                 continue;
             }
-            if purpose.is_none() && o.journey.is_none() && o.wander_target.is_some() {
+            let bound = o.wander_target.filter(|_| purpose.is_none());
+            if bound.is_some() && o.journey.is_none() && !o.is_rooted() {
                 continue;
             }
-            let bound = o.wander_target.filter(|_| purpose.is_none());
+            let bound = bound.filter(|&t| {
+                o.journey.is_some() || chebyshev(here, t) <= crate::organism::mind::ERRAND_REACH
+            });
             if let Some(target) = bound {
                 if chebyshev(here, target) > 2 {
                     if let Some(action) = o.dry_way(crate::organism::mind::Purpose::Roam, target, &self.grid)

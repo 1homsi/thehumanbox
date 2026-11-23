@@ -54,6 +54,13 @@ describe('visible work actions', () => {
     expect(workActivity('playing with the kids', false)).toBe('dance')
     expect(workActivity('challenging', false)).toBe('fight')
     expect(workActivity('resting with kin', false)).toBe('rest')
+    expect(workActivity('sitting in the square', false)).toBe('rest')
+    expect(workActivity('napping', false)).toBe('rest')
+    expect(workActivity('taking the midday meal', false)).toBe('eat')
+    expect(workActivity('racing the others', false)).toBe('dance')
+    expect(workActivity('chasing a hoop', false)).toBe('dance')
+    expect(workActivity('playing tag', true)).toBeNull()
+    expect(workActivity('seeing what needs doing in the village', false)).toBeNull()
   })
   it('does not read an action into a word that only contains one', () => {
     expect(workActivity('repeating the old words', false)).toBeNull()

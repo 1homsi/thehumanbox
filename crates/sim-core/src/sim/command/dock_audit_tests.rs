@@ -76,6 +76,9 @@ fn staged_world() -> (Simulation, Stage) {
             }
         }
     }
+    if WorldGrid::in_bounds(cx + 6, cy) {
+        sim.grid.set(cx + 6, cy, Tile::Grass);
+    }
     let fire = (cx - 4, cy);
     sim.grid.set(fire.0, fire.1, Tile::Fire);
     *sim.grid.fire_intensity_mut(fire.0, fire.1) = 1.0;

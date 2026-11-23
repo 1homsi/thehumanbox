@@ -13,6 +13,7 @@ pub enum Purpose {
     Duty,
     Company,
     Roam,
+    Play,
 }
 
 impl Purpose {
@@ -28,7 +29,7 @@ impl Purpose {
     }
 
     pub fn is_leisure(self) -> bool {
-        matches!(self, Purpose::Roam | Purpose::Company)
+        matches!(self, Purpose::Roam | Purpose::Company | Purpose::Play)
     }
 
     pub fn fits_storm(self) -> bool {
@@ -84,6 +85,7 @@ pub fn arrival_thought(action: usize) -> &'static str {
 }
 
 pub const SIGHT: i32 = 8;
+pub const ERRAND_REACH: i32 = 48;
 pub const JOURNEY_REST: u64 = 2400;
 
 pub const NIGHT_STARTS: u64 = 420;

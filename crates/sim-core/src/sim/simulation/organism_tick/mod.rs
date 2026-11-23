@@ -433,6 +433,11 @@ impl Simulation {
                     pursued = Some((action, arrival_thought(action)));
                     mind = IntentOp::Rethink;
                 }
+                Pursuit::Arrived(None) | Pursuit::Dropped
+                    if intent.purpose == crate::organism::mind::Purpose::Play =>
+                {
+                    mind = IntentOp::Done
+                }
                 Pursuit::Arrived(None) | Pursuit::Dropped => mind = IntentOp::Rethink,
             }
         }
@@ -441,17 +446,47 @@ impl Simulation {
         } else {
             self.routine_step(s.idx)
         };
+        let at_a_loose_end = pursued.is_none()
+            && step.as_ref().is_none_or(|r| r.action == usize::MAX)
+            && o.last_action.is_none_or(|a| a < 8 || step.is_some());
+        if at_a_loose_end {
+            if let Some(game) = self.pastime(s.idx) {
+                if let Some(action) = o.dry_way(game.purpose, game.target, &self.grid) {
+                    pursued = Some((action, game.thought));
+                    mind = crate::organism::mind::IntentOp::Set(game);
+                }
+            }
+        }
+        let ease = if at_a_loose_end && pursued.is_none() {
+            self.at_ease(s.idx)
+        } else {
+            None
+        };
         let thought = match pursued {
             Some((_, label)) => (o.thought != label).then(|| label.to_string()),
-            None => step.as_ref().and_then(|r| r.thought).map(str::to_string),
+            None => step
+                .as_ref()
+                .and_then(|r| r.thought)
+                .or(ease.filter(|&label| o.thought != label))
+                .map(str::to_string),
         };
         let mut origin = "dormant";
+        let has_errand = o.journey.is_none()
+            && o.is_rooted()
+            && o.wander_target.is_some_and(|t| {
+                let gap = crate::organism::mind::chebyshev((o.x as i32, o.y as i32), t);
+                gap > 3 && gap <= crate::organism::mind::ERRAND_REACH && !o.route.borrow().recently_blocked(t)
+            });
         let action = match (step, o.last_action.map(usize::from)) {
             _ if pursued.is_some() => {
-                origin = "dormant_intent";
+                origin = if o.intent.is_some() {
+                    "dormant_intent"
+                } else {
+                    "dormant_pastime"
+                };
                 pursued.map_or(HOLD, |(action, _)| action)
             }
-            (Some(step), _) => {
+            (Some(step), _) if step.action != HOLD || !has_errand => {
                 origin = "dormant_routine";
                 step.action
             }
@@ -461,7 +496,12 @@ impl Simulation {
                 let far = |t: (i32, i32)| crate::organism::mind::chebyshev(here, t) > 2;
                 let bound = o.wander_target.filter(|&t| {
                     let route = o.route.borrow();
-                    !route.recently_blocked(t) && (o.journey.is_some() || route.has_plan_for(t))
+                    !route.recently_blocked(t)
+                        && (o.journey.is_some()
+                            || route.has_plan_for(t)
+                            || (o.is_rooted()
+                                && crate::organism::mind::chebyshev(here, t)
+                                    <= crate::organism::mind::ERRAND_REACH))
                 });
                 match bound {
                     Some(target) if far(target) => {

@@ -260,6 +260,14 @@ impl Simulation {
         if !dormant {
             o.rethink = false;
         }
+        if o.journey.is_none() && o.is_rooted() {
+            let here = (o.x as i32, o.y as i32);
+            if o.wander_target
+                .is_some_and(|t| crate::organism::mind::chebyshev(here, t) <= 3)
+            {
+                o.wander_target = None;
+            }
+        }
         match op {
             IntentOp::Keep => {}
             IntentOp::Set(intent) => o.intent = Some(intent),

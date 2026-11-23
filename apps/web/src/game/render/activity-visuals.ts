@@ -246,9 +246,9 @@ function activityForThought(thought: string): WorkActivity {
     )
   )
     return 'craft'
-  if (/\b(eating|feasting|chewing|dining)\b/.test(t)) return 'eat'
+  if (/\b(eating|feasting|chewing|dining|midday meal)\b/.test(t)) return 'eat'
   if (/\b(drinking|sipping)\b/.test(t)) return 'drink'
-  if (/\b(dancing|playing|celebrating|singing)\b/.test(t)) return 'dance'
+  if (/\b(dancing|playing|celebrating|singing|racing the others|chasing a hoop)\b/.test(t)) return 'dance'
   if (
     /\b(talking|chatting|gossiping|telling|arguing|greeting|teaching|discussing|debating|haggling|bargaining)\b/.test(
       t,
@@ -256,7 +256,7 @@ function activityForThought(thought: string): WorkActivity {
   )
     return 'talk'
   if (/foraging|gathering|picking berries/.test(t)) return 'gather'
-  if (/sleeping|\bresting|dozing|napping/.test(t)) return 'rest'
+  if (/sleeping|\bresting|dozing|napping|\bsitting\b/.test(t)) return 'rest'
   return null
 }
 

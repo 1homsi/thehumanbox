@@ -57,6 +57,43 @@ pub(crate) const FETCH_WATER: f32 = 0.55;
 const WATER_WALK: f32 = 24.0;
 const WATER_LOOK: i32 = 14;
 const WATER_HOME_REACH: i32 = 40;
+const GAME_LASTS: u64 = 6;
+const RING: [(i32, i32); 8] = [
+    (4, 0),
+    (3, 3),
+    (0, 4),
+    (-3, 3),
+    (-4, 0),
+    (-3, -3),
+    (0, -4),
+    (3, -3),
+];
+const GAME_GROUND: i32 = 5;
+const PLAYGROUND_REACH: i32 = 18;
+const TURN_LASTS: u64 = 150;
+const SQUARE: i32 = 4;
+const ROUND_LASTS: u64 = 40;
+const VILLAGE: i32 = 7;
+const GAMES: [&str; 4] = [
+    "playing tag",
+    "racing the others",
+    "playing hide and seek",
+    "chasing a hoop",
+];
+
+fn mix(a: u64, b: u64, c: u64) -> u64 {
+    let mut h = a
+        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        .wrapping_add(b.wrapping_mul(0xC2B2_AE3D_27D4_EB4F))
+        .wrapping_add(c.wrapping_mul(0x1656_67B1_9E37_79F9));
+    h ^= h >> 29;
+    h = h.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    h ^ (h >> 32)
+}
+
+fn within(h: u64, range: i32) -> i32 {
+    (h % (2 * range as u64 + 1)) as i32 - range
+}
 
 const WORKDAY: (u64, u64, u64, u64) = (60, 270, 330, 420);
 
@@ -344,6 +381,107 @@ impl Simulation {
         None
     }
 
+    pub(crate) fn pastime(&self, idx: usize) -> Option<crate::organism::mind::Intent> {
+        use crate::organism::mind::{Intent, Purpose};
+        let tick = self.tick_count;
+        if self.is_night() || self.weather.kind >= 2 {
+            return None;
+        }
+        let o = &self.organisms[idx];
+        let r = o.routine.as_ref()?;
+        if o.journey.is_some()
+            || o.mounted_vehicle.is_some()
+            || o.water_ticks > 0
+            || o.energy < 0.5
+            || o.hydration < FETCH_WATER
+            || o.fear_level > 0.4
+            || o.health < 0.5
+        {
+            return None;
+        }
+        let here = (o.x as i32, o.y as i32);
+        let phase = tick % DAY_LENGTH;
+        let close = |p: (i32, i32)| chebyshev(here, p) <= PLAYGROUND_REACH;
+        let (ground, lasts, range, own, thought) = match (r.group, r.activity_at(phase)) {
+            (Group::Child, Activity::Play) => {
+                let ground = [r.centre, r.gather, Some(r.play), Some(r.home)]
+                    .into_iter()
+                    .flatten()
+                    .find(|&p| close(p))
+                    .unwrap_or((
+                        here.0 - here.0.rem_euclid(8) + 4,
+                        here.1 - here.1.rem_euclid(8) + 4,
+                    ));
+                let game = mix(ground.0 as u64, ground.1 as u64, tick / (GAME_LASTS * 20));
+                (ground, GAME_LASTS, GAME_GROUND, 0, GAMES[(game % 4) as usize])
+            }
+            (Group::Elder, Activity::Sit) => {
+                let ground = [r.centre, r.gather, Some(r.home)]
+                    .into_iter()
+                    .flatten()
+                    .find(|&p| close(p))?;
+                (ground, TURN_LASTS, SQUARE, 1, "taking a turn round the square")
+            }
+            (Group::Worker, Activity::Work) if o.work.is_none() && r.workshop.is_none() => {
+                let ground = [r.centre, r.gather, Some(r.home)]
+                    .into_iter()
+                    .flatten()
+                    .find(|&p| close(p))?;
+                (
+                    ground,
+                    ROUND_LASTS,
+                    VILLAGE,
+                    1,
+                    "seeing what needs doing in the village",
+                )
+            }
+            _ => return None,
+        };
+        let round = (tick + mix(ground.0 as u64, ground.1 as u64, 7) % lasts) / lasts;
+        let target = if r.group != Group::Child {
+            if r.group == Group::Elder && !(round + idx as u64).is_multiple_of(3) {
+                return None;
+            }
+            let shared = mix(ground.0 as u64, ground.1 as u64, round);
+            let mine = mix(idx as u64, round, 3);
+            (
+                ground.0 + within(shared, range) + within(mine, own),
+                ground.1 + within(shared >> 20, range) + within(mine >> 20, own),
+            )
+        } else {
+            let lap = mix(ground.0 as u64, ground.1 as u64, tick / (lasts * 20));
+            let turn = if lap & 1 == 0 { round } else { u64::MAX / 2 - round };
+            let (dx, dy) = RING[((turn + idx as u64 % 2) % RING.len() as u64) as usize];
+            (ground.0 + dx * range / 4, ground.1 + dy * range / 4)
+        };
+        if chebyshev(here, target) <= 1
+            || !self.is_good_land_target(target.0, target.1)
+            || o.route.borrow().recently_blocked(target)
+        {
+            return None;
+        }
+        Some(Intent::new(Purpose::Play, here, target, 1, None, thought, tick))
+    }
+
+    pub(crate) fn at_ease(&self, idx: usize) -> Option<&'static str> {
+        let o = &self.organisms[idx];
+        let r = o.routine.as_ref()?;
+        if self.is_night() || o.journey.is_some() || o.water_ticks > 0 {
+            return None;
+        }
+        let here = (o.x as i32, o.y as i32);
+        let activity = r.activity_at(self.tick_count % DAY_LENGTH);
+        match (r.group, activity) {
+            (Group::Infant, _) => Some("napping"),
+            (_, Activity::Meal) => Some("taking the midday meal"),
+            (Group::Elder, Activity::Sit) => r
+                .place_of(activity)
+                .filter(|&p| chebyshev(here, p) <= SQUARE + 2)
+                .map(|_| "sitting in the square"),
+            _ => None,
+        }
+    }
+
     pub(crate) fn routine_step(&self, idx: usize) -> Option<RoutineStep> {
         let o = &self.organisms[idx];
         let r = o.routine.as_ref()?;
@@ -393,7 +531,11 @@ impl Simulation {
                     });
                 }
                 if !o.route.borrow().recently_blocked(plan.spot) {
-                    return self.dry_step(o, plan.spot).map(|action| RoutineStep {
+                    let step = self.dry_step(o, plan.spot);
+                    if step.is_none() {
+                        o.route.borrow_mut().mark_blocked(plan.spot);
+                    }
+                    return step.map(|action| RoutineStep {
                         action,
                         thought: fresh.then(|| plan.walking_thought()),
                     });
@@ -511,6 +653,98 @@ mod tests {
         assert_eq!(sim.water_near_home((100, 100)), Some((130, 100)));
         sim.grid.set(130, 100, Tile::Grass);
         assert_eq!(sim.water_near_home((100, 100)), None);
+    }
+
+    fn village(group: Group) -> Simulation {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(3);
+        for x in 60..=140 {
+            for y in 60..=140 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.tick_count = 5 * DAY_LENGTH + 200;
+        sim.weather.kind = 0;
+        let o = &mut sim.organisms[0];
+        o.alive = true;
+        o.x = 100.0;
+        o.y = 100.0;
+        o.energy = 0.9;
+        o.hydration = 0.9;
+        o.health = 0.9;
+        o.fear_level = 0.0;
+        o.water_ticks = 0;
+        o.journey = None;
+        o.work = None;
+        o.mounted_vehicle = None;
+        o.routine = Some(Routine {
+            day: 5,
+            group,
+            season: 0,
+            home: (100, 100),
+            play: (103, 100),
+            workshop: None,
+            work_spot: None,
+            gather: None,
+            school: None,
+            festival: None,
+            centre: Some((104, 104)),
+            water: None,
+        });
+        sim
+    }
+
+    #[test]
+    fn children_with_nothing_to_do_run_a_game_on_the_village_ground() {
+        use crate::organism::mind::Purpose;
+        let sim = village(Group::Child);
+        let game = sim.pastime(0).expect("a child at play time finds a game");
+        assert_eq!(game.purpose, Purpose::Play);
+        assert!(GAMES.contains(&game.thought));
+        assert!(chebyshev(game.target, (104, 104)) <= GAME_GROUND);
+        assert!(Purpose::Play.is_leisure() && !Purpose::Play.fits_night());
+    }
+
+    #[test]
+    fn nobody_plays_hungry_or_in_a_storm() {
+        let mut sim = village(Group::Child);
+        sim.organisms[0].energy = 0.3;
+        assert!(sim.pastime(0).is_none());
+        sim.organisms[0].energy = 0.9;
+        sim.weather.kind = 2;
+        assert!(sim.pastime(0).is_none());
+    }
+
+    #[test]
+    fn a_worker_with_no_work_looks_round_the_village_and_one_with_work_does_not() {
+        let mut sim = village(Group::Worker);
+        let round = sim.pastime(0).expect("someone with no work goes looking");
+        assert_eq!(round.thought, "seeing what needs doing in the village");
+        assert!(chebyshev(round.target, (104, 104)) <= VILLAGE + 1);
+        sim.organisms[0].routine.as_mut().unwrap().workshop = Some((110, 100));
+        assert!(sim.pastime(0).is_none());
+    }
+
+    #[test]
+    fn an_elder_in_the_square_and_an_infant_are_at_ease_not_idle() {
+        let mut sim = village(Group::Elder);
+        sim.organisms[0].x = 104.0;
+        sim.organisms[0].y = 104.0;
+        assert_eq!(sim.at_ease(0), Some("sitting in the square"));
+        sim.organisms[0].routine.as_mut().unwrap().group = Group::Infant;
+        assert_eq!(sim.at_ease(0), Some("napping"));
+        sim.organisms[0].routine.as_mut().unwrap().group = Group::Worker;
+        assert_eq!(sim.at_ease(0), None);
+    }
+
+    #[test]
+    fn settled_people_are_rooted_and_a_band_without_a_town_is_not() {
+        let mut sim = village(Group::Worker);
+        assert!(sim.organisms[0].is_rooted());
+        sim.organisms[0].routine.as_mut().unwrap().centre = None;
+        assert!(!sim.organisms[0].is_rooted());
+        sim.organisms[0].routine.as_mut().unwrap().group = Group::Child;
+        assert!(sim.organisms[0].is_rooted());
     }
 
     #[test]

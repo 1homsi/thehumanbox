@@ -19,6 +19,22 @@ pub(super) struct Motion {
     day_working: u64,
     day_resting: u64,
     day_standing: u64,
+    day_at_ease: u64,
+}
+
+fn at_ease(sim: &Simulation, o: &sim_core::organism::organism::Organism, here: (i32, i32)) -> bool {
+    use sim_core::sim::agents::routine::{Activity, Group};
+    let Some(r) = o.routine.as_ref() else {
+        return false;
+    };
+    let activity = r.activity_at(sim.tick_count % 600);
+    match (r.group, activity) {
+        (Group::Infant, _) | (_, Activity::Meal) => true,
+        (Group::Elder, Activity::Sit) => r
+            .place_of(activity)
+            .is_some_and(|p| (p.0 - here.0).abs().max((p.1 - here.1).abs()) <= 6),
+        _ => false,
+    }
 }
 
 impl Motion {
@@ -33,6 +49,7 @@ impl Motion {
                     _ if moved => self.day_walking += 1,
                     Some(17) => self.day_resting += 1,
                     Some(action) if action >= 8 => self.day_working += 1,
+                    _ if at_ease(sim, o, here) => self.day_at_ease += 1,
                     _ => self.day_standing += 1,
                 }
             }
@@ -83,11 +100,12 @@ impl Motion {
         );
         let share = |n: u64| 100.0 * n as f64 / self.day_ticks.max(1) as f64;
         println!(
-            "daytime:     {:.1}% walking, {:.1}% at a task, {:.1}% resting, {:.1}% standing with nothing to do",
+            "daytime:     {:.1}% walking, {:.1}% at a task, {:.1}% resting, {:.1}% standing with nothing to do, {:.1}% at ease (a meal, elders sitting, infants)",
             share(self.day_walking),
             share(self.day_working),
             share(self.day_resting),
-            share(self.day_standing)
+            share(self.day_standing),
+            share(self.day_at_ease)
         );
     }
 }
