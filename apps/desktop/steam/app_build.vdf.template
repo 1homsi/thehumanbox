@@ -1,0 +1,21 @@
+"AppBuild"
+{
+	"AppID" "__APP_ID__"
+	"Desc" "__DESCRIPTION__"
+	"Preview" "__PREVIEW__"
+	"ContentRoot" "__CONTENT_ROOT__"
+	"BuildOutput" "__BUILD_OUTPUT__"
+	"Depots"
+	{
+		"__DEPOT_ID__"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+			"FileExclusion" "*.pdb"
+		}
+	}
+}

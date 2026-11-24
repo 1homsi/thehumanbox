@@ -50,6 +50,7 @@ test('replacing a window retains the new window and routes old events to their o
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './distribution' || id === './steam') return require(`${__dirname}/${id.slice(2)}`)
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
@@ -109,6 +110,7 @@ test('a renderer that fails to load does not carry the command token in its erro
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './distribution' || id === './steam') return require(`${__dirname}/${id.slice(2)}`)
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path
@@ -181,6 +183,7 @@ test('the failed-load log line and boot page never show the command token', asyn
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000, commandToken: 'SECRET-TOKEN' }) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './distribution' || id === './steam') return require(`${__dirname}/${id.slice(2)}`)
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path

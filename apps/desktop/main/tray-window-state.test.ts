@@ -188,6 +188,7 @@ function harness() {
           },
         };
       }
+      if (id === "./distribution" || id === "./steam") return require(`${__dirname}/${id.slice(2)}`);
       if (id === "./app-version-arg") {
         return { appVersionArgument: (v: string) => `--thb-app-version=${v}` };
       }

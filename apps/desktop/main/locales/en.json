@@ -81,6 +81,7 @@
     "rendererFailed": "Renderer failed to load."
   },
   "update": {
+    "steamManaged": "Steam keeps this copy up to date.",
     "failedTitle": "Update failed",
     "failedMessage": "The update could not be installed.",
     "readyTitle": "Update ready",

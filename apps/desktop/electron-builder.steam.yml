@@ -1,0 +1,10 @@
+extends: ./electron-builder.yml
+
+directories:
+  output: out/steam
+  buildResources: build
+
+publish: null
+
+extraMetadata:
+  distribution: steam

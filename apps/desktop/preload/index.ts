@@ -4,6 +4,7 @@ export interface DesktopBridge {
   isDesktop: true;
   platform: NodeJS.Platform;
   appVersion: string;
+  distribution: "direct" | "steam";
 
   settings: {
     get(): Promise<unknown>;
@@ -30,6 +31,10 @@ export interface DesktopBridge {
     installUpdate(): Promise<unknown>;
     /** The language the game shows, e.g. "de" or "pt-BR". */
     setLocale(code: string): Promise<void>;
+  };
+
+  steam: {
+    unlockAchievement(name: string): Promise<{ unlocked: boolean; reason?: string }>;
   };
 
   world: {
@@ -75,9 +80,13 @@ const appVersionArg = process.argv.find((a) =>
   a.startsWith(APP_VERSION_ARG_PREFIX),
 );
 
+const DISTRIBUTION_ARG_PREFIX = "--thb-distribution=";
+const distributionArg = process.argv.find((a) => a.startsWith(DISTRIBUTION_ARG_PREFIX));
+
 const bridge: DesktopBridge = {
   isDesktop: true,
   platform: process.platform,
+  distribution: distributionArg?.slice(DISTRIBUTION_ARG_PREFIX.length) === "steam" ? "steam" : "direct",
   appVersion: appVersionArg
     ? appVersionArg.slice(APP_VERSION_ARG_PREFIX.length)
     : "",
@@ -102,6 +111,10 @@ const bridge: DesktopBridge = {
     checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
     installUpdate: () => ipcRenderer.invoke("app:installUpdate"),
     setLocale: (code) => ipcRenderer.invoke("app:setLocale", code),
+  },
+
+  steam: {
+    unlockAchievement: (name) => ipcRenderer.invoke("steam:unlockAchievement", name),
   },
 
   world: {

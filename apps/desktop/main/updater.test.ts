@@ -264,3 +264,22 @@ test('Restart and update in the prompt is refused with a reason while a save-fol
     assert.ok(prompts.some((message) => /save or simulation change/.test(message)), `prompts: ${prompts.join(' | ')}`)
   })
 })
+
+test('a copy that Steam keeps up to date never checks, downloads or installs by itself', async () => {
+  let checks = 0
+  const { context, intervals } = harness(async () => {
+    checks += 1
+    return null
+  })
+  const fresh = vm.createContext({ ...context })
+  vm.runInContext(readFileSync(path.join(__dirname, 'updater.js'), 'utf8'), fresh)
+  vm.runInContext('setStoreManagedUpdates(true); initUpdater(() => null)', fresh)
+  const timers = intervals.length
+  const checked = (await vm.runInContext('checkForUpdatesNow()', fresh)) as { status: string; message?: string }
+  const installed = vm.runInContext('installDownloadedUpdate()', fresh) as { status: string }
+  assert.equal(checked.status, 'unsupported')
+  assert.match(checked.message ?? '', /Steam/)
+  assert.equal(installed.status, 'unsupported')
+  assert.equal(intervals.length, timers)
+  assert.equal(checks, 0)
+})

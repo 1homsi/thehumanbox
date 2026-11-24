@@ -81,6 +81,7 @@
     "rendererFailed": "화면을 불러오지 못했습니다."
   },
   "update": {
+    "steamManaged": "이 사본은 Steam이 최신 상태로 유지합니다.",
     "failedTitle": "업데이트 실패",
     "failedMessage": "업데이트를 설치할 수 없습니다.",
     "readyTitle": "업데이트 준비 완료",

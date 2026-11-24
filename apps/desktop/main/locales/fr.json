@@ -81,6 +81,7 @@
     "rendererFailed": "L'interface n'a pas pu être chargée."
   },
   "update": {
+    "steamManaged": "Steam maintient cette copie à jour.",
     "failedTitle": "Échec de la mise à jour",
     "failedMessage": "La mise à jour n'a pas pu être installée.",
     "readyTitle": "Mise à jour prête",

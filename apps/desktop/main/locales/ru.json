@@ -81,6 +81,7 @@
     "rendererFailed": "Не удалось загрузить интерфейс."
   },
   "update": {
+    "steamManaged": "Steam сам обновляет эту копию.",
     "failedTitle": "Не удалось обновить",
     "failedMessage": "Не удалось установить обновление.",
     "readyTitle": "Обновление готово",

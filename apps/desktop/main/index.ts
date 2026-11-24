@@ -24,6 +24,8 @@ import { sanitizeWindowState, type WindowState } from "./window-state";
 import { atomicReplaceFile, atomicWriteNewFile } from "./world-safety";
 import { teeConsoleToLog } from "./main-log";
 import { appVersionArgument } from "./app-version-arg";
+import { distributionArgument, readDistribution, type DistributionInfo } from "./distribution";
+import { setSteamClient, startSteam, unlockSteamAchievement, type SteamLibrary } from "./steam";
 import { loginItemSettings, shouldStartHidden } from "./login-launch";
 import { appIconPath } from "./app-icon";
 import { redactUrlForDisplay } from "./redact-url";
@@ -60,6 +62,7 @@ import {
   checkForUpdatesNow,
   initUpdater,
   installDownloadedUpdate,
+  setStoreManagedUpdates,
 } from "./updater";
 import { getLocale, matchLocale, setLocale, t } from "./i18n";
 import { appMenuTemplate } from "./app-menu";
@@ -68,6 +71,7 @@ import { handleSecondLaunch } from "./single-instance";
 app.setName("The Human Box");
 
 const isDev = !app.isPackaged;
+const build = readBuild();
 let mainWindow: BrowserWindow | null = null;
 let windowStartup: Promise<void> | null = null;
 let tray: Tray | null = null;
@@ -221,7 +225,7 @@ async function createWindow(): Promise<void> {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      additionalArguments: [appVersionArgument(app.getVersion())],
+      additionalArguments: [appVersionArgument(app.getVersion()), distributionArgument(build.distribution)],
     },
   });
   mainWindow = win;
@@ -814,6 +818,7 @@ function registerAppIpcHandlers(): void {
   ipcMain.handle("app:checkForUpdates", () => checkForUpdatesNow());
 
   ipcMain.handle("app:installUpdate", () => installDownloadedUpdate());
+  ipcMain.handle("steam:unlockAchievement", (_event, name: unknown) => unlockSteamAchievement(name));
 
   // Native folder picker for the save-location override. The renderer passes
   // the result to the transactional migration IPC; changing settings alone is
@@ -1046,6 +1051,26 @@ async function fatalStartupFailure(err: unknown): Promise<void> {
   app.exit(1);
 }
 
+function readBuild(): DistributionInfo {
+  let manifest: unknown = null;
+  try {
+    manifest = JSON.parse(fs.readFileSync(path.join(app.getAppPath(), "package.json"), "utf8"));
+  } catch {
+    manifest = null;
+  }
+  return readDistribution(manifest, process.env, app.isPackaged);
+}
+
+function prepareStore(): boolean {
+  if (build.distribution !== "steam") return true;
+  setStoreManagedUpdates(true);
+  const started = startSteam(build.steamAppId, () => require("steamworks.js") as SteamLibrary);
+  if (started.status === "relaunching") return false;
+  if (started.status === "ready") setSteamClient(started.client);
+  else console.warn(`[main] running without Steam: ${started.reason}`);
+  return true;
+}
+
 function reportStartupFailure(err: unknown): Promise<void> {
   return fatalStartupFailure(err);
 }
@@ -1053,7 +1078,9 @@ function reportStartupFailure(err: unknown): Promise<void> {
 // One app per save folder. A second launch must not boot: it would fail on
 // the data-root lock and show a startup error. Quit it and focus the running
 // window instead.
-if (app.requestSingleInstanceLock()) {
+if (!prepareStore()) {
+  app.quit();
+} else if (app.requestSingleInstanceLock()) {
   // The arguments of the second launch are deliberately ignored.
   app.on("second-instance", () =>
     handleSecondLaunch({

@@ -20,6 +20,15 @@ const CHECK_INTERVAL_MS = 30 * 60 * 1000
 const FOCUS_CHECK_MIN_GAP_MS = 10 * 60 * 1000
 
 let initialized = false
+let storeManaged = false
+
+export function setStoreManagedUpdates(managed: boolean): void {
+  storeManaged = managed
+}
+
+function storeManagedStatus(): UpdateCheckResult {
+  return { status: 'unsupported', message: t('update.steamManaged') }
+}
 let lastCheckAt = 0
 let latestStatus: UpdateCheckResult = { status: 'up-to-date' }
 let downloadedFile: string | null = null
@@ -62,7 +71,7 @@ function installNow(): UpdateCheckResult {
 }
 
 export function initUpdater(getWindow: () => BrowserWindow | null): void {
-  if (initialized) return
+  if (initialized || storeManaged) return
   initialized = true
 
   autoUpdater.autoDownload = true
@@ -188,6 +197,7 @@ function automaticChecksEnabled(): boolean {
 }
 
 export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
+  if (storeManaged) return storeManagedStatus()
   if (!app.isPackaged) {
     latestStatus = {
       status: 'unsupported',
@@ -219,6 +229,7 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
 }
 
 export function installDownloadedUpdate(): UpdateCheckResult {
+  if (storeManaged) return storeManagedStatus()
   if (!app.isPackaged) {
     latestStatus = {
       status: 'unsupported',

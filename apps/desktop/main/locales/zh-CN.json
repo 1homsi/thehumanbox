@@ -81,6 +81,7 @@
     "rendererFailed": "界面加载失败。"
   },
   "update": {
+    "steamManaged": "此副本由 Steam 保持最新。",
     "failedTitle": "更新失败",
     "failedMessage": "无法安装更新。",
     "readyTitle": "更新已就绪",

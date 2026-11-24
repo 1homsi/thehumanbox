@@ -38,6 +38,10 @@ export interface DesktopBridge {
   isDesktop: true
   platform: string
   appVersion: string
+  distribution?: 'direct' | 'steam'
+  steam?: {
+    unlockAchievement(name: string): Promise<{ unlocked: boolean; reason?: string }>
+  }
   settings: {
     get(): Promise<DesktopSettings>
     set(next: DesktopSettings): Promise<DesktopSettings>

@@ -176,6 +176,7 @@ function loadIndex(options: {
       if (id === "./i18n") return require(path.join(__dirname, "i18n"));
       if (id === "./app-menu") return require(path.join(__dirname, "app-menu"));
       if (id === "./updater") return { initUpdater: () => calls.push("updater:init") };
+      if (id === "./distribution" || id === "./steam") return require(`${__dirname}/${id.slice(2)}`);
       if (id === "./app-version-arg") return { appVersionArgument: (v: string) => `--thb-app-version=${v}` };
       if (id === "./app-icon") return { appIconPath: () => "/tmp/icon.png" };
       if (id === "./login-launch") return { loginItemSettings: () => ({}) };

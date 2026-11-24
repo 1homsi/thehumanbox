@@ -81,6 +81,7 @@
     "rendererFailed": "Nie udało się wczytać interfejsu."
   },
   "update": {
+    "steamManaged": "Steam dba o aktualność tej kopii.",
     "failedTitle": "Aktualizacja nie powiodła się",
     "failedMessage": "Nie można zainstalować aktualizacji.",
     "readyTitle": "Aktualizacja gotowa",
