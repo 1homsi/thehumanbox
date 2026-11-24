@@ -626,9 +626,6 @@ impl Simulation {
                 return;
             }
         }
-        if o.last_action.is_some_and(|a| a >= 8) {
-            return;
-        }
         if o.intent.is_some_and(|intent| intent.purpose == Purpose::Play) {
             self.organisms[i].last_action = Some(113);
         }
@@ -1228,6 +1225,7 @@ mod tests {
             o.fear_level = 0.0;
             o.work = None;
             o.intent = None;
+            o.last_action = Some(27);
             o.rethink = false;
             o.wander_target = None;
             o.routine = Some(Routine {
