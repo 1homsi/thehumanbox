@@ -3,6 +3,7 @@ import { REPO_URL } from '../../shared/links'
 import { trackEvent } from '../../shared/observability'
 import { shareWorldCard } from '../../shared/shareWorld'
 import type { WorldState } from '../../shared/types'
+import { freshWorldUsesHeadStart, type WorldStartMode } from '../../simulation/worldStart'
 import { ToolSprite } from '../toolbar/ToolSprite'
 import { screenBusy, TOAST_RETRY_MS } from './screenBusy'
 import { t } from '../../i18n'
@@ -30,6 +31,8 @@ type SettlementWatch = {
   tick: number
   hasData: boolean
   seenSettlement: boolean
+  /** Tribes that already had a settlement entry in the first census; a head-start world begins with these. */
+  startingLineages: Set<string>
 }
 
 function writeState(state: StarPromptState): boolean {
@@ -83,17 +86,46 @@ function hasSettlement(world: WorldState): boolean {
   return world.settlements?.some((settlement) => settlement.tier >= 1) ?? false
 }
 
+function settlementLineages(world: WorldState): Set<string> {
+  return new Set((world.settlements ?? []).map((settlement) => settlement.lineage_id))
+}
+
+/** A settlement founded by a tribe that had none when the session began. */
+function hasNewSettlement(world: WorldState, startingLineages: Set<string>): boolean {
+  return (
+    world.settlements?.some(
+      (settlement) => settlement.tier >= 1 && !startingLineages.has(settlement.lineage_id),
+    ) ?? false
+  )
+}
+
+function startModeProps(startMode: WorldStartMode | null): { start_mode?: WorldStartMode } {
+  return startMode ? { start_mode: startMode } : {}
+}
+
 /**
  * Asks once for a star on GitHub, after about ten minutes in a world. A dismissal or a star
  * is permanent. The first settlement is the preferred moment once that wait has passed;
  * otherwise a timer asks. Nothing is shown before the wait, before a world exists, or while
- * another card is on screen.
+ * another card is on screen. A head-start world opens with settlements already standing, so
+ * there the moment is the first settlement founded after the session began.
  */
-export function StarToast({ world = null }: { world?: WorldState | null }) {
+export function StarToast({
+  world = null,
+  startMode = null,
+}: {
+  world?: WorldState | null
+  startMode?: WorldStartMode | null
+}) {
   const [visible, setVisible] = useState(false)
   const [shownTrigger, setShownTrigger] = useState<StarPromptTrigger | null>(null)
   const requestMoment = useRef<(trigger: StarPromptTrigger) => void>(() => undefined)
   const settlementWatch = useRef<SettlementWatch | null>(null)
+  const startModeRef = useRef(startMode)
+  // Declared before the effects that read it, so they see this render's mode.
+  useEffect(() => {
+    startModeRef.current = startMode
+  }, [startMode])
   const inWorld = world != null
 
   useEffect(() => {
@@ -139,6 +171,7 @@ export function StarToast({ world = null }: { world?: WorldState | null }) {
         trigger,
         play_ms: Math.max(0, Math.round(playMs)),
         ask_number: asks,
+        ...startModeProps(startModeRef.current),
       })
     }
 
@@ -177,6 +210,7 @@ export function StarToast({ world = null }: { world?: WorldState | null }) {
         tick: world.tick,
         hasData: settlements !== undefined,
         seenSettlement: found,
+        startingLineages: settlementLineages(world),
       }
       return
     }
@@ -184,8 +218,14 @@ export function StarToast({ world = null }: { world?: WorldState | null }) {
       settlementWatch.current = { ...previous, tick: world.tick }
       return
     }
-    const firstSettlement = previous.hasData && !previous.seenSettlement && found
+    const headStart = startModeRef.current !== null && freshWorldUsesHeadStart(startModeRef.current)
+    // A head-start world's own settlements are the scenery it opens with; the moment is the first
+    // one a new tribe founds after that. Every other world keeps the first-settlement-ever rule.
+    const firstSettlement = headStart
+      ? hasNewSettlement(world, previous.startingLineages)
+      : previous.hasData && !previous.seenSettlement && found
     settlementWatch.current = {
+      ...previous,
       tick: world.tick,
       hasData: true,
       // Once a settlement has been seen, a later decline and refounding is not another first moment.
@@ -204,7 +244,7 @@ export function StarToast({ world = null }: { world?: WorldState | null }) {
       writeState({ asks, dismissedAt: Date.now() })
     }
     setVisible(false)
-    trackEvent('star_prompt_dismissed', { trigger })
+    trackEvent('star_prompt_dismissed', { trigger, ...startModeProps(startMode) })
   }
 
   const href = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_${trigger}`
@@ -235,7 +275,7 @@ export function StarToast({ world = null }: { world?: WorldState | null }) {
             const asks = read.ok ? (read.state?.asks ?? 1) : 1
             writeState({ asks, starred: true })
             setVisible(false)
-            trackEvent('star_prompt_clicked', { trigger })
+            trackEvent('star_prompt_clicked', { trigger, ...startModeProps(startMode) })
           }}
         >
           <span className="star-toast-glyph" aria-hidden="true">
