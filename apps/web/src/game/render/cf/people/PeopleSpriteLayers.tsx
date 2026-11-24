@@ -12,6 +12,7 @@ import { wakeRenderLoops } from '../render-loop'
 import { hoveredPerson, registerPeopleLayer } from '../picking'
 import { PeopleSprites } from './people-sprites'
 import { PEOPLE_Z } from './z-order'
+import { OccluderMirror, setOccludersClose, walkerAtlases } from '../depth/occluders'
 import { HUMAN_ATLAS_CELL } from '../../character-visuals'
 import { BOAT_CELL, DECAL_CELL, EMOTE_CELL, GLYPH_CELL } from '../atlas-bake'
 
@@ -46,10 +47,11 @@ export function PeopleSpriteLayers({
   const emoteAtlas = useEmoteAtlas()
 
   const bodyAtlases = useMemo(
-    () => [
-      { dynamicSrc: peopleAtlas, frameWidth: HUMAN_ATLAS_CELL, frameHeight: HUMAN_ATLAS_CELL },
-      { dynamicSrc: boatAtlas, frameWidth: BOAT_CELL.width, frameHeight: BOAT_CELL.height },
-    ],
+    () =>
+      walkerAtlases([
+        { dynamicSrc: peopleAtlas, frameWidth: HUMAN_ATLAS_CELL, frameHeight: HUMAN_ATLAS_CELL },
+        { dynamicSrc: boatAtlas, frameWidth: BOAT_CELL.width, frameHeight: BOAT_CELL.height },
+      ]),
     [peopleAtlas, boatAtlas],
   )
   const softAtlases = useMemo(
@@ -87,6 +89,8 @@ export function PeopleSpriteLayers({
     () => new PeopleSprites({ body, afloat, soft, over, emote }),
     [body, afloat, soft, over, emote],
   )
+  const mirror = useMemo(() => new OccluderMirror(body), [body])
+  const walkers = useRef(0)
 
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
@@ -202,7 +206,11 @@ export function PeopleSpriteLayers({
         buildings: w.buildings,
         eras: w.lineage_eras,
       }
+      walkers.current = body.count
     }
+    setOccludersClose(detail !== 'overview')
+    const mirrored = mirror.sync(walkers.current, oy, detail !== 'overview', stale)
+    if (mirrored && !stale) wakeEngine(engine, 30)
     // A quiet world needs no more frames. Only the selected person's turning ring keeps going,
     // and not while the simulation is paused.
     // The clock sleeps until a frame, a camera move or a UI change wakes it.

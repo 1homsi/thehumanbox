@@ -47,6 +47,8 @@ const WHITE = 0xffffffff
  *  - `body`:   depth-sorted animals
  *  - `sleep`:  a drifting 'z' over each sleeper
  */
+const ALOFT = 10000
+
 export class AnimalSprites {
   readonly body: SpriteLayer
   readonly sleep: SpriteLayer
@@ -222,7 +224,7 @@ export class AnimalSprites {
       body.atlas[i] = atlas
       body.color[i] = WHITE
       body.flags[i] = this.mode[j] === 0 ? SPRITE_HIDDEN : 0
-      body.sortKey[i] = a.y
+      body.sortKey[i] = a.y + (isFlyer(a.kind) ? ALOFT : 0)
       this.noShadow[j] = a.kind === 'fish' || a.kind === 'bird' ? 1 : 0
       if (this.noShadow[j] === 0 && this.mode[j] !== 0) {
         const flyer = isFlyer(a.kind)
@@ -274,7 +276,7 @@ export class AnimalSprites {
       const cy = (y - oy) * TILE + TILE / 2 + animalBob(kind, animalIds[j], moving, now)
       px[j] = cx
       py[j] = cy
-      body.sortKey[j] = y
+      body.sortKey[j] = y + (isFlyer(kind) ? ALOFT : 0)
       const flip = motion.flipped[j] === 1
       const step = animalStep(animalIds[j], moving, now)
       hiddenArr[j] = 0

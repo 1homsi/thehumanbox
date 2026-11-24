@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo } from 'react'
 import { useSpriteLayer } from 'xipjs'
 import { useCellAtlas } from '../atlas/useCellAtlas'
 import type { CfRegistry } from '../registry'
+import { OCCLUDER_SLOTS, registerOccluders, treeGroundLine } from '../depth/occluders'
 import { DECOR_CLASSES, DecorDriver } from './decor-driver'
 import { MOUNTAIN_CLASSES, MountainsDriver } from './mountains-driver'
 import { TREE_CLASSES, TreesDriver } from './trees-driver'
@@ -44,5 +45,25 @@ export function CfVegetation({ registry }: { registry: CfRegistry }) {
     [decor, d.atlas, mountains, m.atlas, trees, sway, dress, t.atlas],
   )
   useLayoutEffect(() => registry.add('vegetation', driver), [registry, driver])
+  useLayoutEffect(
+    () =>
+      registerOccluders('trees', {
+        layer: trees,
+        atlases: t.atlases,
+        ...OCCLUDER_SLOTS.trees,
+        groundLine: treeGroundLine,
+      }),
+    [trees, t.atlases],
+  )
+  useLayoutEffect(
+    () =>
+      registerOccluders('tree-sway', {
+        layer: sway,
+        atlases: t.atlases,
+        ...OCCLUDER_SLOTS.trees,
+        groundLine: treeGroundLine,
+      }),
+    [sway, t.atlases],
+  )
   return null
 }
