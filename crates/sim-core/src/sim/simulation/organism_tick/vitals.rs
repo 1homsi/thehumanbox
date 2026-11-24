@@ -153,7 +153,7 @@ impl Simulation {
         let shares = if f.dt <= super::TOWN_STEP {
             u64::from(super::due(self.tick_count, f.dt, 7, idx as u64))
         } else {
-            f.dt / 7
+            crate::sim::simulation::town_lod::openings(self.tick_count, f.dt, 7, idx as u64)
         };
         if self.organisms[idx].inv_water >= 2 && shares > 0 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);

@@ -84,6 +84,27 @@ pub(crate) fn due(tick: u64, dt: u64, every: u64, phase: u64) -> bool {
     (tick + every - phase % every) % every < dt
 }
 
+/// How many of the `dt` ticks ending at `tick` land on `phase`. The window is
+/// inclusive, so a 64-tick step does not drop the tick it lands on.
+pub(crate) fn openings(tick: u64, dt: u64, every: u64, phase: u64) -> u64 {
+    if dt == 0 || every == 0 {
+        return 0;
+    }
+    let phase = phase % every;
+    let start = tick.saturating_sub(dt - 1);
+    let rem = start % every;
+    let first = if rem <= phase {
+        start + (phase - rem)
+    } else {
+        start + every - rem + phase
+    };
+    if first > tick {
+        0
+    } else {
+        (tick - first) / every + 1
+    }
+}
+
 pub(crate) fn chance(p: f32, dt: u64) -> f32 {
     if dt <= 1 {
         return p;
@@ -112,6 +133,27 @@ pub(crate) struct CalmMap {
     /// Fingerprint of the wake reasons. A change rebuilds the map on that tick
     /// instead of waiting out `CALM_EVERY`.
     stamp: u64,
+}
+
+/// One blocked resident clears the hamlet clock, whichever note is applied
+/// last. A hamlet that is quiet all the way through keeps the start it had.
+fn apply_since(since: &mut HashMap<u32, u64>, notes: impl Iterator<Item = (u32, bool)>, tick: u64) {
+    let notes: Vec<(u32, bool)> = notes.collect();
+    let mut blocked: Vec<u32> = notes
+        .iter()
+        .filter(|(_, quiet)| !quiet)
+        .map(|(id, _)| *id)
+        .collect();
+    blocked.sort_unstable();
+    blocked.dedup();
+    for (id, quiet) in &notes {
+        if *quiet && blocked.binary_search(id).is_err() {
+            since.entry(*id).or_insert(tick);
+        }
+    }
+    for id in &blocked {
+        since.swap_remove(id);
+    }
 }
 
 fn at_front(foes: &HashMap<String, Vec<(i32, i32)>>, lineage: &str, p: (i32, i32)) -> bool {
@@ -191,8 +233,8 @@ impl Simulation {
             mix(id
                 .bytes()
                 .fold(0u64, |acc, b| acc.wrapping_mul(131).wrapping_add(u64::from(b))));
-            // The town whose wake they stand in, not the tile. Walking inside
-            // that range does not rebuild the map; crossing into it does.
+            // The wakes they stand in, not the tile. Walking inside that set
+            // does not rebuild the map; crossing into a town or a hamlet does.
             if let Some(o) = self.organisms.iter().find(|o| o.alive && o.id == id) {
                 let at = (o.x as i32, o.y as i32);
                 let near = self
@@ -202,6 +244,25 @@ impl Simulation {
                     .map(|t| t.id)
                     .min();
                 mix(u64::from(near.unwrap_or(u32::MAX)));
+                let (cx, cy) = (at.0.div_euclid(HAMLET), at.1.div_euclid(HAMLET));
+                let mut cells = Vec::new();
+                for dy in -2..=2 {
+                    for dx in -2..=2 {
+                        let (hx, hy) = (cx + dx, cy + dy);
+                        if hx < 0 || hy < 0 {
+                            continue;
+                        }
+                        let center = (hx * HAMLET + HAMLET / 2, hy * HAMLET + HAMLET / 2);
+                        if chebyshev(center, at) <= EVENT_REACH {
+                            cells.push((hx as u32, hy as u32));
+                        }
+                    }
+                }
+                cells.sort_unstable();
+                for (hx, hy) in cells {
+                    mix(u64::from(hx));
+                    mix(u64::from(hy));
+                }
             }
         }
         h
@@ -439,15 +500,11 @@ impl Simulation {
         };
         let tick = self.tick_count;
         if let Some(calm) = self.calm_towns.as_mut() {
-            for (_, note) in &assigned {
-                if let Some((id, quiet)) = note {
-                    if *quiet {
-                        calm.since.entry(*id).or_insert(tick);
-                    } else {
-                        calm.since.swap_remove(id);
-                    }
-                }
-            }
+            apply_since(
+                &mut calm.since,
+                assigned.iter().filter_map(|(_, note)| *note),
+                tick,
+            );
         }
         assigned.into_iter().map(|(unit, _)| unit).collect()
     }
@@ -842,6 +899,23 @@ mod tests {
                 assert_eq!(due(tick, 1, 7, phase), tick % 7 == phase % 7);
             }
         }
+    }
+
+    #[test]
+    fn a_long_window_counts_the_tick_it_lands_on() {
+        assert_eq!(openings(128, 64, 7, 2), 10);
+        assert_eq!(openings(129, 64, 7, 2), 9);
+    }
+
+    #[test]
+    fn one_blocked_resident_clears_the_hamlet_clock() {
+        let mut since = HashMap::default();
+        since.insert(9, 10);
+        apply_since(&mut since, [(9, false), (9, true), (8, true)].into_iter(), 100);
+        assert!(!since.contains_key(&9));
+        assert_eq!(since.get(&8), Some(&100));
+        apply_since(&mut since, [(8, true)].into_iter(), 200);
+        assert_eq!(since.get(&8), Some(&100));
     }
 
     #[test]
