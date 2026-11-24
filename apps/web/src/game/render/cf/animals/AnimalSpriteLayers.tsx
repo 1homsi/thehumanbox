@@ -7,6 +7,7 @@ import { useDecalAtlas, useFaunaAtlas, useGlyphAtlas, usePixelFaunaAtlas } from 
 import { DECAL_CELL, FAUNA_CELL, GLYPH_CELL, PIXEL_FAUNA_CELL } from '../atlas-bake'
 import { useSpriteClock, wakeEngine } from '../frame-clock'
 import { wakeRenderLoops } from '../render-loop'
+import { OccluderMirror, occludersClose, walkerAtlases } from '../depth/occluders'
 import { AnimalSprites } from './animal-sprites'
 import { ANIMAL_Z } from '../people/z-order'
 
@@ -26,10 +27,11 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
   const glyphAtlas = useGlyphAtlas()
 
   const bodyAtlases = useMemo(
-    () => [
-      { dynamicSrc: pixelAtlas, frameWidth: PIXEL_FAUNA_CELL, frameHeight: PIXEL_FAUNA_CELL },
-      { dynamicSrc: faunaAtlas, frameWidth: FAUNA_CELL, frameHeight: FAUNA_CELL },
-    ],
+    () =>
+      walkerAtlases([
+        { dynamicSrc: pixelAtlas, frameWidth: PIXEL_FAUNA_CELL, frameHeight: PIXEL_FAUNA_CELL },
+        { dynamicSrc: faunaAtlas, frameWidth: FAUNA_CELL, frameHeight: FAUNA_CELL },
+      ]),
     [pixelAtlas, faunaAtlas],
   )
   const decalAtlases = useMemo(
@@ -49,6 +51,8 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
   const shadow = useSpriteLayer({ atlases: decalAtlases, zIndex: ANIMAL_Z.shadow, sampling: 'nearest' })
   const sleep = useSpriteLayer({ atlases: glyphAtlases, zIndex: ANIMAL_Z.sleep, sampling: 'nearest' })
   const sprites = useMemo(() => new AnimalSprites({ body, shadow, sleep }), [body, shadow, sleep])
+  const mirror = useMemo(() => new OccluderMirror(body), [body])
+  const walkers = useRef(0)
 
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
@@ -72,7 +76,10 @@ export function AnimalSpriteLayers({ world, interp, viewFlags, rendererPaused }:
     if (rebuilt) {
       sprites.rebuild({ animals, prevAnimals, ox, oy })
       last.current = { animals, prev: prevAnimals, shown }
+      walkers.current = body.count
     }
+    const mirrored = mirror.sync(walkers.current, oy, shown && occludersClose(), rebuilt)
+    if (mirrored && !rebuilt) wakeEngine(engine, 30)
     // Fish and birds bob while the simulation runs, at half the display rate once the frame has
     // arrived; a paused world stops with the last pose.
     if (!rebuilt && frame.settled) return false

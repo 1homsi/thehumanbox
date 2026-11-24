@@ -3,6 +3,7 @@ import { useSpriteLayer } from 'xipjs'
 import { useCellAtlas } from '../atlas/useCellAtlas'
 import type { CfRegistry } from '../registry'
 import { registerBuildingLayer } from '../picking'
+import { buildingGroundLine, OCCLUDER_SLOTS, registerOccluders } from '../depth/occluders'
 import { BUILDING_CLASSES, BuildingsDriver } from './buildings-driver'
 import { GLOW_CLASSES, PROP_CLASSES, SpecialTilesDriver } from './special-tiles-driver'
 import { YardDriver } from './yard-driver'
@@ -19,6 +20,7 @@ const YARD_Z = 17.5
 const BUILDING_PAGES = [2048, 2048, 2048, 2048, 2048, 2048, 2048, 2048]
 const PROP_PAGES = [512, 512, 1024]
 const GLOW_PAGES = [128, 128]
+const HUT_CELL = PROP_CLASSES[1]
 
 /**
  * Buildings, huts, fires and campfires as SpriteLayers; no React node per sprite.
@@ -59,5 +61,26 @@ export function CfBuildings({ registry }: { registry: CfRegistry }) {
   useLayoutEffect(() => registerBuildingLayer((x, y) => buildingsDriver.pick(x, y)), [buildingsDriver])
   useLayoutEffect(() => registry.add('special', specialDriver), [registry, specialDriver])
   useLayoutEffect(() => registry.add('yards', yardDriver), [registry, yardDriver])
+  useLayoutEffect(
+    () =>
+      registerOccluders('buildings', {
+        layer: buildings,
+        atlases: b.atlases,
+        ...OCCLUDER_SLOTS.buildings,
+        groundLine: buildingGroundLine,
+      }),
+    [buildings, b.atlases],
+  )
+  useLayoutEffect(
+    () =>
+      registerOccluders('huts', {
+        layer: props,
+        atlases: p.atlases,
+        ...OCCLUDER_SLOTS.props,
+        groundLine: (layer, i) =>
+          layer.w[i] === HUT_CELL[0] && layer.h[i] === HUT_CELL[1] ? buildingGroundLine(layer, i) : NaN,
+      }),
+    [props, p.atlases],
+  )
   return null
 }

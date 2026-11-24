@@ -168,6 +168,14 @@ People and animals are written from typed arrays by `cf/people/people-sprites.ts
 `animate` every display frame for interpolation, walk frame and depth sort. Everything stops when
 the simulation pauses (`render-timing.ts` `isSettled`).
 
+Depth: buildings, huts and trees keep their own layers under the walkers, so by layer order alone a person
+would be drawn over every roof and treetop. `cf/depth/occluders.ts` fixes that at close zoom: each of those
+layers registers as an occluder, and the people and animal body layers (already sorted by y) draw a second
+copy of every occluder inside themselves, keyed by the line where it meets the ground. Someone north of
+that line is covered; someone south of it is drawn after the copy and stays in front. The copies reuse the
+source layer's atlas pages in reserved slots of the walker layer, carry id -1 so picking ignores them, and
+are dropped at overview zoom, where people are dots. Flying animals sort above everything.
+
 Input and picking: `cf/input/CfMapCameraController.tsx` wires xipjs's `useCameraPanZoom` to
 the map (clamping, fit, focus, follow, keyboard) and keeps `cameraStateRef` for the HUD.
 `cf/input/map-click.ts` holds the click rules; a tap asks `cf/picking.ts` for the person under the
