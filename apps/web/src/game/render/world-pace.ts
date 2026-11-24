@@ -2,7 +2,7 @@ let lastTick = -1
 let lastAt = 0
 let rate = 0
 
-export const RACING_TICKS_PER_SECOND = 80
+export const RACING_TICKS_PER_SECOND = 25
 
 export const RACING_FRAME_MS = 250
 
