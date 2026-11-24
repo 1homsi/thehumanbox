@@ -46,6 +46,20 @@ describe('first look', () => {
     expect(useCameraFocus.getState().request).toMatchObject({ x: 21, y: 30, zoom: FIRST_LOOK_ZOOM })
   })
 
+  it('opens on people about to meet instead of the largest tribe', () => {
+    render({
+      grid: { width: 800, height: 400 },
+      organisms: [
+        person('1', 'a', 0, 0),
+        person('2', 'a', 40, 0),
+        person('3', 'a', 80, 0),
+        person('4', 'b', 10, 0),
+      ],
+      settlements: [],
+    } as unknown as WorldState)
+    expect(useCameraFocus.getState().request).toMatchObject({ x: 5, y: 0, zoom: FIRST_LOOK_ZOOM })
+  })
+
   it('waits for people, then looks once', () => {
     const rerender = render({ ...world, organisms: [] } as WorldState)
     expect(useCameraFocus.getState().request).toBeNull()
@@ -59,6 +73,13 @@ describe('first look', () => {
   it('leaves a returning player where they left the camera', () => {
     vi.mocked(readSavedCamera).mockReturnValue({ x: 1, y: 1, zoom: 2 })
     render(world)
+    expect(useCameraFocus.getState().request).toBeNull()
+    vi.mocked(readSavedCamera).mockReturnValue({ x: 9, y: 9, zoom: 2 })
+    render({
+      grid: { width: 800, height: 400 },
+      organisms: [person('1', 'a', 0, 0), person('4', 'b', 10, 0)],
+      settlements: [],
+    } as unknown as WorldState)
     expect(useCameraFocus.getState().request).toBeNull()
   })
 })

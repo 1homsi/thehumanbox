@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { WorldState } from '../../shared/types'
+import { firstLookFocus } from '../../game/model/first-look'
 import { TILE } from '../../game/model/palette'
 import { readSavedCamera } from '../../game/model/saved-camera'
 import { tribeHome } from '../../game/model/tribe-peril'
@@ -23,7 +24,8 @@ export function FirstLook({ world }: { world: WorldState | null }) {
       return
     }
     const tribe = largestTribe(world)
-    const home = tribe ? tribeHome(world, tribe) : null
+    // A group about to do something visible, or the largest tribe when none qualifies.
+    const home = firstLookFocus(world) ?? (tribe ? tribeHome(world, tribe) : null)
     if (!home) return
     done.current = true
     useCameraFocus.getState().focusTile(Math.round(home.x), Math.round(home.y), FIRST_LOOK_ZOOM)
