@@ -1,6 +1,6 @@
 [package]
 name = "simulation-rs"
-version = "0.8.98"
+version = "0.8.99"
 edition = "2021"
 
 [[bin]]
