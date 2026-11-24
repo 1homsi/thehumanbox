@@ -623,6 +623,7 @@ impl Simulation {
         }
 
         self.dormant_upkeep(&dormant, &spatial, &animal_spatial);
+        self.hand_out_pastimes(&tiers);
         self.glide(&tiers);
         self.coarse_conceptions(&tiers, population_slots_used, &mut lineage_counts, &org_idx_by_id);
         self.learn_from_the_tick(&spatial);

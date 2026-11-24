@@ -483,6 +483,100 @@ impl Simulation {
         }
     }
 
+    /// A long step skips the turn where someone with nothing to do would pick
+    /// up a game. Hand the game out here and let the glide walk them. A
+    /// finished game is dropped without asking for a full turn on the next tick.
+    pub(super) fn hand_out_pastimes(&mut self, tiers: &[Tier]) {
+        use crate::organism::mind::Purpose;
+        let night = self.is_night() || self.weather.kind >= 2;
+        let tick = self.tick_count;
+        for (i, &tier) in tiers.iter().enumerate() {
+            if tier != Tier::Idle {
+                continue;
+            }
+            let Some(id) = self.lod_units.get(i).copied().flatten() else {
+                continue;
+            };
+            if self.coarse_step(id) <= TOWN_STEP {
+                continue;
+            }
+            let o = &self.organisms[i];
+            if !o.alive {
+                continue;
+            }
+            let mut hold = false;
+            if let Some(intent) = o.intent {
+                if intent.purpose != Purpose::Play {
+                    hold = true;
+                } else {
+                    let here = (o.x as i32, o.y as i32);
+                    let done = night || tick >= intent.until || intent.arrived(here, &self.grid);
+                    if !done {
+                        hold = true;
+                    } else {
+                        self.organisms[i].intent = None;
+                        hold = night;
+                    }
+                }
+            } else if night {
+                hold = true;
+            }
+            if !hold {
+                let o = &self.organisms[i];
+                let here = (o.x as i32, o.y as i32);
+                let on_errand = o.journey.is_none()
+                    && o.is_rooted()
+                    && o.wander_target.is_some_and(|t| {
+                        let gap = chebyshev(here, t);
+                        gap > 3
+                            && gap <= crate::organism::mind::ERRAND_REACH
+                            && !o.route.borrow().recently_blocked(t)
+                    });
+                if !on_errand {
+                    if let Some(game) = self.pastime(i) {
+                        let thought = game.thought;
+                        let o = &mut self.organisms[i];
+                        o.intent = Some(game);
+                        if o.thought != thought {
+                            o.thought = thought.to_string();
+                        }
+                    }
+                }
+            }
+            self.note_occupation(i);
+        }
+    }
+
+    /// The step turn is what used to mark a game, or the job of someone who has
+    /// reached their spot. Record that on the idle ticks so a long step does
+    /// not leave them standing with nothing to do.
+    fn note_occupation(&mut self, i: usize) {
+        use crate::organism::mind::Purpose;
+        let o = &self.organisms[i];
+        let here = (o.x as i32, o.y as i32);
+        let phase = self.tick_count % DAY_LENGTH;
+        if let Some(plan) = o.work {
+            if o.routine.is_some_and(|r| r.activity_at(phase) == Activity::Work) && plan.at_spot(here) {
+                let (action, doing) = plan.action();
+                let Ok(action) = u16::try_from(action) else {
+                    return;
+                };
+                let o = &mut self.organisms[i];
+                o.last_action = Some(action);
+                if o.thought != doing {
+                    o.thought = doing.to_string();
+                }
+                return;
+            }
+        }
+        if o.last_action.is_some_and(|a| a >= 8) {
+            return;
+        }
+        if o.intent.is_some_and(|intent| intent.purpose == Purpose::Play) {
+            self.organisms[i].last_action = Some(113);
+        }
+    }
+
     pub(super) fn glide(&mut self, tiers: &[Tier]) {
         let phase = self.tick_count % DAY_LENGTH;
         for (i, &tier) in tiers.iter().enumerate() {
@@ -542,8 +636,26 @@ impl Simulation {
                     }
                     continue;
                 }
-            } else if self.organisms[i].route.get_mut().settles(target, gap, 2) {
-                continue;
+            } else {
+                // A work spot is one tile. The usual two-tile settle leaves a
+                // long step standing short of it, and the turn that would have
+                // closed the gap is the one being skipped.
+                let reach = if activity == Activity::Work
+                    && o.work.is_some()
+                    && self
+                        .lod_units
+                        .get(i)
+                        .copied()
+                        .flatten()
+                        .is_some_and(|id| self.coarse_step(id) > TOWN_STEP)
+                {
+                    0
+                } else {
+                    2
+                };
+                if self.organisms[i].route.get_mut().settles(target, gap, reach) {
+                    continue;
+                }
             }
             let planned = purpose.is_some() || self.organisms[i].route.get_mut().has_plan_for(target);
             if planned {
@@ -1012,6 +1124,78 @@ mod tests {
             moved >= 10.0,
             "a 16-tick stride moved {moved} tiles toward the journey"
         );
+    }
+
+    #[test]
+    fn a_long_step_hands_out_a_game_without_waking_a_turn() {
+        use crate::organism::mind::Purpose;
+        use crate::sim::agents::routine::{Group, Routine};
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(5);
+        sim.tick_count = 5 * DAY_LENGTH + 200;
+        sim.weather.kind = 0;
+        let idx = sim.organisms.iter().position(|o| o.alive).expect("someone alive");
+        let here = (100, 100);
+        for x in 80..=120 {
+            for y in 80..=120 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.organisms[idx].x = here.0 as f32;
+        sim.organisms[idx].y = here.1 as f32;
+        {
+            let o = &mut sim.organisms[idx];
+            o.journey = None;
+            o.mounted_vehicle = None;
+            o.water_ticks = 0;
+            o.energy = 0.9;
+            o.hydration = 0.9;
+            o.health = 0.9;
+            o.fear_level = 0.0;
+            o.work = None;
+            o.intent = None;
+            o.rethink = false;
+            o.wander_target = None;
+            o.routine = Some(Routine {
+                day: 5,
+                group: Group::Child,
+                season: 0,
+                home: here,
+                play: (here.0 + 3, here.1),
+                workshop: None,
+                work_spot: None,
+                gather: None,
+                school: None,
+                festival: None,
+                centre: Some((here.0 + 4, here.1 + 4)),
+                water: None,
+            });
+        }
+        let mut calm = CalmMap::default();
+        calm.since.insert(7, sim.tick_count - 2_000);
+        sim.calm_towns = Some(calm);
+        sim.lod_units = vec![None; sim.organisms.len()];
+        sim.lod_units[idx] = Some(7);
+        assert!(sim.coarse_step(7) > TOWN_STEP);
+        let mut tiers = vec![Tier::Own; sim.organisms.len()];
+        tiers[idx] = Tier::Idle;
+        sim.hand_out_pastimes(&tiers);
+        let game = sim.organisms[idx].intent.expect("a game on an idle tick");
+        assert_eq!(game.purpose, Purpose::Play);
+        assert_eq!(sim.organisms[idx].last_action, Some(113));
+        assert!(!sim.organisms[idx].rethink);
+        sim.organisms[idx].x = game.target.0 as f32;
+        sim.organisms[idx].y = game.target.1 as f32;
+        sim.hand_out_pastimes(&tiers);
+        assert!(
+            !sim.organisms[idx].rethink,
+            "finishing a game does not wake a turn"
+        );
+        sim.tick_count = 5 * DAY_LENGTH + 450;
+        sim.organisms[idx].intent = Some(game);
+        sim.hand_out_pastimes(&tiers);
+        assert!(sim.organisms[idx].intent.is_none());
+        assert!(!sim.organisms[idx].rethink);
     }
 
     #[test]
