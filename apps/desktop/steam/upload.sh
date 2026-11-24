@@ -26,7 +26,10 @@ desktop="$(dirname "$here")"
 
 case "$platform" in
   win) content="$desktop/out/steam/win-unpacked" ;;
-  mac) content="$desktop/out/steam/mac-arm64" ;;
+  mac)
+    content="$desktop/out/steam/mac-arm64"
+    [[ -d "$content" ]] || content="$desktop/out/steam/mac"
+    ;;
   linux) content="$desktop/out/steam/linux-unpacked" ;;
   *) usage ;;
 esac
@@ -36,13 +39,22 @@ esac
 : "${STEAM_USERNAME:?set STEAM_USERNAME}"
 
 for id in "$STEAM_APP_ID" "$STEAM_DEPOT_ID"; do
-  [[ "$id" =~ ^[0-9]+$ ]] || { echo "not a Steam id: $id" >&2; exit 2; }
+  [[ "$id" =~ ^[1-9][0-9]{0,9}$ ]] || { echo "not a Steam id: $id" >&2; exit 2; }
 done
+
+description="${STEAM_BUILD_DESC:-}"
+if [[ -n "$description" && ! "$description" =~ ^[A-Za-z0-9\ ._,:+()-]{1,120}$ ]]; then
+  echo "STEAM_BUILD_DESC may hold letters, digits, spaces and . _ , : + ( ) - only" >&2
+  exit 2
+fi
 
 if [[ ! -d "$content" ]]; then
   echo "no build at $content; run: STEAM_APP_ID=$STEAM_APP_ID pnpm run pack:steam" >&2
   exit 1
 fi
+case "$content$here" in
+  *'|'*|*'&'*|*'"'*|*'\'*) echo "the checkout path holds a character the build script cannot carry: | & \" or \\" >&2; exit 1 ;;
+esac
 
 steamcmd="${STEAMCMD:-steamcmd}"
 command -v "$steamcmd" >/dev/null || { echo "steamcmd not found; install it or set STEAMCMD" >&2; exit 1; }
@@ -58,7 +70,7 @@ script="$work/app_build.vdf"
 sed \
   -e "s|__APP_ID__|$STEAM_APP_ID|" \
   -e "s|__DEPOT_ID__|$STEAM_DEPOT_ID|" \
-  -e "s|__DESCRIPTION__|${STEAM_BUILD_DESC:-$version $platform}|" \
+  -e "s|__DESCRIPTION__|${description:-$version $platform}|" \
   -e "s|__PREVIEW__|$preview|" \
   -e "s|__CONTENT_ROOT__|$content|" \
   -e "s|__BUILD_OUTPUT__|$work/output|" \

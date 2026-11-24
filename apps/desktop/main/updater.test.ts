@@ -273,8 +273,8 @@ test('a copy that Steam keeps up to date never checks, downloads or installs by 
   })
   const fresh = vm.createContext({ ...context })
   vm.runInContext(readFileSync(path.join(__dirname, 'updater.js'), 'utf8'), fresh)
-  vm.runInContext('setStoreManagedUpdates(true); initUpdater(() => null)', fresh)
   const timers = intervals.length
+  vm.runInContext('setStoreManagedUpdates(true); initUpdater(() => null)', fresh)
   const checked = (await vm.runInContext('checkForUpdatesNow()', fresh)) as { status: string; message?: string }
   const installed = vm.runInContext('installDownloadedUpdate()', fresh) as { status: string }
   assert.equal(checked.status, 'unsupported')

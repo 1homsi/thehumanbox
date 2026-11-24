@@ -22,7 +22,7 @@ cd apps/desktop
 STEAM_APP_ID=<app id> pnpm run pack:steam
 ```
 
-This writes an unpacked app to `apps/desktop/out/steam/` (`mac-arm64/`, `win-unpacked/` or `linux-unpacked/`, for the platform you build on). No installer is made: Steam installs the folder as it is.
+This writes an unpacked app to `apps/desktop/out/steam/` (`mac-arm64/` on an Apple silicon Mac, `mac/` on an Intel one, `win-unpacked/` or `linux-unpacked/`, for the platform you build on). No installer is made: Steam installs the folder as it is.
 
 The simulation binary must be in `apps/desktop/resources/bin/` first, exactly as for the normal build (see `apps/desktop/README.md`).
 

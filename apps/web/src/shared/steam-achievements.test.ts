@@ -31,4 +31,18 @@ describe('Steam achievements', () => {
     }
     expect(unlock).toHaveBeenCalledTimes(3)
   })
+
+  it('still reports an achievement whose goal stopped holding before Steam took it', async () => {
+    const unlock = vi
+      .fn<(name: string) => Promise<{ unlocked: boolean }>>()
+      .mockResolvedValueOnce({ unlocked: false })
+      .mockResolvedValue({ unlocked: true })
+    const sync = createSteamAchievementSync(unlock)
+    sync([achievement('elder', true)])
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    sync([achievement('elder', false)])
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    sync([achievement('elder', false)])
+    expect(unlock).toHaveBeenCalledTimes(2)
+  })
 })
