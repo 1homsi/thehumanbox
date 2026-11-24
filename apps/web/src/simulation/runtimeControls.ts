@@ -6,6 +6,12 @@ export type RuntimeControl = 'pause' | 'resume' | 'speed'
 export const WASM_BASE_TICK_MS = 120
 export const MIN_WASM_TICK_MS = 16
 export const WASM_YIELD_MS = 4
+export const FAST_FORWARD_SPEED = 50
+export const FAST_FORWARD_EMIT_MS = 250
+
+export function fastEmitGapMs(speed: number): number {
+  return speed >= FAST_FORWARD_SPEED ? FAST_FORWARD_EMIT_MS : WASM_BASE_TICK_MS
+}
 export const MIN_RUNTIME_SPEED = 0.25
 // Past ~30x most machines run flat out; the cap only bounds the request.
 export const MAX_RUNTIME_SPEED = 5000

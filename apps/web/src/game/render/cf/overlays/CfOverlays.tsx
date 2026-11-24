@@ -1,3 +1,4 @@
+import { RACING_FRAME_MS, isRacing } from '../../world-pace'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { StatsOverlay, useGame } from 'xipjs'
 import type { WorldState } from '../../../../shared/types'
@@ -91,10 +92,16 @@ export function CfOverlays({
     if (!renderer || rendererPaused) return
     let lastFrameAt = -Infinity
     let lastKey = ''
+    let lastView = ''
     const loop = new SleepyLoop((now) => {
       if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 24 : 30)) return true
       const cur = interp?.current.current ?? worldRef.current
       if (!cur) return true
+      const at = cameraStateRef.current
+      const view = `${at.x}|${at.y}|${at.zoom}|${viewportDims.w}x${viewportDims.h}`
+      if (view === lastView && now - lastFrameAt < RACING_FRAME_MS && isRacing(cur.tick ?? 0, now))
+        return true
+      lastView = view
       if (cur.grid.depth_map) cachedDepth.current = cur.grid.depth_map as ArrayLike<number>[]
       if (cur.grid.biomes) cachedBiomes.current = cur.grid.biomes as ArrayLike<number>[]
       const cam = cameraStateRef.current

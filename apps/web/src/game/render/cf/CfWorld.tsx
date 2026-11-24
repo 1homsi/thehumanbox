@@ -1,3 +1,4 @@
+import { RACING_FRAME_MS, isRacing } from '../world-pace'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useGame } from 'xipjs'
 import type { WorldState } from '../../../shared/types'
@@ -24,6 +25,7 @@ import { t } from '../../../i18n'
  * changes less often than this; a fast-forwarded world changes it on nearly every frame (see TerrainWatch).
  */
 const TERRAIN_REBUILD_MS = 1500
+const RACING_TERRAIN_REBUILD_MS = 10_000
 
 interface Props {
   world: WorldState
@@ -101,6 +103,9 @@ export function CfWorld({
         season: terrainSeason(w),
         zoom: camera.zoom,
       })
+      watch.minIntervalMs = isRacing(w.tick ?? 0, performance.now())
+        ? RACING_TERRAIN_REBUILD_MS
+        : TERRAIN_REBUILD_MS
       watch.update(
         grid.tiles,
         cachedBiomes.current,
@@ -145,11 +150,16 @@ export function CfWorld({
     if (rendererPaused) return
     let last = -Infinity
     let lastKey = ''
+    let lastView = ''
     const loop = new SleepyLoop((now) => {
       if (document.hidden || now - last < 1000 / 30) return true
-      last = now
       const w = interp?.current.current ?? worldRef.current
       if (!w) return true
+      const at = cameraStateRef.current
+      const view = `${at.x}|${at.y}|${at.zoom}|${viewportDims.w}x${viewportDims.h}|${showTradeRef.current ? 1 : 0}`
+      if (view === lastView && now - last < RACING_FRAME_MS && isRacing(w.tick ?? 0, now)) return true
+      lastView = view
+      last = now
       // A paused map with a still camera stays as it is (fires stop flickering, trees stop swaying):
       // the loop sleeps, and a new frame, a pan or a zoom wakes it.
       const cam = cameraStateRef.current

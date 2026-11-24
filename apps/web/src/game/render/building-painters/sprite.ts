@@ -10,6 +10,7 @@ import { ROOF } from '../pixel-art/palette.ts'
 import type { RoofName } from '../pixel-art/palette.ts'
 
 const spriteCache = new Map<string, HTMLCanvasElement>()
+const SPRITE_CACHE_LIMIT = 2400
 
 /** A kind the map has no drawing for (an old save, a kind added to the sim first) is drawn as a plain house. */
 const UNKNOWN_KIND = 'House'
@@ -93,7 +94,13 @@ export function getBuildingSprite(
       ctx.fillRect(row.x0, row.y, row.x1 - row.x0, 1)
   }
   drawArt(ctx, art, ox, oy)
-  if (spriteCache.size > 900) spriteCache.clear()
+  if (spriteCache.size > SPRITE_CACHE_LIMIT) {
+    let drop = SPRITE_CACHE_LIMIT >> 3
+    for (const old of spriteCache.keys()) {
+      spriteCache.delete(old)
+      if (--drop <= 0) break
+    }
+  }
   spriteCache.set(key, canvas)
   return canvas
 }
