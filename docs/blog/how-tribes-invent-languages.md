@@ -137,7 +137,7 @@ for (i, &concept) in CONCEPTS.iter().enumerate() {
 }
 ```
 
-`social_knowledge_share` calls it with an `adopt_rate` of 0.40. So for each concept there's a 40% chance you switch to whatever word most of the group uses. "The group" is anyone within 4 tiles who's kin, a named friend, someone you trust, or from a tribe you like. Strangers and enemies don't count.
+`social_knowledge_share` calls it with an `adopt_rate` of 0.40. So for each concept there's a 40% chance you look at what most of the group says and switch to that word if yours is different. "The group" is anyone within 4 tiles who's kin, a named friend, someone you trust, or from a tribe you like. Strangers and enemies don't count.
 
 Inside a camp, words converge fast. Between camps that don't trust each other, they don't. Add the birth mutations on top and you get the result I was after: each tribe settles on its own word for food, and the words drift further apart the longer the tribes stay apart.
 
