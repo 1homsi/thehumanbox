@@ -639,7 +639,6 @@ impl Simulation {
             }
             None => {
                 o.journey.is_none()
-                    && o.last_action.is_some_and(|action| action < 8)
                     && o.routine.is_some_and(|r| {
                         r.activity_at(phase) == Activity::Sleep
                             && r.place_of(Activity::Sleep)
@@ -1288,10 +1287,14 @@ mod tests {
             !sim.organisms[idx].rethink,
             "finishing a game does not wake a turn"
         );
-        sim.tick_count = 5 * DAY_LENGTH + 450;
+        sim.tick_count = 5 * DAY_LENGTH + 500;
+        sim.organisms[idx].x = here.0 as f32;
+        sim.organisms[idx].y = here.1 as f32;
+        sim.organisms[idx].last_action = Some(113);
         sim.organisms[idx].intent = Some(game);
         sim.hand_out_pastimes(&tiers);
         assert!(sim.organisms[idx].intent.is_none());
+        assert_eq!(sim.organisms[idx].last_action, Some(17));
         assert!(!sim.organisms[idx].rethink);
     }
 
