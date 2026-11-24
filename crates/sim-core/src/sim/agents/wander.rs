@@ -171,6 +171,7 @@ impl Simulation {
                 let org = &mut self.organisms[idx];
                 org.journey = None;
                 org.wander_target = None;
+                org.settled_until = self.tick_count + crate::organism::mind::JOURNEY_REST;
                 if arrived {
                     org.boredom *= 0.4;
                     org.curiosity_drive *= 0.5;
@@ -287,6 +288,9 @@ impl Simulation {
                 }
             }
 
+            if self.tick_count < self.organisms[idx].settled_until {
+                return;
+            }
             let cx = sumx / count as f32;
             let cy = sumy / count as f32;
             let mut dx = mx - cx;
@@ -315,7 +319,7 @@ impl Simulation {
         let age = self.organisms[idx].age;
 
         let adolescent = (1500..1900).contains(&age);
-        if curiosity < 0.40 && !adolescent {
+        if (curiosity < 0.40 && !adolescent) || self.tick_count < self.organisms[idx].settled_until {
             return;
         }
 

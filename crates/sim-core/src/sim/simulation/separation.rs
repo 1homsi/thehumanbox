@@ -86,8 +86,8 @@ impl Simulation {
                     (d, dx / d, dy / d)
                 };
                 let push = (PERSONAL_SPACE - d) * PUSH_SHARE;
-                let (ni_x, ni_y) = (xi + ux * push, yi + uy * push);
-                let (nj_x, nj_y) = (xj - ux * push, yj - uy * push);
+                let (ni_x, ni_y) = keep_tile(&self.organisms[i], xi + ux * push, yi + uy * push);
+                let (nj_x, nj_y) = keep_tile(&self.organisms[j], xj - ux * push, yj - uy * push);
                 if !held[i] && self.walkable_at(ni_x, ni_y) {
                     self.organisms[i].x = ni_x;
                     self.organisms[i].y = ni_y;
@@ -108,6 +108,14 @@ impl Simulation {
             && self.grid.get(tx, ty).walkable()
             && !self.grid.is_wet(self.grid.get(tx, ty), tx, ty)
     }
+}
+
+fn keep_tile(o: &Organism, x: f32, y: f32) -> (f32, f32) {
+    if o.intent.is_none() && o.journey.is_none() && o.wander_target.is_none() {
+        return (x, y);
+    }
+    let (tx, ty) = (o.x.floor(), o.y.floor());
+    (x.clamp(tx, tx + 0.95), y.clamp(ty, ty + 0.95))
 }
 
 #[cfg(test)]
@@ -146,6 +154,36 @@ mod tests {
         sim.separate_crowds();
         let gap = (sim.organisms[1].x - sim.organisms[0].x).abs();
         assert!(gap > 0.1, "people on one spot are eased apart, gap {gap}");
+    }
+
+    #[test]
+    fn someone_walking_to_a_goal_is_not_pushed_off_their_tile() {
+        use crate::organism::mind::{Intent, Purpose};
+        let mut sim = Simulation::new(5);
+        sim.organisms.clear();
+        for y in 40..44 {
+            for x in 40..44 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        let mut walker = person("a", 41.0, 41.0);
+        walker.intent = Some(Intent::new(
+            Purpose::Roam,
+            (41, 41),
+            (43, 41),
+            1,
+            None,
+            "taking a walk",
+            0,
+        ));
+        sim.organisms.push(walker);
+        sim.organisms.push(person("b", 41.3, 41.0));
+        for _ in 0..12 {
+            sim.separate_crowds();
+        }
+        let walker = &sim.organisms[0];
+        assert_eq!((walker.x as i32, walker.y as i32), (41, 41));
+        assert!(sim.organisms[1].x - walker.x > 0.5);
     }
 
     #[test]

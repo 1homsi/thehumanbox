@@ -489,10 +489,101 @@ impl Simulation {
             if tier != Tier::Idle {
                 continue;
             }
-            let Some(target) = self.stride_target(i, phase) else {
+            let o = &self.organisms[i];
+            let Some(r) = o.routine else {
                 continue;
             };
-            self.step_toward(i, target);
+            let activity = r.activity_at(phase);
+            let here = (o.x as i32, o.y as i32);
+            if o.hydration < crate::sim::agents::routine::FETCH_WATER {
+                continue;
+            }
+            let purpose = o.intent.filter(|intent| self.tick_count < intent.until);
+            if purpose.is_none() && o.intent.is_some() {
+                let o = &mut self.organisms[i];
+                o.intent = None;
+                o.rethink = true;
+                continue;
+            }
+            let bound = o.wander_target.filter(|_| purpose.is_none());
+            if bound.is_some() && o.journey.is_none() && !o.is_rooted() {
+                continue;
+            }
+            let bound = bound.filter(|&t| {
+                o.journey.is_some() || chebyshev(here, t) <= crate::organism::mind::ERRAND_REACH
+            });
+            if let Some(target) = bound {
+                if chebyshev(here, target) > 2 {
+                    if let Some(action) = o.dry_way(crate::organism::mind::Purpose::Roam, target, &self.grid)
+                    {
+                        let (dx, dy) = DIRECTIONS[action];
+                        let o = &mut self.organisms[i];
+                        o.x = (here.0 + dx) as f32;
+                        o.y = (here.1 + dy) as f32;
+                    }
+                } else if o.journey.is_some() {
+                    self.organisms[i].rethink = true;
+                }
+                continue;
+            }
+            let target = match (purpose, activity, o.work) {
+                (Some(intent), _, _) => Some(intent.target),
+                (None, Activity::Work, Some(plan)) => Some(plan.spot),
+                _ => r.place_of(activity),
+            };
+            let Some(target) = target else {
+                continue;
+            };
+            let gap = chebyshev(here, target);
+            if let Some(intent) = purpose {
+                if intent.arrived(here, &self.grid) {
+                    if !intent.stays {
+                        self.organisms[i].rethink = true;
+                    }
+                    continue;
+                }
+            } else if self.organisms[i].route.get_mut().settles(target, gap, 2) {
+                continue;
+            }
+            let planned = purpose.is_some() || self.organisms[i].route.get_mut().has_plan_for(target);
+            if planned {
+                let o = &self.organisms[i];
+                let kind = purpose.map_or(crate::organism::mind::Purpose::Duty, |intent| intent.purpose);
+                match o.dry_way(kind, target, &self.grid) {
+                    Some(action) => {
+                        let (dx, dy) = DIRECTIONS[action];
+                        let o = &mut self.organisms[i];
+                        o.x = (here.0 + dx) as f32;
+                        o.y = (here.1 + dy) as f32;
+                    }
+                    None if purpose.is_some() => {
+                        let o = &mut self.organisms[i];
+                        o.intent = None;
+                        o.rethink = true;
+                    }
+                    None => {}
+                }
+                continue;
+            }
+            let reach = |p: (i32, i32)| {
+                (
+                    chebyshev(p, target),
+                    (p.0 - target.0).abs() + (p.1 - target.1).abs(),
+                )
+            };
+            let best = DIRECTIONS
+                .iter()
+                .map(|&(dx, dy)| (here.0 + dx, here.1 + dy))
+                .filter(|&(x, y)| {
+                    let tile = self.grid.get(x, y);
+                    tile.walkable() && !self.grid.is_wet(tile, x, y)
+                })
+                .min_by_key(|&p| reach(p));
+            if let Some(p) = best.filter(|&p| reach(p) < reach(here)) {
+                let o = &mut self.organisms[i];
+                o.x += (p.0 - here.0) as f32;
+                o.y += (p.1 - here.1) as f32;
+            }
         }
     }
 
@@ -574,6 +665,7 @@ impl Simulation {
 
     /// A journey in progress is the walk the skipped ticks would have taken.
     /// Otherwise the person keeps to the routine place.
+    #[cfg(test)]
     fn stride_target(&self, idx: usize, phase: u64) -> Option<(i32, i32)> {
         let o = &self.organisms[idx];
         if let Some(journey) = &o.journey {
@@ -582,6 +674,7 @@ impl Simulation {
         self.routine_target(idx, phase)
     }
 
+    #[cfg(test)]
     fn routine_target(&self, idx: usize, phase: u64) -> Option<(i32, i32)> {
         let o = &self.organisms[idx];
         let r = o.routine?;
@@ -594,6 +687,7 @@ impl Simulation {
 
     /// One greedy step toward `target`, the same step the idle glide takes.
     /// Returns whether the person moved.
+    #[cfg(test)]
     fn step_toward(&mut self, idx: usize, target: (i32, i32)) -> bool {
         let o = &self.organisms[idx];
         let here = (o.x as i32, o.y as i32);

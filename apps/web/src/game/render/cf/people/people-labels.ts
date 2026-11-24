@@ -1,8 +1,14 @@
 import { isFloatingKind } from '../../../../shared/types'
 import type { OrganismState, PrayerInfo, VehicleInfo } from '../../../../shared/types'
 import type { ViewFlags } from '../../../../state/store'
-import { drawWorkActivity, workActivity } from '../../activity-visuals'
-import { figureCentreX, figureHeadTop, resolveAgeStage, zoomDetailLevel } from '../../character-visuals'
+import { drawWorkActivity, poseLift, workActivity } from '../../activity-visuals'
+import {
+  HUMAN_HEIGHT,
+  figureCentreX,
+  figureHeadTop,
+  resolveAgeStage,
+  zoomDetailLevel,
+} from '../../character-visuals'
 import { LabelPlacer, crowdLabelWinners, labelWidth } from '../../crowd-detail'
 import {
   celebrating,
@@ -64,11 +70,14 @@ export function nameVisibilityAlpha(zoom: number): number {
 const NAMES_FROM_ZOOM = 2.1
 
 export function labelFlagsOf(org: OrganismState): number {
-  const thought = org.thought ?? ''
+  return labelFlagsFor(org, workActivity(org.thought ?? '', false) !== null)
+}
+
+export function labelFlagsFor(org: OrganismState, working: boolean): number {
   let f = 0
   if (org.name) f |= LABEL_NAME
   if (org.thought && org.thought !== 'observing') f |= LABEL_THOUGHT
-  if (workActivity(thought, false)) f |= LABEL_ACTIVITY
+  if (working) f |= LABEL_ACTIVITY
   if (prayerSeed(org.id) % 2 === 0) f |= LABEL_SEED_EVEN
   return f
 }
@@ -402,12 +411,13 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
 
     if (mask & WORK) {
       const activity = workActivity(org.thought ?? '', now - people.step.movedAt[j] <= 120)
+      const poseY = people.py[j] + poseLift(activity, HUMAN_HEIGHT[resolveAgeStage(org)])
       if (poses && isFastPose(activity))
         emitWorkPose(
           poses,
           activity,
           people.px[j],
-          people.py[j],
+          poseY,
           people.step.flipped[j] === 1,
           now,
           people.phase[j],
@@ -419,7 +429,7 @@ export function paintPeopleLabels(ctx: CanvasRenderingContext2D, input: PeopleLa
           ctx,
           activity,
           people.px[j],
-          people.py[j],
+          poseY,
           people.step.flipped[j] === 1,
           now,
           people.phase[j],

@@ -33,7 +33,9 @@ import {
   glyphFrame,
 } from '../atlas-bake'
 import { emoteFor } from '../../activity-emotes'
+import { BEAT_ABOVE, BEAT_PERIOD, workActivityCode } from '../../activity-visuals'
 import {
+  ATTACHED_MIRROR,
   ATTACHED_SNAP,
   ATTACHED_UNTEXTURED,
   AttachedSprites,
@@ -44,7 +46,27 @@ import {
 } from '../attached'
 import { cssToRgba32, rgba32, withAlpha } from '../colors'
 import { MotionStore } from '../motion'
-import { labelFlagsOf } from './people-labels'
+import { labelFlagsFor } from './people-labels'
+import {
+  BREATH_SHIFT,
+  GLANCE_AFTER_MS,
+  GLANCE_MS,
+  GLANCE_SHIFT,
+  GaitStore,
+  PEP_CALM,
+  aimOf,
+  breathDownMs,
+  breathPeriod,
+  glancePeriod,
+  glideFactor,
+  idleClock,
+  paceOf,
+  pepOf,
+  scatterX,
+  scatterY,
+  strideOf,
+  walkFrame,
+} from './people-motion'
 import { professionMarks } from './profession-marks'
 import { INK, SAND, SHADOW } from '../../art-palette'
 
@@ -178,6 +200,23 @@ export class PeopleSprites {
   labelFlags = new Uint8Array(0)
   private motion = new MotionStore()
   private oldMotion = new MotionStore()
+  private gait = new GaitStore()
+  private oldGait = new GaitStore()
+  private act = new Uint8Array(0)
+  private stride = new Float32Array(0)
+  private pace = new Float32Array(0)
+  private breathMs = new Uint16Array(0)
+  private breathDown = new Uint16Array(0)
+  private glanceMs = new Uint16Array(0)
+  private epoch = NaN
+  private aim = new Int8Array(0)
+  private offX = new Int8Array(0)
+  private offY = new Int8Array(0)
+  private facing = new Uint8Array(0)
+  private readonly stepView = { flipped: this.facing, movedAt: this.motion.movedAt }
+  private lastAnimate = -Infinity
+  private still = false
+  lively = false
   /** Slot-of-id map, built on demand by `slotOf` (the hot path never hashes ids). */
   private slotMap: Map<string, number> | null = null
   /** The previous rebuild's ids (slot order), swapped with `ids` each rebuild. */
@@ -218,7 +257,7 @@ export class PeopleSprites {
     if (n <= this.cap) return
     const cap = Math.max(n, this.cap * 2, 256)
     const grow = <
-      T extends Float64Array | Float32Array | Uint8Array | Uint16Array | Uint32Array | Int32Array,
+      T extends Float64Array | Float32Array | Uint8Array | Uint16Array | Uint32Array | Int32Array | Int8Array,
     >(
       old: T,
       make: new (len: number) => T,
@@ -247,14 +286,26 @@ export class PeopleSprites {
     this.boatSeat = grow(this.boatSeat, Float32Array)
     this.hidden = grow(this.hidden, Uint8Array)
     this.labelFlags = grow(this.labelFlags, Uint8Array)
+    this.act = grow(this.act, Uint8Array)
+    this.stride = grow(this.stride, Float32Array)
+    this.pace = grow(this.pace, Float32Array)
+    this.breathMs = grow(this.breathMs, Uint16Array)
+    this.breathDown = grow(this.breathDown, Uint16Array)
+    this.glanceMs = grow(this.glanceMs, Uint16Array)
+    this.aim = grow(this.aim, Int8Array)
+    this.offX = grow(this.offX, Int8Array)
+    this.offY = grow(this.offY, Int8Array)
+    this.facing = grow(this.facing, Uint8Array)
     this.motion.reserve(cap)
     this.oldMotion.reserve(cap)
+    this.gait.reserve(cap)
+    this.oldGait.reserve(cap)
     this.cap = cap
   }
 
-  private glyph(j: number, fa: number, g: string, dx: number, dy: number, px: number): void {
+  private glyph(j: number, fa: number, g: string, dx: number, dy: number, px: number, options = 0): void {
     const frame = glyphFrame(g)
-    if (frame >= 0) this.over.push(j, dx, dy, px, px, frame, 0, withAlpha(WHITE, fa))
+    if (frame >= 0) this.over.push(j, dx, dy, px, px, frame, 0, withAlpha(WHITE, fa), options)
   }
 
   private vitalBar(
@@ -293,7 +344,7 @@ export class PeopleSprites {
 
   /** Walking state per slot: the last step's direction and time, for names and work poses. */
   get stepState(): { flipped: Uint8Array; movedAt: Float64Array } {
-    return this.motion
+    return this.stepView
   }
 
   /** The person under a world-pixel point, or null. */
@@ -313,6 +364,9 @@ export class PeopleSprites {
     const tmp = this.oldMotion
     this.oldMotion = this.motion
     this.motion = tmp
+    const spareGait = this.oldGait
+    this.oldGait = this.gait
+    this.gait = spareGait
     const oldIds = this.ids
     this.ids = this.spareIds
     this.spareIds = oldIds
@@ -325,6 +379,8 @@ export class PeopleSprites {
     let alive = 0
     for (const o of orgs) if (o.alive) alive++
     this.reserve(alive)
+    this.stepView.flipped = this.facing
+    this.stepView.movedAt = this.motion.movedAt
     const detail = zoomDetailLevel(zoom)
     const crowded = alive > 400
     const boats = new Map<string, VehicleInfo>()
@@ -395,16 +451,25 @@ export class PeopleSprites {
         }
         old = oldLookup.get(id)
       }
-      if (old !== undefined) this.motion.copyFrom(this.oldMotion, old, j)
-      else this.motion.init(j, this.fromX[j], this.fromY[j])
+      if (old !== undefined) {
+        this.motion.copyFrom(this.oldMotion, old, j)
+        this.gait.copyFrom(this.oldGait, old, j)
+      } else {
+        this.motion.init(j, this.fromX[j], this.fromY[j])
+        this.gait.init(j, this.fromX[j], this.fromY[j])
+      }
       // Per-id values (walk phase, appearance, body radius) hash the id: a person still in the same slot
       // keeps last frame's values, which were computed for this id.
       if (old !== j || this.mapLookups) {
         this.phase[j] = orgAnimPhase(id)
         this.appearance[j] = deterministicAppearanceIndex(id)
         this.radius[j] = orgVariant(id).bodyRadius
+        this.pace[j] = paceOf(this.phase[j])
+        this.offX[j] = scatterX(this.phase[j])
+        this.offY[j] = scatterY(this.phase[j])
       }
-      this.labelFlags[j] = labelFlagsOf(org)
+      const activity = workActivityCode(org.thought ?? '')
+      this.labelFlags[j] = labelFlagsFor(org, activity !== 0)
 
       const isSelected = id === selectedId
       const focused = isFocused(org, focus)
@@ -445,6 +510,15 @@ export class PeopleSprites {
       body.sortKey[i] = org.y
       this.boatIdx[j] = -1
       const boat = boats.get(id)
+      const vigour = pepOf(stage, org.energy, org.health)
+      const pep = activity !== 0 ? PEP_CALM : vigour
+      this.act[j] = activity
+      this.stride[j] = strideOf(stage, vigour)
+      this.breathMs[j] = breathPeriod(this.phase[j], pep)
+      this.breathDown[j] = breathDownMs(this.phase[j], pep)
+      this.glanceMs[j] = activity !== 0 ? 0 : glancePeriod(this.phase[j], pep)
+      this.aim[j] = activity !== 0 ? 0 : aimOf(org.x, org.target_x)
+      const working = activity !== 0 && this.fromX[j] === org.x && this.fromY[j] === org.y
       this.boatBuilding[j] = boat?.building ? 1 : 0
       this.boatVariant[j] = boatVariantOf(boat?.era, boat?.cargo)
       this.boatSeat[j] = seats.get(id) ?? 0
@@ -584,9 +658,9 @@ export class PeopleSprites {
       // The trade shows on the figure: a hat on the head, a tool at hand height (see profession-marks).
       if (standard && org.specialty && this.column[j] < 32 && stage !== 'infant') {
         const { worn, held } = professionMarks(org.specialty, 3)
-        for (const [marks, top] of [
-          [worn, headTop],
-          [held, handTop],
+        for (const [marks, top, side] of [
+          [worn, headTop, 0],
+          [working ? [] : held, handTop, ATTACHED_MIRROR],
         ] as const) {
           for (const m of marks) {
             over.push(
@@ -598,7 +672,7 @@ export class PeopleSprites {
               0,
               0,
               withAlpha(cssToRgba32(m.color), fa),
-              ATTACHED_UNTEXTURED | ATTACHED_SNAP,
+              ATTACHED_UNTEXTURED | ATTACHED_SNAP | side,
             )
           }
         }
@@ -614,7 +688,15 @@ export class PeopleSprites {
 
       // A bundle of wood or a lump of stone at the hip, drawn like the sprites rather than a flat patch of colour.
       if (standard && org.carrying > 0)
-        this.glyph(j, fa, org.carrying_type === 2 ? CARRY_STONE_GLYPH : CARRY_WOOD_GLYPH, 3, -4, 8)
+        this.glyph(
+          j,
+          fa,
+          org.carrying_type === 2 ? CARRY_STONE_GLYPH : CARRY_WOOD_GLYPH,
+          -3,
+          -4,
+          8,
+          ATTACHED_MIRROR,
+        )
 
       const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
       if (showVitals) {
@@ -712,6 +794,7 @@ export class PeopleSprites {
     }
     this.lastMoved = -Infinity
     this.moving = true
+    this.still = detail === 'overview'
   }
 
   /** Walk everyone to `t` (0..1 between the previous frame and this one) at wall time `now` (ms). */
@@ -728,38 +811,68 @@ export class PeopleSprites {
     const bflags = body.flags
     const bkey = body.sortKey
     const touchAll = this.touchAll
+    const { gait, act, stride, pace, breathMs, breathDown, glanceMs, aim, offX, offY, facing, still } = this
+    const glide = glideFactor(now - this.lastAnimate)
+    this.lastAnimate = now
+    if (this.epoch !== this.epoch) this.epoch = now
+    const clock = idleClock(now, this.epoch)
     let anyMoved = false
     // Slots whose drawn values changed this frame: the body is touched from the first to the last of them,
     // so a person standing still costs no write and no repack.
     let lo = n
     let hi = -1
     for (let j = 0; j < n; j++) {
-      const x = fromX[j] + (toX[j] - fromX[j]) * t
-      const y = fromY[j] + (toY[j] - fromY[j]) * t
+      const ph = phase[j]
+      const turn = gait.glide(
+        j,
+        fromX[j] + (toX[j] - fromX[j]) * t,
+        fromY[j] + (toY[j] - fromY[j]) * t,
+        glide >= 1 ? 1 : 1 - Math.pow(1 - glide, pace[j]),
+      )
+      const x = gait.x[j]
+      const y = gait.y[j]
       if (motion.step(j, x, y, now)) anyMoved = true
-      const cx = (x - ox) * TILE + TILE / 2
-      const cy = (y - oy) * TILE + TILE / 2
+      gait.face(j, turn)
+      const rider = boatIdx[j]
+      const shiftY = rider < 0 ? offY[j] : 0
+      const cx = (x - ox) * TILE + TILE / 2 + (rider < 0 ? offX[j] : 0)
+      const cy = (y - oy) * TILE + TILE / 2 + shiftY
       px[j] = cx
       py[j] = cy
       const s = size[j]
-      const recent = now - motion.movedAt[j] <= 120
+      const idleFor = now - motion.movedAt[j]
+      const recent = idleFor <= 120
       const resting = restCandidate[j] === 1 && !recent
       hidden[j] = resting ? 1 : 0
-      const rider = boatIdx[j]
+      let flip = gait.flipped[j]
+      let walk = 0
+      if (rider < 0) {
+        if (recent) walk = walkFrame(motion.distance[j], stride[j], ph, HUMAN_ATLAS_FRAMES)
+        else if (!still) {
+          const period = BEAT_PERIOD[act[j]]
+          if (period > 0) {
+            if (Math.sin(now / period + ph) > BEAT_ABOVE[act[j]]) walk = 2
+          } else {
+            if ((clock + ph * BREATH_SHIFT) % breathMs[j] < breathDown[j]) walk = 2
+            if (aim[j] !== 0) flip = aim[j] < 0 ? 1 : 0
+            if (
+              glanceMs[j] !== 0 &&
+              idleFor > GLANCE_AFTER_MS &&
+              (clock + ph * GLANCE_SHIFT) % glanceMs[j] < GLANCE_MS
+            )
+              flip ^= 1
+          }
+        }
+      }
+      facing[j] = flip
       // Every figure has the same cell (`s`), so this is figureCentreX, which names and glyphs follow.
       let changed = storeF32(bx, j, Math.round(cx - s / 2) + s / 2)
       changed = storeF32(by, j, Math.round(cy - HUMAN_FEET_ROW) + s / 2) || changed
       changed =
-        storeU32(
-          bf,
-          j,
-          row[j] * HUMAN_ATLAS_COLS +
-            column[j] +
-            (motion.flipped[j] ? HUMAN_ATLAS_FRAMES : 0) +
-            (rider >= 0 ? 0 : motion.frame(j, now, phase[j], HUMAN_ATLAS_FRAMES)),
-        ) || changed
+        storeU32(bf, j, row[j] * HUMAN_ATLAS_COLS + column[j] + (flip ? HUMAN_ATLAS_FRAMES : 0) + walk) ||
+        changed
       changed = storeU8(bflags, j, resting ? SPRITE_HIDDEN : 0) || changed
-      changed = storeF64(bkey, j, y) || changed
+      changed = storeF64(bkey, j, y + shiftY / TILE) || changed
       if (changed || touchAll) {
         if (j < lo) lo = j
         if (j > hi) hi = j
@@ -790,11 +903,12 @@ export class PeopleSprites {
     else if (hi >= lo) body.touchRange(lo, hi)
     if (touchAll && this.afloat !== body) this.afloat.touch()
     this.soft.place(px, py, hidden, now, touchAll)
-    this.over.place(px, py, hidden, now, touchAll)
+    this.over.place(px, py, hidden, now, touchAll, facing)
     this.emotes.place(px, py, hidden, now, touchAll)
     if (anyMoved) this.lastMoved = now
     // Keep animating a moment after the last step so the walk settles on frame 0.
     this.moving = now - this.lastMoved < 400
+    this.lively = !still && n > 0
     return this.moving
   }
 }

@@ -1,5 +1,8 @@
 use super::*;
 
+const HOME_GROUND: f32 = 40.0;
+const FRIENDLY: f32 = 0.3;
+
 pub fn challenge_stranger(
     org_idx: usize,
     organisms: &mut [Organism],
@@ -10,10 +13,10 @@ pub fn challenge_stranger(
 ) -> f32 {
     let org_lineage = organisms[org_idx].lineage_id;
     let org_id = organisms[org_idx].id;
-
     let target_idx = spatial
         .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 3)
         .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id != org_lineage)
+        .filter(|(_, o)| organisms[org_idx].attitude_toward(&o.lineage_id) < FRIENDLY)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() < 3.0)
         .min_by(|(_, a), (_, b)| {
             let da = (a.x - organisms[org_idx].x).abs() + (a.y - organisms[org_idx].y).abs();
@@ -46,6 +49,13 @@ pub fn challenge_stranger(
         .filter(|o| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 5.0)
         .count();
     let kin_backing = kin_backing + allied_backing;
+    {
+        let me = &organisms[org_idx];
+        let from_home = (me.x - me.home_x).abs() + (me.y - me.home_y).abs();
+        if kin_backing == 0 && (me.journey.is_some() || from_home > HOME_GROUND) {
+            return 0.0;
+        }
+    }
 
     organisms[org_idx].last_challenged = tick;
 

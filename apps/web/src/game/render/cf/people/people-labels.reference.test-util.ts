@@ -1,8 +1,9 @@
 // The people-label painter as it was before it was made cheap (string-keyed placer, every person
 // visited, every person sorted), with the eased lift the painter now uses. The tests run it against the real one
 // and require identical drawing.
-import { drawWorkActivity, workActivity } from '../../activity-visuals'
+import { drawWorkActivity, poseLift, workActivity } from '../../activity-visuals'
 import {
+  HUMAN_HEIGHT,
   compareCharacterDepth,
   figureCentreX,
   figureHeadTop,
@@ -122,11 +123,12 @@ export function paintPeopleLabelsReference(ctx: CanvasRenderingContext2D, input:
 
     const movedAt = people.step.movedAt[j]
     if (standard && !riders.has(org.id)) {
+      const activity = workActivity(org.thought ?? '', now - movedAt <= 120)
       drawWorkActivity(
         ctx,
-        workActivity(org.thought ?? '', now - movedAt <= 120),
+        activity,
         px,
-        py,
+        py + poseLift(activity, HUMAN_HEIGHT[resolveAgeStage(org)]),
         people.step.flipped[j] === 1,
         now,
         people.phase[j],

@@ -22,7 +22,7 @@ use crate::sim::simulation::Simulation;
 use crate::world::tiles::Tile;
 
 /// People set out to work between these fractions of the day.
-const WORK_HOURS: (f32, f32) = (0.08, 0.60);
+const WORK_HOURS: (f32, f32) = (0.08, 0.66);
 /// How long one stint of work lasts, in ticks (a fifth of a day).
 const STINT: u64 = DAY_LENGTH / 5;
 /// Farthest place (tiles, Manhattan) someone walks to for a day's work.
@@ -49,6 +49,7 @@ const DRAWN_TO: f32 = 0.6;
 /// A tribe holding less than this much grain per person is short of food.
 const LEAN_STORES_PER_HEAD: u32 = 2;
 const ROLE_PULL: f32 = 0.12;
+const FRUITLESS_WAIT: u64 = 120;
 
 /// The kinds of everyday work, with the skill each one practises.
 const WORK: [Skill; 6] = [
@@ -284,11 +285,21 @@ impl Simulation {
         let in_the_fields = self.organisms[idx]
             .work
             .is_some_and(|plan| plan.skill == Skill::Farming);
-        if !on_schedule && !in_the_fields {
+        let looking = self.organisms[idx].work.is_none()
+            && tick >= self.organisms[idx].work_sought + FRUITLESS_WAIT
+            && self.on_minute(20, idx as u64 + 10);
+        let cut_off = self.organisms[idx]
+            .work
+            .is_some_and(|plan| self.organisms[idx].route.borrow().recently_blocked(plan.spot));
+        if cut_off {
+            self.organisms[idx].work = None;
+            return;
+        }
+        if !on_schedule && !in_the_fields && !looking {
             return;
         }
         self.tend_daily_work(idx);
-        if !on_schedule {
+        if !on_schedule && !looking {
             return;
         }
         let phase = (tick % DAY_LENGTH) as f32 / DAY_LENGTH as f32;
@@ -307,6 +318,7 @@ impl Simulation {
             }
         }
         let here = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+        self.organisms[idx].work_sought = tick;
         let members = self
             .organisms
             .iter()
@@ -365,6 +377,7 @@ impl Simulation {
                 harvest,
                 misses: 0,
             });
+            self.organisms[idx].work_sought = 0;
             self.take_apprentices(idx, skill, spot);
             if remembered.is_some() {
                 let thought = format!("going back to my {} spot", skill.name());

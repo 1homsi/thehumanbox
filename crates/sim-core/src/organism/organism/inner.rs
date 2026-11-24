@@ -2,6 +2,13 @@ use super::*;
 use crate::math::DetMath;
 
 impl Organism {
+    pub fn is_rooted(&self) -> bool {
+        use crate::sim::agents::routine::Group;
+        self.routine.is_some_and(|r| {
+            r.group != Group::Worker || r.centre.is_some() || r.workshop.is_some() || r.work_spot.is_some()
+        })
+    }
+
     pub fn tick_inner_state(
         &mut self,
         kin_near: usize,
@@ -149,10 +156,20 @@ impl Organism {
             self.spiritual = (self.spiritual * 0.99985).max(0.0);
         }
 
+        let rooted = self.is_rooted();
+        if rooted && self.journey.is_none() {
+            if let Some(wt) = self.wander_target {
+                if (wt.0 - self.x as i32).abs().max((wt.1 - self.y as i32).abs())
+                    > crate::organism::mind::ERRAND_REACH
+                {
+                    self.wander_target = None;
+                }
+            }
+        }
         let cell = (self.x as i32 / 10, self.y as i32 / 10);
         if cell == self.last_area_cell {
             self.area_ticks = self.area_ticks.saturating_add(1);
-            if self.area_ticks > 60 && self.boredom > 0.20 && self.wander_target.is_none() {
+            if self.area_ticks > 60 && self.boredom > 0.20 && self.wander_target.is_none() && !rooted {
                 let hash = self
                     .id
                     .bytes()
@@ -209,7 +226,7 @@ impl Organism {
                 .saturating_sub((self.traits.curiosity * 300.0) as u64)
                 .max(300);
             let offset = id_hash % period;
-            if tick % period == offset {
+            if tick % period == offset && !rooted {
                 let angle = ((id_hash ^ tick.wrapping_mul(0x9E37_79B9_7F4A_7C15)) % 6283) as f32 * 0.001;
                 let dist = 150.0 + self.traits.curiosity * 400.0;
                 let tx = (self.x + angle.det_sin() * dist).round() as i32;

@@ -5,6 +5,8 @@ import type { WorldState } from '../../../../shared/types'
 import { useCameraFocus } from '../../../../state/camera-focus'
 import { useUIStore } from '../../../../state/store'
 import { TILE } from '../../../model/palette'
+import { orgAnimPhase } from '../../draw-helpers'
+import { scatterX, scatterY } from '../people/people-motion'
 import { WorldView } from '../../WorldView'
 import { setWorldGPUForTests } from '../../world-view/gpu'
 import { clearSavedCamera, flushSavedCamera } from '../../../model/saved-camera'
@@ -229,8 +231,9 @@ describe('the map on xipjs', () => {
     await act(async () => useUIStore.setState({ followOrgId: 'p1' }))
     await h.frame(6)
     const camera = probeCamera()
-    expect(camera.x).toBeCloseTo(30.5 * TILE, 3)
-    expect(camera.y).toBeCloseTo(20.5 * TILE, 3)
+    const phase = orgAnimPhase('p1')
+    expect(camera.x).toBeCloseTo(30.5 * TILE + scatterX(phase), 3)
+    expect(camera.y).toBeCloseTo(20.5 * TILE + scatterY(phase), 3)
   })
 
   it('a tap on a person selects them', async () => {

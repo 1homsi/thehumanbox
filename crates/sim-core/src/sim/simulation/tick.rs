@@ -58,6 +58,9 @@ impl Simulation {
 
     pub fn tick(&mut self) {
         self.tick_count += 1;
+        // Homes move during the tick. The founding-site search rebuilds its
+        // list on the next query.
+        self.home_spots_ok = false;
         self.tick_goals();
         self.resolve_strategy_objective_expirations();
         if self.tick_count.is_multiple_of(60) {

@@ -206,7 +206,13 @@ export function PeopleSpriteLayers({
     // A quiet world needs no more frames. Only the selected person's turning ring keeps going,
     // and not while the simulation is paused.
     // The clock sleeps until a frame, a camera move or a UI change wakes it.
-    if (!stale && frame.t >= 1 && !sprites.moving && (selected === null || frame.settled)) return false
+    if (
+      !stale &&
+      frame.t >= 1 &&
+      !sprites.moving &&
+      (frame.settled || (selected === null && !sprites.lively))
+    )
+      return false
     // Zoomed out, a person moves a few pixels a second: 20 updates a second are as smooth as 60.
     if (!stale && detail === 'overview' && frame.now - lastAnimate.current < 50) return true
     lastAnimate.current = frame.now
