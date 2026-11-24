@@ -30,7 +30,12 @@ import {
   hasOwnWorldHeadStartRequest,
   hasOwnWorldResetRequest,
 } from './worldSource'
-import { freshWorldUsesHeadStart, resolveWorldStart } from './worldStart'
+import {
+  freshWorldUsesHeadStart,
+  readWorldStartMode,
+  resolveWorldStart,
+  type WorldStartMode,
+} from './worldStart'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../shared/desktop'
 import { isDesktopStartupPending } from '../shared/desktopStartup'
@@ -94,12 +99,15 @@ export function useSimulation(source: WorldSource = 'native'): {
   saveLocalWorld: () => Promise<boolean>
   loadLocalOrgDetail: (id: string) => Promise<OrgDetail | null>
   loadLocalOrgLife: (id: string) => Promise<OrgLife | null>
+  /** How the local world opened this session; null until the worker says, and after the world is replaced. */
+  startMode: WorldStartMode | null
 } {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [idleParked, setIdleParked] = useState(false)
   const [runtimeState, setRuntimeState] = useState<RuntimeState>({ paused: false, speed: 1 })
+  const [startMode, setStartMode] = useState<WorldStartMode | null>(null)
   const [localSaveStatus, setLocalSaveStatus] = useState<LocalSaveStatus>(
     source === 'wasm' ? { phase: 'loading' } : { phase: 'inactive' },
   )
@@ -415,6 +423,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           if (m.type === 'ready') {
             worldReady = true
             if (m.paused === true) setRuntimeState((current) => ({ ...current, paused: true }))
+            setStartMode(readWorldStartMode(m.startMode))
             const startup = readStartup(m.startup)
             if (startup) {
               reportWorldStartup(
@@ -438,6 +447,8 @@ export function useSimulation(source: WorldSource = 'native'): {
           }
         } else if (m.type === 'world_replaced') {
           forgetWorldMods()
+          // The replacement is not the world this session opened with.
+          setStartMode(null)
           queuedMsgs.current = []
           organismCache.current = new Map()
           animalCache.current = new Map()
@@ -1230,6 +1241,7 @@ export function useSimulation(source: WorldSource = 'native'): {
     saveLocalWorld,
     loadLocalOrgDetail,
     loadLocalOrgLife,
+    startMode,
     sendCommand: async (cmd: SandboxCommand): Promise<CommandOutcome> => {
       if (!sandboxAvailable) return FAILED_OUTCOME
       if (effectiveSource === 'wasm') {

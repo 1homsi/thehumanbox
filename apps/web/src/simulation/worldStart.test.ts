@@ -4,6 +4,7 @@ import {
   isRedditArrival,
   isRedditReferrer,
   isRedditUtmSource,
+  readWorldStartMode,
   resolveWorldStart,
   type WorldStartInput,
 } from './worldStart'
@@ -92,5 +93,12 @@ describe('default world start', () => {
     expect(resolveWorldStart(start({ ...reddit, hasSavedWorld: true, explicitReset: true }))).toBe('year_one')
     expect(freshWorldUsesHeadStart('head_start')).toBe(true)
     expect(freshWorldUsesHeadStart('empty')).toBe(false)
+  })
+
+  it('reads the start mode the worker reports and ignores anything else', () => {
+    expect(readWorldStartMode('head_start_reddit')).toBe('head_start_reddit')
+    expect(readWorldStartMode('year_one')).toBe('year_one')
+    expect(readWorldStartMode('sideways')).toBeNull()
+    expect(readWorldStartMode(undefined)).toBeNull()
   })
 })

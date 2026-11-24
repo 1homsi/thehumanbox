@@ -171,6 +171,7 @@ function LiveApp() {
     saveLocalWorld,
     loadLocalOrgDetail,
     loadLocalOrgLife,
+    startMode,
   } = useSimulation(worldSourceRef.current)
   // Every god tool plays its effect where it lands and floats what it did (see game/render/action-fx).
   const sendCommand = useMemo(() => withActionFx(sendWorldCommand), [sendWorldCommand])
@@ -933,7 +934,7 @@ function LiveApp() {
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
         <DesktopDownloadToast />
-        <StarToast world={world ?? null} />
+        <StarToast world={world ?? null} startMode={startMode} />
         <ShareToast />
         <WordSplitToast world={world ?? null} />
         <FamineWarningToast world={world ?? null} />

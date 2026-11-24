@@ -58,3 +58,16 @@ export function resolveWorldStart(input: WorldStartInput): WorldStartMode {
 export function freshWorldUsesHeadStart(mode: WorldStartMode): boolean {
   return mode === 'head_start' || mode === 'head_start_reddit'
 }
+
+const WORLD_START_MODES: readonly WorldStartMode[] = [
+  'resume',
+  'year_one',
+  'head_start',
+  'head_start_reddit',
+  'empty',
+]
+
+/** The start mode a worker reported, or null when it sent none or an unknown one. */
+export function readWorldStartMode(value: unknown): WorldStartMode | null {
+  return WORLD_START_MODES.find((mode) => mode === value) ?? null
+}

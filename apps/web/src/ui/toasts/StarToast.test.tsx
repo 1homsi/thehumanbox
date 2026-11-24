@@ -15,6 +15,7 @@ import {
   STAR_PROMPT_KEY,
   StarToast,
 } from './StarToast'
+import type { WorldStartMode } from '../../simulation/worldStart'
 
 vi.mock('../../shared/observability', () => ({ trackEvent: vi.fn() }))
 
@@ -84,6 +85,17 @@ function settlement(tier = 1): SettlementInfo {
 function worldWith(settlements: SettlementInfo[] = [], tick = 0): WorldState {
   return { tick, settlements } as WorldState
 }
+
+function mountAs(startMode: WorldStartMode, world: WorldState) {
+  const host = document.createElement('div')
+  document.body.append(host)
+  const root = createRoot(host)
+  roots.push(root)
+  act(() => root.render(<StarToast world={world} startMode={startMode} />))
+  return (next: WorldState) => act(() => root.render(<StarToast world={next} startMode={startMode} />))
+}
+
+const tribe = (lineage_id: string, tier = 1): SettlementInfo => ({ ...settlement(tier), lineage_id })
 
 const timerHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_timer`
 const momentHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_first_settlement`
@@ -336,5 +348,82 @@ describe('StarToast', () => {
     mount()
     wait(STAR_DELAY_MIN_MS * 4)
     expect(toast()).toBeNull()
+  })
+
+  it('keeps the timer at ten minutes', () => {
+    expect(STAR_DELAY_MIN_MS).toBe(TEN_MINUTES_MS)
+    expect(STAR_MIN_PLAY_MS).toBe(TEN_MINUTES_MS)
+  })
+
+  describe('in a head-start world', () => {
+    const opening = () => worldWith([tribe('a'), tribe('b'), tribe('c', 0)], 0)
+
+    for (const mode of ['head_start', 'head_start_reddit'] as const) {
+      it(`asks at the first settlement founded after the session starts (${mode})`, () => {
+        const update = mountAs(mode, opening())
+        // The opening settlements growing, and a starting tribe's camp reaching tier one, are not news.
+        update(worldWith([tribe('a', 2), tribe('b'), tribe('c', 1)], 300))
+        update(worldWith([tribe('a', 2), tribe('b'), tribe('c', 1), tribe('d', 0)], 400))
+        update(worldWith([tribe('a', 2), tribe('b'), tribe('c', 1), tribe('d', 1)], 500))
+        wait(STAR_MIN_PLAY_MS - 1)
+        expect(toast()).toBeNull()
+        wait(1)
+        expect(toast()?.textContent).toContain('Your first settlement!')
+        expect(trackEvent).toHaveBeenCalledWith('star_prompt_shown', {
+          trigger: 'first_settlement',
+          play_ms: STAR_MIN_PLAY_MS,
+          ask_number: 1,
+          start_mode: mode,
+        })
+        act(() => (toast()?.querySelector('.desktop-toast-secondary') as HTMLButtonElement).click())
+        expect(trackEvent).toHaveBeenCalledWith('star_prompt_dismissed', {
+          trigger: 'first_settlement',
+          start_mode: mode,
+        })
+        expect(shownCalls()).toHaveLength(1)
+      })
+    }
+
+    it('does not count the settlements it starts with, and falls back to the ten-minute timer', () => {
+      const update = mountAs('head_start', opening())
+      update(worldWith([tribe('a', 3), tribe('b', 2), tribe('c', 1)], 2_000))
+      wait(STAR_DELAY_MIN_MS - 1)
+      expect(toast()).toBeNull()
+      wait(1)
+      expect(shownCalls()).toHaveLength(1)
+      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'timer', start_mode: 'head_start' })
+    })
+
+    it('still asks only once and respects an earlier dismissal', () => {
+      window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1, dismissedAt: Date.now() }))
+      const update = mountAs('head_start', opening())
+      update(worldWith([tribe('a'), tribe('b'), tribe('c'), tribe('d')], 500))
+      wait(STAR_DELAY_MIN_MS * 4)
+      expect(toast()).toBeNull()
+      expect(shownCalls()).toHaveLength(0)
+    })
+  })
+
+  describe('in a year-one world', () => {
+    it('asks at the first settlement as before', () => {
+      const update = mountAs('year_one', worldWith())
+      update(worldWith([tribe('a')], 600))
+      wait(STAR_MIN_PLAY_MS)
+      expect(shownCalls()).toEqual([
+        [
+          'star_prompt_shown',
+          { trigger: 'first_settlement', play_ms: STAR_MIN_PLAY_MS, ask_number: 1, start_mode: 'year_one' },
+        ],
+      ])
+    })
+
+    it('treats a later tribe founding as no new moment once a settlement has been seen', () => {
+      const update = mountAs('year_one', worldWith([tribe('a')], 0))
+      update(worldWith([tribe('a'), tribe('b')], 600))
+      wait(STAR_DELAY_MIN_MS - 1)
+      expect(toast()).toBeNull()
+      wait(1)
+      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'timer' })
+    })
   })
 })
