@@ -28,7 +28,7 @@ export class TerrainWatch {
   /** A change is held back until `minIntervalMs` has passed since the last announced one. */
   pending = false
   private lastBumpAt = -Infinity
-  private readonly minIntervalMs: number
+  minIntervalMs: number
 
   constructor(minIntervalMs = 0) {
     this.minIntervalMs = minIntervalMs

@@ -25,6 +25,7 @@ interface Entry {
 }
 
 const indexes = new WeakMap<Grid, Map<string, Entry>>()
+const recent = new Map<string, { cells: Int32Array; at: number; rows: number }>()
 
 /**
  * Grid cells where `test(row, col)` holds, as flattened `row, col` pairs in row-major order.
@@ -36,14 +37,22 @@ export function cellsWhere(
   key: string,
   test: (row: number, col: number) => boolean,
   other: Grid | null = null,
+  maxAgeMs = 0,
 ): Int32Array {
+  if (maxAgeMs > 0) {
+    const last = recent.get(key)
+    if (last && last.rows === grid.length && performance.now() - last.at < maxAgeMs) return last.cells
+  }
   let byKey = indexes.get(grid)
   if (!byKey) {
     byKey = new Map()
     indexes.set(grid, byKey)
   }
   const cached = byKey.get(key)
-  if (cached && cached.other === other) return cached.cells
+  if (cached && cached.other === other) {
+    if (maxAgeMs > 0) recent.set(key, { cells: cached.cells, at: performance.now(), rows: grid.length })
+    return cached.cells
+  }
   const out: number[] = []
   for (let row = 0; row < grid.length; row++) {
     const r = grid[row]
@@ -52,6 +61,7 @@ export function cellsWhere(
   }
   const cells = Int32Array.from(out)
   byKey.set(key, { other, cells })
+  if (maxAgeMs > 0) recent.set(key, { cells, at: performance.now(), rows: grid.length })
   return cells
 }
 

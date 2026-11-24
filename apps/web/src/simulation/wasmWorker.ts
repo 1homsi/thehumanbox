@@ -34,6 +34,7 @@ import {
   MIN_RUNTIME_SPEED,
   MIN_WASM_TICK_MS,
   WASM_BASE_TICK_MS,
+  fastEmitGapMs,
   wasmTickDelay,
 } from './runtimeControls'
 
@@ -738,7 +739,7 @@ function tickOnce() {
     owedTicks -= 1
   }
   if (completed > 0) {
-    if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS) {
+    if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= fastEmitGapMs(speed)) {
       emit(performance.now() - lastDeepFullAt >= DEEP_FULL_EVERY_MS)
       if (simFailed) return
     }

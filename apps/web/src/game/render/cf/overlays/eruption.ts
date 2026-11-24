@@ -1,3 +1,4 @@
+import { racingNow } from '../../world-pace'
 import { TILE } from '../../../model/palette'
 import { BIOME_ID, TILE_ID } from '../../../model/terrain-ids'
 import { unitHash } from './weather-fx'
@@ -74,6 +75,8 @@ export function isCraterMouth(
  * The vents in the view, as grid cells, at most `VENT_LIMIT` of them; crater mouths come first.
  * The mouths and vents of a grid are found once (see `cellsWhere`) and filtered to the view here.
  */
+const VENT_INDEX_AGE_MS = 2000
+
 export function findVents(
   tiles: readonly ArrayLike<number>[] | undefined,
   biomes: readonly ArrayLike<number>[] | undefined,
@@ -81,11 +84,13 @@ export function findVents(
 ): { row: number; col: number }[] {
   const found: { row: number; col: number }[] = []
   if (!tiles || !biomes) return found
+  const indexAge = racingNow() ? VENT_INDEX_AGE_MS : 0
   const mouthCells = cellsWhere(
     tiles,
     'crater-mouth',
     (row, col) => isCraterMouth(tiles, biomes, row, col),
     biomes,
+    indexAge,
   )
   const ventCells = cellsWhere(
     tiles,
@@ -94,6 +99,7 @@ export function findVents(
       !isCraterMouth(tiles, biomes, row, col) &&
       isVent(tiles[row][col] ?? 0, biomes[row]?.[col] ?? 0, row, col),
     biomes,
+    indexAge,
   )
   const take = (row: number, col: number) => {
     found.push({ row, col })

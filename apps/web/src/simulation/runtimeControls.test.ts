@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  FAST_FORWARD_EMIT_MS,
+  FAST_FORWARD_SPEED,
+  WASM_BASE_TICK_MS,
+  fastEmitGapMs,
   fetchRuntimeControlState,
   nextRuntimeState,
   parseRuntimeControlResult,
@@ -130,5 +134,17 @@ describe('worker CPU budget', () => {
     expect(wasmTickDelay(24, 80)).toBe(4)
     expect(wasmTickDelay(0, 400)).toBe(4)
     expect(wasmTickDelay(16, 1)).toBe(15)
+  })
+})
+
+describe('fastEmitGapMs', () => {
+  it('sends a frame every base tick at ordinary speeds', () => {
+    expect(fastEmitGapMs(1)).toBe(WASM_BASE_TICK_MS)
+    expect(fastEmitGapMs(20)).toBe(WASM_BASE_TICK_MS)
+  })
+
+  it('spaces frames out once the world is fast-forwarded', () => {
+    expect(fastEmitGapMs(FAST_FORWARD_SPEED)).toBe(FAST_FORWARD_EMIT_MS)
+    expect(fastEmitGapMs(5000)).toBe(FAST_FORWARD_EMIT_MS)
   })
 })
