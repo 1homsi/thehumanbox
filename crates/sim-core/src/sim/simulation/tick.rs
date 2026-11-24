@@ -3,6 +3,53 @@ use super::*;
 const STRUCTURE_SORT_EVERY: u64 = 600;
 
 impl Simulation {
+    /// A newborn on an ordinary turn can pick up a little of an elder's memory
+    /// of food and danger. A coarse conception does not: those rolls sit in the
+    /// same random stream as the rest of the tick.
+    pub(super) fn pass_elder_memory(
+        &mut self,
+        child_idx: usize,
+        org_idx_by_id: &FxHashMap<crate::intern::Sym, usize>,
+    ) {
+        let child_lid = self.organisms[child_idx].lineage_id;
+        let Some(elder_id) = self.lineage_elders.get(child_lid.as_str()).cloned() else {
+            return;
+        };
+        let Some(&epos) = org_idx_by_id.get(elder_id.as_str()) else {
+            return;
+        };
+        if epos == child_idx {
+            return;
+        }
+        let danger: Vec<_> = self.organisms[epos]
+            .danger_memory
+            .iter()
+            .map(|(&k, &v)| (k, v))
+            .collect();
+        let food: Vec<_> = self.organisms[epos]
+            .food_memory
+            .iter()
+            .map(|(&k, &v)| (k, v))
+            .collect();
+        let ms = self.organisms[child_idx].traits.memory_strength;
+        for (k, v) in danger {
+            if self.rng.random::<f32>() < 0.45 {
+                Organism::remember(
+                    &mut self.organisms[child_idx].danger_memory,
+                    k.0,
+                    k.1,
+                    v * 0.4,
+                    ms,
+                );
+            }
+        }
+        for (k, v) in food {
+            if self.rng.random::<f32>() < 0.20 {
+                Organism::remember(&mut self.organisms[child_idx].food_memory, k.0, k.1, v * 0.2, ms);
+            }
+        }
+    }
+
     pub fn tick_n(&mut self, count: u32) {
         for _ in 0..count {
             self.tick();
@@ -570,43 +617,15 @@ impl Simulation {
                             *lineage_counts.entry(child.lineage_id).or_insert(0) += 1;
                         }
                     }
-                    let child_idx = self.organisms.len() - 1;
-                    let child_lid = self.organisms[child_idx].lineage_id;
-                    if let Some(elder_id) = self.lineage_elders.get(child_lid.as_str()).cloned() {
-                        let epos_opt = org_idx_by_id.get(elder_id.as_str()).copied();
-                        if let Some(epos) = epos_opt {
-                            if epos != child_idx {
-                                let danger: Vec<_> = self.organisms[epos]
-                                    .danger_memory
-                                    .iter()
-                                    .map(|(&k, &v)| (k, v))
-                                    .collect();
-                                let food: Vec<_> = self.organisms[epos]
-                                    .food_memory
-                                    .iter()
-                                    .map(|(&k, &v)| (k, v))
-                                    .collect();
-                                let child = &mut self.organisms[child_idx];
-                                let ms = child.traits.memory_strength;
-                                for (k, v) in danger {
-                                    if self.rng.random::<f32>() < 0.45 {
-                                        Organism::remember(&mut child.danger_memory, k.0, k.1, v * 0.4, ms);
-                                    }
-                                }
-                                for (k, v) in food {
-                                    if self.rng.random::<f32>() < 0.20 {
-                                        Organism::remember(&mut child.food_memory, k.0, k.1, v * 0.2, ms);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    self.pass_elder_memory(self.organisms.len() - 1, &org_idx_by_id);
                 }
             }
         }
 
         self.dormant_upkeep(&dormant, &spatial, &animal_spatial);
+        self.hand_out_pastimes(&tiers);
         self.glide(&tiers);
+        self.coarse_conceptions(&tiers, population_slots_used, &mut lineage_counts, &org_idx_by_id);
         self.learn_from_the_tick(&spatial);
 
         self.organism_columns.smooth_velocity(&mut self.organisms);

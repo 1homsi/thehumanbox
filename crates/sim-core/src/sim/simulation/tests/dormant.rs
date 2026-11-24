@@ -15,11 +15,10 @@ fn everyone_ages_one_tick_per_tick_awake_or_dormant() {
     for o in sim.organisms.iter().filter(|o| o.alive) {
         if let Some(&age) = before.get(o.id.as_str()) {
             let aged = u64::from(o.age - age);
-            assert!(
-                aged.abs_diff(64) < town_lod::TOWN_STEP,
-                "{} aged {aged} in 64 ticks",
-                o.id
-            );
+            // A calm region applies its age on the coarse step, so between
+            // steps a body can sit up to one step behind the clock.
+            let slack = town_lod::step_for(sim.tick_count);
+            assert!(aged.abs_diff(64) < slack, "{} aged {aged} in 64 ticks", o.id);
             checked += 1;
         }
     }
@@ -56,6 +55,31 @@ fn a_dormant_body_tires_and_ages_in_the_upkeep_and_nobody_else_does() {
             );
         }
     }
+}
+
+#[test]
+fn a_coarse_step_ages_every_skipped_tick() {
+    let mut sim = Simulation::new(5);
+    sim.tick_n(50);
+    let idx = sim.organisms.iter().position(|o| o.alive).expect("someone alive");
+    let (cx, cy) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+    flatten_test_area(&mut sim, cx, cy);
+    sim.organisms[idx].energy = 0.95;
+    sim.organisms[idx].hydration = 0.95;
+    sim.organisms[idx].health = 0.9;
+    sim.organisms[idx].infection = 0.0;
+    sim.organisms[idx].age = 2_000;
+    sim.organisms[idx].max_age = 20_000;
+    sim.organisms[idx].inv_water = 0;
+    let age = sim.organisms[idx].age;
+    let spatial = SpatialIndex::build(&sim.organisms, 10);
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    let mut dormant = vec![0u64; sim.organisms.len()];
+    dormant[idx] = town_lod::COARSE_MAX;
+    sim.dormant_upkeep(&dormant, &spatial, &animal_spatial);
+    assert_eq!(sim.organisms[idx].age, age + town_lod::COARSE_MAX as u32);
+    assert!(sim.organisms[idx].hydration < 0.95);
+    assert!(sim.organisms[idx].hydration > 0.7);
 }
 
 #[test]

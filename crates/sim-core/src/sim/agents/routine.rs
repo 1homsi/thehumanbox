@@ -557,7 +557,7 @@ impl Simulation {
         }
         let action = match activity {
             Activity::Work => match o.last_action.map(usize::from) {
-                Some(a) if a >= 8 && !matches!(a, 10 | 11 | 21) => a,
+                Some(a) if a >= 8 && !matches!(a, 10 | 11 | 17 | 21) => a,
                 _ => usize::MAX,
             },
             Activity::Gather | Activity::Festival => match o.last_action.map(usize::from) {

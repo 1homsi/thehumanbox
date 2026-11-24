@@ -148,28 +148,38 @@ impl Simulation {
             );
         }
 
-        if self.organisms[idx].inv_water >= 2
-            && crate::sim::simulation::town_lod::due(self.tick_count, f.dt, 7, idx as u64)
-        {
+        // One gift per 7 ticks. A long step is a single visit to this function,
+        // so it hands out every gift the skipped ticks would have.
+        let shares = if f.dt <= super::TOWN_STEP {
+            u64::from(super::due(self.tick_count, f.dt, 7, idx as u64))
+        } else {
+            crate::sim::simulation::town_lod::openings(self.tick_count, f.dt, 7, idx as u64)
+        };
+        if self.organisms[idx].inv_water >= 2 && shares > 0 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let lid = &self.organisms[idx].lineage_id;
+            let lid = self.organisms[idx].lineage_id;
             ordered_nearby_filtered(&self.organisms, spatial, sx, sy, 3, spatial_buf, |i, o| {
                 i != idx
                     && o.alive
                     && o.hydration < 0.30
                     && (o.x - sx).abs() + (o.y - sy).abs() < 2.5
-                    && o.lineage_id == *lid
+                    && o.lineage_id == lid
             });
-            let recipient = spatial_buf
-                .iter()
-                .map(|&i| (i, &self.organisms[i]))
-                .min_by(|a, b| {
-                    a.1.hydration
-                        .partial_cmp(&b.1.hydration)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
-                .map(|(i, _)| i);
-            if let Some(ri) = recipient {
+            for _ in 0..shares {
+                if self.organisms[idx].inv_water < 2 {
+                    break;
+                }
+                let recipient = spatial_buf
+                    .iter()
+                    .copied()
+                    .filter(|&i| self.organisms[i].alive && self.organisms[i].hydration < 0.30)
+                    .min_by(|a, b| {
+                        self.organisms[*a]
+                            .hydration
+                            .partial_cmp(&self.organisms[*b].hydration)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                let Some(ri) = recipient else { break };
                 self.organisms[idx].inv_water -= 1;
                 self.organisms[ri].hydration = (self.organisms[ri].hydration + 0.22).min(1.0);
                 let recipient_id = self.organisms[ri].id;
@@ -582,4 +592,262 @@ pub(super) fn set_infection(o: &mut Organism, infection: f32) -> bool {
     let fell_sick = o.infection < 0.15 && infection >= 0.15;
     o.infection = infection;
     fell_sick
+}
+
+/// Advance a calm body by `dt` ticks in closed form.
+///
+/// The per-tick upkeep is a constant drain plus a constant rest, so long as the
+/// body stays well fed and nothing discrete happens (no meal, no drink, no
+/// fever, no fire, no birth-nursing). Returns false, having changed nothing,
+/// when that does not hold and the caller should replay the ticks.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn integrate_closed(
+    o: &mut Organism,
+    dt: u64,
+    tick: u64,
+    shelter: f32,
+    water_near: bool,
+    on_fire: bool,
+    ritual_fire: bool,
+    climate: &Climate,
+    grid: &WorldGrid,
+    cx: i32,
+    cy: i32,
+) -> bool {
+    if dt <= 1 || on_fire || o.infection > 0.01 {
+        return false;
+    }
+    if shelter > 0.0 && o.grief_ticks > 0 {
+        return false;
+    }
+    if o.nursing_until > tick.saturating_sub(dt) {
+        return false;
+    }
+    if o.max_age > 0 {
+        let sen = (o.max_age as f32 * 0.65) as u32;
+        if o.age > sen || o.age.saturating_add(dt as u32) > sen {
+            return false;
+        }
+    }
+    let (rate, h_rate) = passive_rates(o, shelter, water_near, climate, grid, cx, cy);
+    // Health comes back by the same amount every tick while the body stays well
+    // fed. That rest does not feed energy, so the two ends of a straight drain
+    // are the whole span. A tick that would eat, drink, or hit a clamp leaves
+    // the closed form.
+    let regen = 0.001;
+    let dt_f = dt as f32;
+    let (e0, h0) = (o.energy, o.hydration);
+    let e_lo = (e0 + rate).min(e0 + dt_f * rate);
+    let e_hi = (e0 + rate).max(e0 + dt_f * rate);
+    let h_lo = (h0 + h_rate).min(h0 + dt_f * h_rate);
+    let h_hi = (h0 + h_rate).max(h0 + dt_f * h_rate);
+    // Shelter is applied before the drain and clamps at full. A net rate that
+    // stays under 1 can still have clipped that recovery, so the straight
+    // line would not match replaying the ticks.
+    let shelter_gain = if shelter > 0.0 {
+        0.0008 + shelter * 0.0022
+    } else {
+        0.0
+    };
+    let before_drain = if rate >= 0.0 {
+        e0 + (dt_f - 1.0) * rate + shelter_gain
+    } else {
+        e0 + shelter_gain
+    };
+    if e_lo <= 0.6 || e_hi > 1.0 || h_lo <= 0.6 || h_hi > 1.0 || before_drain > 1.0 {
+        return false;
+    }
+    let shelter_health = if shelter > 0.0 {
+        0.0006 + shelter * 0.0010
+    } else {
+        0.0
+    };
+    o.energy = e0 + rate * dt_f;
+    o.hydration = h0 + h_rate * dt_f;
+    o.health = (o.health + (shelter_health + regen) * dt_f).min(1.0);
+    if shelter > 0.0 && o.fear_level > 0.0 {
+        o.fear_level = (o.fear_level - shelter * 0.008 * dt_f).max(0.0);
+    }
+    if ritual_fire {
+        o.comfort = (o.comfort + 0.003 * dt_f).min(1.0);
+        o.loneliness = (o.loneliness - 0.005 * dt_f).max(0.0);
+    }
+    let age0 = o.age;
+    o.age = age0.saturating_add(dt as u32);
+    let mut century = if age0.is_multiple_of(100) {
+        age0.saturating_add(100)
+    } else {
+        (age0 / 100 + 1).saturating_mul(100)
+    };
+    while century <= o.age && century > age0 {
+        let k = u64::from(century - age0);
+        o.decay_memory(tick.saturating_sub(dt).saturating_add(k));
+        century = century.saturating_add(100);
+    }
+    true
+}
+
+/// Energy and hydration change of one upkeep tick, before the meal and before
+/// the rest that follows it. Positive is a gain.
+fn passive_rates(
+    o: &Organism,
+    shelter: f32,
+    water_near: bool,
+    climate: &Climate,
+    grid: &WorldGrid,
+    cx: i32,
+    cy: i32,
+) -> (f32, f32) {
+    let mult = drain_mult(shelter);
+    let mut energy = -0.0022 * mult * climate.heat_tire * climate.hunger;
+    let hydration_mult = if water_near { 0.5 } else { 1.0 };
+    let mut hydration = -0.0014 * hydration_mult * climate.heat_thirst;
+    if shelter > 0.0 {
+        energy += 0.0008 + shelter * 0.0022;
+    }
+    if climate.night {
+        let night_base = if o.discoveries.has(Hot::Torch) {
+            0.0002
+        } else {
+            0.0005
+        };
+        energy -= night_base * mult;
+    }
+    let temp = grid.temp_at(cx, cy) + climate.season_temp;
+    if !(10.0..=30.0).contains(&temp) {
+        let stress = if temp < 10.0 {
+            (10.0 - temp) / 40.0
+        } else {
+            (temp - 30.0) / 70.0
+        };
+        let drain = stress * 0.003 * (1.1 - o.traits.resilience * 0.2) * (1.0 - shelter * 0.60);
+        energy -= drain;
+        if temp > 40.0 {
+            hydration -= drain * 0.5;
+        }
+    }
+    (energy, hydration)
+}
+
+#[cfg(test)]
+mod closed_form {
+    use super::*;
+    use crate::organism::traits::Traits;
+
+    #[test]
+    fn a_well_body_matches_replaying_each_tick_of_a_coarse_step() {
+        let grid = WorldGrid::new(1);
+        let mut fast = Organism::new(
+            "coarse",
+            "Coarse".into(),
+            40.0,
+            40.0,
+            1,
+            String::new(),
+            "clan",
+            20_000,
+            Traits::default(),
+        );
+        fast.energy = 0.97;
+        fast.hydration = 0.97;
+        fast.health = 0.9;
+        fast.age = 2_000;
+        fast.infection = 0.0;
+        fast.grief_ticks = 0;
+        fast.nursing_until = 0;
+        let mut slow = Organism::new(
+            "coarse",
+            "Coarse".into(),
+            40.0,
+            40.0,
+            1,
+            String::new(),
+            "clan",
+            20_000,
+            Traits::default(),
+        );
+        slow.energy = fast.energy;
+        slow.hydration = fast.hydration;
+        slow.health = fast.health;
+        slow.age = fast.age;
+        slow.infection = 0.0;
+        slow.grief_ticks = 0;
+        slow.nursing_until = 0;
+        let climate = Climate {
+            night: false,
+            heat_thirst: 1.0,
+            heat_tire: 1.0,
+            hunger: 1.0,
+            season_temp: 0.0,
+            tick: 8_000,
+        };
+        let (cx, cy) = (40, 40);
+        let dt = 32u64;
+        let tick = 8_000u64;
+        assert!(
+            integrate_closed(&mut fast, dt, tick, 0.0, false, false, false, &climate, &grid, cx, cy,),
+            "the fixture left the closed form"
+        );
+        for back in (0..dt).rev() {
+            let at = tick - back;
+            let step = climate.at(at);
+            shelter_comfort(&mut slow, 0.0, || super::super::upkeep_roll(at, 0));
+            drain_and_eat(&mut slow, false, &step, 0.0);
+            weather_and_sickness(&mut slow, &grid, &step, cx, cy, 0.0);
+            super::super::ageing::body_ageing(&mut slow, false, at);
+        }
+        assert_eq!(fast.age, slow.age);
+        assert!(
+            (fast.energy - slow.energy).abs() < 1e-4,
+            "energy {} vs {}",
+            fast.energy,
+            slow.energy
+        );
+        assert!(
+            (fast.hydration - slow.hydration).abs() < 1e-4,
+            "hydration {} vs {}",
+            fast.hydration,
+            slow.hydration
+        );
+        assert!(
+            (fast.health - slow.health).abs() < 1e-4,
+            "health {} vs {}",
+            fast.health,
+            slow.health
+        );
+    }
+
+    #[test]
+    fn a_sheltered_body_already_full_is_left_to_the_tick_loop() {
+        let grid = WorldGrid::new(1);
+        let mut body = Organism::new(
+            "full",
+            "Full".into(),
+            40.0,
+            40.0,
+            1,
+            String::new(),
+            "clan",
+            20_000,
+            Traits::default(),
+        );
+        body.energy = 0.999;
+        body.hydration = 0.9;
+        body.health = 0.9;
+        body.age = 2_000;
+        body.infection = 0.0;
+        let climate = Climate {
+            night: false,
+            heat_thirst: 1.0,
+            heat_tire: 1.0,
+            hunger: 1.0,
+            season_temp: 0.0,
+            tick: 8_000,
+        };
+        assert!(
+            !integrate_closed(&mut body, 8, 8_000, 0.5, false, false, false, &climate, &grid, 40, 40,),
+            "shelter recovery would clamp before the drain"
+        );
+        assert!((body.energy - 0.999).abs() < 1e-6);
+    }
 }
