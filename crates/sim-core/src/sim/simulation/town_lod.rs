@@ -628,6 +628,31 @@ impl Simulation {
         }
         if o.intent.is_some_and(|intent| intent.purpose == Purpose::Play) {
             self.organisms[i].last_action = Some(113);
+            return;
+        }
+        let resting = match o.intent {
+            Some(intent) => {
+                intent.stays
+                    && intent.arrive == Some(17)
+                    && self.tick_count < intent.until
+                    && intent.arrived(here, &self.grid)
+            }
+            None => {
+                o.journey.is_none()
+                    && o.last_action.is_some_and(|action| action < 8)
+                    && o.routine.is_some_and(|r| {
+                        r.activity_at(phase) == Activity::Sleep
+                            && r.place_of(Activity::Sleep)
+                                .is_some_and(|home| chebyshev(here, home) <= 2)
+                    })
+            }
+        };
+        if resting && o.last_action != Some(17) {
+            let o = &mut self.organisms[i];
+            o.last_action = Some(17);
+            if o.thought != "resting" {
+                o.thought = "resting".to_string();
+            }
         }
     }
 
