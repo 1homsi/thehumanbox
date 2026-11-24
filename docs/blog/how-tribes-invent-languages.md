@@ -188,7 +188,7 @@ So a tribe whose food word drifted away from its neighbours' is worse at using t
 
 In the game, the person panel shows someone's words next to their parents' and grandparents' words for eight everyday concepts: food, water, fire, home, friend, sun, river and danger. That's in `organism/family_words.rs`. It's usually the easiest place to catch a mutation that stuck.
 
-Drift takes generations, so a fresh world doesn't show much at first. Last week I merged an optional head-start world ([#1156](https://github.com/1homsi/thehumanbox/pull/1156)). It starts tribes from one shared proto-language, and each tribe reshapes the words for the land it lives on: wetland tribes change "water" and "river", desert tribes change "fire" and "sun", and so on. It's off by default.
+Drift takes generations, so a fresh world doesn't show much at first. On Nov 22 I merged an optional head-start world ([#1156](https://github.com/1homsi/thehumanbox/pull/1156)). It starts tribes from one shared proto-language, and each tribe reshapes the words for the land it lives on: wetland tribes change "water" and "river", desert tribes change "fire" and "sun", and so on. It's off by default, except that people who arrive from a Reddit link with no save start in it ([#1165](https://github.com/1homsi/thehumanbox/pull/1165)).
 
 ## Keeping ~400 words per person cheap
 
@@ -204,15 +204,15 @@ struct Word {
 
 Generated words are at most four letters, so they always fit. Anything longer, which only an old save can bring in, goes into a small side list. The doc comment on `Vocabulary` puts this at about 5 KB per vocabulary, down from 14 KB with a `String` per slot. The JSON format stayed the same: for human-readable serializers, custom `Serialize`/`Deserialize` impls still read and write the old `HashMap<String, String>` shape, and binary serializers get a packed word string instead. A test runs the compact type and the old one side by side to check they stay identical and draw the same random numbers.
 
-## The perf stuff from last week
+## Recent perf work
 
-Language is a small slice of each tick. Most of the time goes to movement, sensing and spatial lookups. Three changes landed on main:
+Language is a small slice of each tick. Most of the time goes to movement, sensing and spatial lookups. Three changes landed on main on Nov 22:
 
 - **SIMD kernels** ([#1157](https://github.com/1homsi/thehumanbox/pull/1157)). Movement, distance checks and spatial-grid bucketing run four lanes at a time on SSE2, NEON and wasm `simd128`. The kernels match the scalar path bit for bit: no fused multiply-add, same rounding. The web build ships a SIMD wasm module and a scalar one, and the page only loads the SIMD one if `WebAssembly.validate` accepts it.
 - **Column layout for hot fields** ([#1158](https://github.com/1homsi/thehumanbox/pull/1158)). Position, velocity, needs, alive and lineage now also live in parallel columns next to the `Vec<Organism>`, rebuilt every tick. The spatial grid, crowd separation and sensing read from those columns. On the included 4,000-person benchmark that went from 423.7 µs to 396.7 µs per pass, about 1.07x. Not huge, but it's groundwork.
 - **Read-only passes on worker threads** ([#1159](https://github.com/1homsi/thehumanbox/pull/1159)). Sensing, route planning, border contacts and town assignment only read the world, so they run on worker threads now. Results get applied in index order, and every write, including draws from the world RNG, stays in the original order. In a 2,000-person test, a tick on 4 threads went from 21.75 ms to 19.98 ms. The web build stays single-threaded.
 
-All three follow the same rule as that vocabulary tie-break: a seed has to produce the same world. #1158 was checked against save fingerprints from main for several seeds and tick counts, and #1159 against a save that's byte-identical at 1, 4 and 6 threads. If a speedup changes what happens in the world, it can't go in as just a perf change.
+All three follow the same rule as that vocabulary tie-break: a seed has to produce the same world. #1158 was checked against save fingerprints from main for several seeds and tick counts, and #1159 against a save that's byte-identical at 1, 4 and 6 threads. If a speedup changes what happens in the world, it can't go in as just a perf change. One later PR did: [#1160](https://github.com/1homsi/thehumanbox/pull/1160) steps calm regions less often, which changes how a given seed plays out, so it went in as a deliberate behaviour change instead of a pure speedup.
 
 ## Try it
 
