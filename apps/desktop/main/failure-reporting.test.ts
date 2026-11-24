@@ -88,6 +88,7 @@ function loadIndex(options: {
       if (id === './updater') return { initUpdater: () => {}, checkForUpdatesNow: async () => ({}), installDownloadedUpdate: () => ({}) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved state') }, existsSync: () => false }
       if (id === 'node:path') return path
+      if (id === './distribution' || id === './steam') return require(`${__dirname}/${id.slice(2)}`)
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === './i18n') return require(path.join(__dirname, 'i18n'))

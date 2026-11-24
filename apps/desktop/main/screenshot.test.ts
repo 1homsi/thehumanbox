@@ -125,6 +125,7 @@ function loadIndex(options: { pictures: string; capture: () => Promise<{ isEmpty
       if (id === './updater') return { initUpdater: () => {}, checkForUpdatesNow: async () => ({}), installDownloadedUpdate: () => ({}) }
       if (id === 'node:fs') return fs
       if (id === 'node:path') return path
+      if (id === './distribution' || id === './steam') return require(`${__dirname}/${id.slice(2)}`)
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       for (const local of ['i18n', 'redact-url', 'renderer-load', 'navigation-guard', 'error-dialog', 'exclusive-operation', 'window-state', 'world-safety', 'login-launch', 'prompt-relevance', 'restart-recovery', 'renderer-csp', 'sim-errors']) {

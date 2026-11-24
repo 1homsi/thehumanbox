@@ -789,20 +789,22 @@ export function DesktopSettingsModal({ onClose }: Props) {
               )}
               {tab === 'app' && (
                 <>
-                  <Section title={t('settings.desktop.updates')}>
-                    <SettingRow
-                      title={t('settings.desktop.autoUpdate')}
-                      desc={t('settings.desktop.autoUpdateDesc')}
-                    >
-                      <Switch
-                        checked={settings.autoUpdate}
-                        onChange={(v) => update({ autoUpdate: v })}
-                        disabled={busy}
-                        label={t('settings.desktop.autoUpdate')}
-                      />
-                    </SettingRow>
-                    <UpdateCheckButton desktop={desktop} />
-                  </Section>
+                  {desktop.distribution !== 'steam' && (
+                    <Section title={t('settings.desktop.updates')}>
+                      <SettingRow
+                        title={t('settings.desktop.autoUpdate')}
+                        desc={t('settings.desktop.autoUpdateDesc')}
+                      >
+                        <Switch
+                          checked={settings.autoUpdate}
+                          onChange={(v) => update({ autoUpdate: v })}
+                          disabled={busy}
+                          label={t('settings.desktop.autoUpdate')}
+                        />
+                      </SettingRow>
+                      <UpdateCheckButton desktop={desktop} />
+                    </Section>
+                  )}
                   <Section title={t('settings.desktop.startup')}>
                     <SettingRow
                       title={t('settings.desktop.launchAtSignIn')}

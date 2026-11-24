@@ -42,6 +42,10 @@ pnpm run release      # same, but pushes to GitHub Releases (needs GH_TOKEN)
 
 CI builds all three platforms in matrix mode and uploads each artifact to the GitHub Release tagged for that version.
 
+## Steam
+
+`pnpm run pack:steam` builds the Steam flavour: no installer, no self-updating, Steamworks started at launch. See [docs/STEAM.md](../../docs/STEAM.md).
+
 ## Auto-update
 
 The packaged app uses `electron-updater` pointed at this repo's GitHub Releases. It checks for a newer version on boot, every 30 minutes, and when you return to the window (at most once per 10 minutes); if one exists, it downloads quietly in the background and prompts the user to restart-and-update. Users can disable this in settings.

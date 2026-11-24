@@ -19,10 +19,12 @@
     "dev": "pnpm run build:main && electron .",
     "pack": "pnpm run build && electron-builder --publish never",
     "release": "pnpm run build && electron-builder --publish always",
-    "clean": "rm -rf dist out"
+    "clean": "rm -rf dist out",
+    "pack:steam": "pnpm run build && node steam/pack.mjs"
   },
   "dependencies": {
-    "electron-updater": "^6.8.11"
+    "electron-updater": "^6.8.11",
+    "steamworks.js": "0.4.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

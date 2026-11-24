@@ -81,6 +81,7 @@
     "rendererFailed": "Не вдалося завантажити інтерфейс."
   },
   "update": {
+    "steamManaged": "Steam сам оновлює цю копію.",
     "failedTitle": "Не вдалося оновити",
     "failedMessage": "Не вдалося встановити оновлення.",
     "readyTitle": "Оновлення готове",

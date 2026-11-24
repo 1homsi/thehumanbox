@@ -69,6 +69,7 @@ function harness(options: { failWindow?: boolean } = {}) {
       if (id === './settings') return { loadSettings: () => ({}) }
       if (id === './sim-process') return { startSim: async () => ({ port: 8000 }) }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './distribution' || id === './steam') return require(`${__dirname}/${id.slice(2)}`)
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path

@@ -65,6 +65,7 @@ test('File > Restart simulation brings the window back when no window is open', 
         }
       }
       if (id === 'node:fs') return { readFileSync: () => { throw new Error('no saved bounds') } }
+      if (id === './distribution' || id === './steam') return require(`${__dirname}/${id.slice(2)}`)
       if (id === './app-version-arg') return { appVersionArgument: (v: string) => `--thb-app-version=${v}` }
       if (id === './app-icon') return { appIconPath: () => '/tmp/icon.png' }
       if (id === 'node:path') return path

@@ -81,6 +81,7 @@
     "rendererFailed": "Não foi possível carregar a interface."
   },
   "update": {
+    "steamManaged": "O Steam mantém esta cópia atualizada.",
     "failedTitle": "Falha na atualização",
     "failedMessage": "Não foi possível instalar a atualização.",
     "readyTitle": "Atualização pronta",

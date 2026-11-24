@@ -66,6 +66,7 @@ import { CommandPalette } from './ui/toolbar/CommandPalette'
 import { HeadlineTicker } from './ui/panels/HeadlineTicker'
 import { countToolApply, setWorldSummary, trackEvent } from './shared/observability'
 import { achievementsFor } from './game/model/achievements'
+import { createSteamAchievementSync } from './shared/steam-achievements'
 import { YEAR_TICKS } from './game/model/calendar'
 import { reconcileFocus, reconcileViewerSelection } from './shared/viewerSelection'
 import { useUIStore } from './state/store'
@@ -138,6 +139,8 @@ const SceneView = lazyWithRetry(() =>
 const ScenariosModal = lazyWithRetry(() =>
   import('./ui/modals/ScenariosModal').then((m) => ({ default: m.ScenariosModal })),
 )
+const STEAM_ACHIEVEMENT_CHECK_MS = 5000
+
 function App() {
   return <LiveApp />
 }
@@ -821,6 +824,18 @@ function LiveApp() {
       void desk.app.notify({ title: 'The Human Box', body: picked.headline.text })
     }
   }, [world?.headlines])
+
+  useEffect(() => {
+    const steam = window.thbDesktop?.distribution === 'steam' ? window.thbDesktop.steam : undefined
+    if (!steam) return
+    const sync = createSteamAchievementSync((name) => steam.unlockAchievement(name))
+    const check = () => {
+      const w = useWorldStore.getState().world
+      if (w) sync(achievementsFor(w))
+    }
+    const timer = setInterval(check, STEAM_ACHIEVEMENT_CHECK_MS)
+    return () => clearInterval(timer)
+  }, [])
 
   // What the session summary reports about the world when the player leaves.
   const runtimeRef = useRef(runtimeState)

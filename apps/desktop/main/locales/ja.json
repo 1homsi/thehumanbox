@@ -81,6 +81,7 @@
     "rendererFailed": "画面を読み込めませんでした。"
   },
   "update": {
+    "steamManaged": "このコピーは Steam が最新の状態に保ちます。",
     "failedTitle": "更新に失敗しました",
     "failedMessage": "アップデートをインストールできませんでした。",
     "readyTitle": "アップデートの準備ができました",

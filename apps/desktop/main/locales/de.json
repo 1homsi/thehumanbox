@@ -81,6 +81,7 @@
     "rendererFailed": "Die Oberfläche konnte nicht geladen werden."
   },
   "update": {
+    "steamManaged": "Steam hält diese Kopie auf dem neuesten Stand.",
     "failedTitle": "Update fehlgeschlagen",
     "failedMessage": "Das Update konnte nicht installiert werden.",
     "readyTitle": "Update bereit",

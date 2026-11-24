@@ -81,6 +81,7 @@
     "rendererFailed": "Arayüz yüklenemedi."
   },
   "update": {
+    "steamManaged": "Bu kopyayı Steam güncel tutar.",
     "failedTitle": "Güncelleme başarısız",
     "failedMessage": "Güncelleme yüklenemedi.",
     "readyTitle": "Güncelleme hazır",
