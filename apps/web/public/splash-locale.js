@@ -43,7 +43,9 @@
   document.getElementById('thb-splash-reload').textContent = s[2];
   document.getElementById('thb-splash').setAttribute('aria-label', s[4]);
   // The desktop shell's image policy only allows local images, so the badge would render broken there.
-  if (/[?&]desktop=1(?:&|$)/.test(location.search)) {
+  // This file is also eval'd in Node by the locale test, where location does not exist.
+  var search = typeof location === 'undefined' ? '' : location.search
+  if (/[?&]desktop=1(?:&|$)/.test(search)) {
     var fame = document.querySelector('#thb-splash .thb-fame');
     if (fame) fame.remove();
   }
