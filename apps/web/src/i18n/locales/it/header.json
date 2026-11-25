@@ -1,6 +1,6 @@
 {
   "starTitle": "Metti una stella su GitHub",
-  "starBody": "The Human Box è gratuito e open source. Una stella aiuta altre persone a trovarlo.",
+  "starBody": "Gratuito e open source, fatto da un solo dev. Una stella aiuta a farlo trovare.",
   "starAria": "Metti una stella a The Human Box su GitHub",
   "star": "stella",
   "live": "LIVE",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "nessun effetto"
     }
-  }
+  },
+  "starCountAria": "Metti una stella a The Human Box su GitHub, {count} stelle"
 }

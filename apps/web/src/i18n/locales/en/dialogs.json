@@ -384,9 +384,12 @@
     "checkpointFailed": "could not checkpoint the current world; update refresh was cancelled safely",
     "starTitle": "Enjoying your world?",
     "starSettlementTitle": "Your first settlement!",
-    "starSub": "The Human Box is free and open source. A star helps others find it — all you need is a free GitHub account.",
+    "starSub": "Free and open source, made by one dev. A star helps it get found.",
     "starCta": "Star on GitHub",
-    "starLater": "Maybe later"
+    "starLater": "Maybe later",
+    "starWordTitle": "They invented a word!",
+    "starWarTitle": "War has broken out!",
+    "starCoupTitle": "A coup!"
   },
   "life": {
     "title": "{name}'s Life",

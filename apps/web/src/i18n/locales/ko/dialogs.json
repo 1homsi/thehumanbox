@@ -369,9 +369,12 @@
     "checkpointFailed": "현재 세계를 저장할 수 없습니다. 새로 고침 업데이트는 안전하게 취소되었습니다",
     "starTitle": "세계가 마음에 드시나요?",
     "starSettlementTitle": "첫 정착지가 생겼어요!",
-    "starSub": "The Human Box는 무료이며 오픈 소스입니다. 별을 눌러 더 많은 사람에게 알려 주세요. 무료 GitHub 계정만 있으면 됩니다.",
+    "starSub": "한 개발자가 만든 무료 오픈 소스입니다. 스타를 누르면 더 쉽게 찾을 수 있어요.",
     "starCta": "GitHub에서 별 누르기",
-    "starLater": "나중에"
+    "starLater": "나중에",
+    "starWordTitle": "단어를 만들어 냈어요!",
+    "starWarTitle": "전쟁이 터졌어요!",
+    "starCoupTitle": "쿠데타가 일어났어요!"
   },
   "life": {
     "title": "{name}의 삶",

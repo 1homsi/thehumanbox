@@ -11,13 +11,18 @@ import { t } from '../../i18n'
 export const STAR_PROMPT_KEY = 'thb-star-prompt-v2'
 /** v1 stored a bare 'shown' | 'dismissed' | 'starred'; a star or a dismissal is carried over. */
 export const LEGACY_STAR_PROMPT_KEY = 'thb-star-prompt-v1'
-// Nothing asks until the player has been in a world for about ten minutes.
-export const STAR_MIN_PLAY_MS = 10 * 60_000
-export const STAR_DELAY_MIN_MS = 10 * 60_000
+/** Shown at most once per browser tab, even if storage is shared with another tab. */
+export const STAR_SESSION_KEY = 'thb-star-prompt-session'
+// A one-minute floor keeps the prompt off the opening beat. After that, a first
+// settlement (or another delightful moment) may ask immediately. Otherwise the
+// timer asks at five minutes, around the median session length. Ten minutes
+// hid the prompt from most sessions (only about a third reached it).
+export const STAR_MIN_PLAY_MS = 60_000
+export const STAR_DELAY_MIN_MS = 5 * 60_000
 // One ask per player. A dismissal, a star, or a prompt that was already shown is not repeated.
 export const STAR_MAX_ASKS = 1
 
-export type StarPromptTrigger = 'first_settlement' | 'timer'
+export type StarPromptTrigger = 'first_settlement' | 'first_word' | 'first_war' | 'first_coup' | 'timer'
 
 type StarPromptState = {
   asks: number
@@ -27,12 +32,16 @@ type StarPromptState = {
 
 type ReadResult = { ok: true; state: StarPromptState | null } | { ok: false }
 
-type SettlementWatch = {
+type SignatureSet = Set<string>
+
+type MomentWatch = {
   tick: number
-  hasData: boolean
+  hasSettlementData: boolean
   seenSettlement: boolean
-  /** Tribes that already had a settlement entry in the first census; a head-start world begins with these. */
   startingLineages: Set<string>
+  words: { hasData: boolean; starting: SignatureSet }
+  wars: { hasData: boolean; starting: SignatureSet }
+  coups: { hasData: boolean; starting: SignatureSet }
 }
 
 function writeState(state: StarPromptState): boolean {
@@ -72,13 +81,31 @@ function readState(): ReadResult {
   }
 }
 
+function askedThisSession(): boolean {
+  try {
+    return window.sessionStorage.getItem(STAR_SESSION_KEY) === 'shown'
+  } catch {
+    return false
+  }
+}
+
+function markAskedThisSession(): void {
+  try {
+    window.sessionStorage.setItem(STAR_SESSION_KEY, 'shown')
+  } catch {
+    // The in-memory settled flag still stops a second ask in this visit.
+  }
+}
+
 /** True when the prompt must stay hidden: already handled, or storage is unusable. */
 function alreadyAsked(): boolean {
+  if (askedThisSession()) return true
   const read = readState()
   if (!read.ok) return true
   const state = read.state
   if (!state) return false
   if (state.starred || state.dismissedAt !== undefined) return true
+  // A previous show still counts: re-asking people who already saw it would dilute clicks.
   return state.asks >= STAR_MAX_ASKS
 }
 
@@ -99,16 +126,113 @@ function hasNewSettlement(world: WorldState, startingLineages: Set<string>): boo
   )
 }
 
+function wordSignatures(world: WorldState): SignatureSet | null {
+  if (world.lineage_words === undefined) return null
+  const keys = new Set<string>()
+  for (const [lineage, vocab] of Object.entries(world.lineage_words)) {
+    for (const word of Object.keys(vocab)) keys.add(`${lineage}:${word}`)
+  }
+  return keys
+}
+
+function warSignatures(world: WorldState): SignatureSet | null {
+  if (world.battles === undefined && world.tribe_chronicle === undefined && world.nations === undefined) {
+    return null
+  }
+  const keys = new Set<string>()
+  for (const battle of world.battles ?? []) keys.add(`battle:${battle.id}`)
+  for (const [lineage, rows] of Object.entries(world.tribe_chronicle ?? {})) {
+    for (const row of rows) {
+      if (row.kind === 'war' || row.kind === 'raid') {
+        keys.add(`chr:${lineage}:${row.tick}:${row.kind}:${row.other ?? ''}`)
+      }
+    }
+  }
+  for (const nation of world.nations ?? []) {
+    for (const relation of nation.relations) {
+      if (relation.status === 'war') keys.add(`nation:${nation.id}:${relation.with}`)
+    }
+  }
+  return keys
+}
+
+function coupSignatures(world: WorldState): SignatureSet | null {
+  if (world.headlines === undefined) return null
+  const keys = new Set<string>()
+  for (const headline of world.headlines) {
+    if (/coup/i.test(headline.text)) keys.add(`${headline.tick}:${headline.text}`)
+  }
+  return keys
+}
+
+function hasNewSignature(current: SignatureSet, starting: SignatureSet): boolean {
+  for (const item of current) {
+    if (!starting.has(item)) return true
+  }
+  return false
+}
+
+function snapshotMoments(world: WorldState): MomentWatch {
+  const words = wordSignatures(world)
+  const wars = warSignatures(world)
+  const coups = coupSignatures(world)
+  return {
+    tick: world.tick,
+    hasSettlementData: world.settlements !== undefined,
+    seenSettlement: hasSettlement(world),
+    startingLineages: settlementLineages(world),
+    words: { hasData: words !== null, starting: words ?? new Set() },
+    wars: { hasData: wars !== null, starting: wars ?? new Set() },
+    coups: { hasData: coups !== null, starting: coups ?? new Set() },
+  }
+}
+
+/** Prefer the game's own hook (a first word) over a fight or a settlement. */
+function momentTrigger(
+  world: WorldState,
+  previous: MomentWatch,
+  startMode: WorldStartMode | null,
+): StarPromptTrigger | null {
+  const words = wordSignatures(world)
+  if (previous.words.hasData && words && hasNewSignature(words, previous.words.starting)) return 'first_word'
+  const coups = coupSignatures(world)
+  if (previous.coups.hasData && coups && hasNewSignature(coups, previous.coups.starting)) return 'first_coup'
+  const wars = warSignatures(world)
+  if (previous.wars.hasData && wars && hasNewSignature(wars, previous.wars.starting)) return 'first_war'
+  const headStart = startMode !== null && freshWorldUsesHeadStart(startMode)
+  const firstSettlement = headStart
+    ? hasNewSettlement(world, previous.startingLineages)
+    : previous.hasSettlementData && !previous.seenSettlement && hasSettlement(world)
+  if (firstSettlement) return 'first_settlement'
+  return null
+}
+
 function startModeProps(startMode: WorldStartMode | null): { start_mode?: WorldStartMode } {
   return startMode ? { start_mode: startMode } : {}
 }
 
+function titleKey(
+  trigger: StarPromptTrigger,
+):
+  | 'dialogs.toast.starSettlementTitle'
+  | 'dialogs.toast.starWordTitle'
+  | 'dialogs.toast.starWarTitle'
+  | 'dialogs.toast.starCoupTitle'
+  | 'dialogs.toast.starTitle' {
+  if (trigger === 'first_settlement') return 'dialogs.toast.starSettlementTitle'
+  if (trigger === 'first_word') return 'dialogs.toast.starWordTitle'
+  if (trigger === 'first_war') return 'dialogs.toast.starWarTitle'
+  if (trigger === 'first_coup') return 'dialogs.toast.starCoupTitle'
+  return 'dialogs.toast.starTitle'
+}
+
 /**
- * Asks once for a star on GitHub, after about ten minutes in a world. A dismissal or a star
- * is permanent. The first settlement is the preferred moment once that wait has passed;
- * otherwise a timer asks. Nothing is shown before the wait, before a world exists, or while
- * another card is on screen. A head-start world opens with settlements already standing, so
- * there the moment is the first settlement founded after the session began.
+ * Asks once for a star on GitHub. After a one-minute floor, a first invented word, a first
+ * war or coup, or the first settlement may ask; otherwise a timer asks at about five minutes.
+ * A dismissal or a star is permanent. Nothing is shown before the floor, before a world
+ * exists, or while another card is on screen. A head-start world opens with settlements
+ * already standing, so there the settlement moment is the first one a new tribe founds
+ * after the session began.
  */
 export function StarToast({
   world = null,
@@ -120,7 +244,7 @@ export function StarToast({
   const [visible, setVisible] = useState(false)
   const [shownTrigger, setShownTrigger] = useState<StarPromptTrigger | null>(null)
   const requestMoment = useRef<(trigger: StarPromptTrigger) => void>(() => undefined)
-  const settlementWatch = useRef<SettlementWatch | null>(null)
+  const momentWatch = useRef<MomentWatch | null>(null)
   const startModeRef = useRef(startMode)
   // Declared before the effects that read it, so they see this render's mode.
   useEffect(() => {
@@ -164,6 +288,7 @@ export function StarToast({
         settled = true
         return
       }
+      markAskedThisSession()
       settled = true
       setShownTrigger(trigger)
       setVisible(true)
@@ -197,41 +322,39 @@ export function StarToast({
 
   useEffect(() => {
     if (!world) {
-      settlementWatch.current = null
+      momentWatch.current = null
       return
     }
-    const previous = settlementWatch.current
+    const previous = momentWatch.current
     const settlements = world.settlements
     const found = hasSettlement(world)
     // The first census is a baseline, not news. This is what keeps a loaded save (and a world
     // that was already running when the page opened) from immediately producing a star prompt.
-    if (previous === null || world.tick < previous.tick || (!previous.hasData && settlements !== undefined)) {
-      settlementWatch.current = {
-        tick: world.tick,
-        hasData: settlements !== undefined,
-        seenSettlement: found,
-        startingLineages: settlementLineages(world),
-      }
+    if (previous === null || world.tick < previous.tick) {
+      momentWatch.current = snapshotMoments(world)
       return
     }
-    if (settlements === undefined) {
-      settlementWatch.current = { ...previous, tick: world.tick }
-      return
-    }
-    const headStart = startModeRef.current !== null && freshWorldUsesHeadStart(startModeRef.current)
-    // A head-start world's own settlements are the scenery it opens with; the moment is the first
-    // one a new tribe founds after that. Every other world keeps the first-settlement-ever rule.
-    const firstSettlement = headStart
-      ? hasNewSettlement(world, previous.startingLineages)
-      : previous.hasData && !previous.seenSettlement && found
-    settlementWatch.current = {
+    const next: MomentWatch = {
       ...previous,
       tick: world.tick,
-      hasData: true,
-      // Once a settlement has been seen, a later decline and refounding is not another first moment.
+      hasSettlementData: previous.hasSettlementData || settlements !== undefined,
       seenSettlement: previous.seenSettlement || found,
+      startingLineages: previous.hasSettlementData ? previous.startingLineages : settlementLineages(world),
     }
-    if (firstSettlement) requestMoment.current('first_settlement')
+    const words = wordSignatures(world)
+    if (!previous.words.hasData && words !== null) next.words = { hasData: true, starting: words }
+    const wars = warSignatures(world)
+    if (!previous.wars.hasData && wars !== null) next.wars = { hasData: true, starting: wars }
+    const coups = coupSignatures(world)
+    if (!previous.coups.hasData && coups !== null) next.coups = { hasData: true, starting: coups }
+
+    const trigger = momentTrigger(world, previous, startModeRef.current)
+    // Once a field has been seen, later arrivals still use the original baseline.
+    if (previous.words.hasData && words) next.words = previous.words
+    if (previous.wars.hasData && wars) next.wars = previous.wars
+    if (previous.coups.hasData && coups) next.coups = previous.coups
+    momentWatch.current = next
+    if (trigger) requestMoment.current(trigger)
   }, [world])
 
   if (!visible || !shownTrigger) return null
@@ -257,11 +380,7 @@ export function StarToast({
         <span className="star-toast-star" aria-hidden="true">
           <ToolSprite icon="⭐" size={28} />
         </span>
-        <div className="desktop-toast-title">
-          {t(
-            trigger === 'first_settlement' ? 'dialogs.toast.starSettlementTitle' : 'dialogs.toast.starTitle',
-          )}
-        </div>
+        <div className="desktop-toast-title">{t(titleKey(trigger))}</div>
       </div>
       <div className="desktop-toast-sub">{t('dialogs.toast.starSub')}</div>
       <div className="desktop-toast-actions">

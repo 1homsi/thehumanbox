@@ -369,9 +369,12 @@
     "checkpointFailed": "現在の世界を保存できませんでした。更新は安全に取り消されました",
     "starTitle": "世界を楽しんでいますか？",
     "starSettlementTitle": "初めての集落！",
-    "starSub": "The Human Box は無料のオープンソースです。スターでより多くの人に届きます。無料の GitHub アカウントだけで参加できます。",
+    "starSub": "一人の開発者による無料のオープンソースです。スターを付けると見つけてもらいやすくなります。",
     "starCta": "GitHub でスターを付ける",
-    "starLater": "あとで"
+    "starLater": "あとで",
+    "starWordTitle": "言葉を発明した！",
+    "starWarTitle": "戦争が始まった！",
+    "starCoupTitle": "クーデターだ！"
   },
   "life": {
     "title": "{name}の人生",

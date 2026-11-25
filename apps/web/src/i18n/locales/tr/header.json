@@ -1,6 +1,6 @@
 {
   "starTitle": "GitHub'da yıldız ver",
-  "starBody": "The Human Box ücretsiz ve açık kaynaklıdır. Yıldız vermek, başkalarının onu bulmasına yardımcı olur.",
+  "starBody": "Ücretsiz ve açık kaynak, tek bir geliştiricinin işi. Bir yıldız bulunmasına yardım eder.",
   "starAria": "The Human Box'a GitHub'da yıldız ver",
   "star": "yıldız",
   "live": "CANLI",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "etkisi yok"
     }
-  }
+  },
+  "starCountAria": "GitHub’da The Human Box’a yıldız ver, {count} yıldız"
 }

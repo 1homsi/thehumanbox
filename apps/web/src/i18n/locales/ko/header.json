@@ -1,6 +1,6 @@
 {
   "starTitle": "GitHub에서 별 누르기",
-  "starBody": "The Human Box는 무료이며 오픈 소스입니다. 별을 누르면 다른 사람들이 찾기 쉬워집니다.",
+  "starBody": "한 개발자가 만든 무료 오픈 소스입니다. 스타를 누르면 더 쉽게 찾을 수 있어요.",
   "starAria": "GitHub에서 The Human Box에 별 누르기",
   "star": "별",
   "live": "LIVE",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "효과 없음"
     }
-  }
+  },
+  "starCountAria": "GitHub에서 The Human Box에 스타 달기, 스타 {count}개"
 }

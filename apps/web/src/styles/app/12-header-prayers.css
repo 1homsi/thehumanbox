@@ -33,16 +33,43 @@
 .header h1 svg {
   filter: drop-shadow(0 2px 0 #000);
 }
-/* The repository link reads as an action: a raised button with a gold star. */
+/* The repository link is a raised gold action so it stands out from the wood buttons. */
 .header .star-link {
-  gap: 5px;
+  gap: 6px;
   margin-left: 2px;
-  padding: 0 9px 0 7px;
+  padding: 0 10px 0 8px;
   text-decoration: none;
+  background: #5c4527;
+  border-color: #e8b64c;
+  color: var(--hdr-gold);
+  font-weight: 700;
+  box-shadow:
+    inset 2px 2px 0 #9c7a3e,
+    inset -2px -3px 0 #3a2a15;
+}
+.header .star-link:hover {
+  background: #6d542e;
+  color: #fff3d6;
+  border-color: #f0c75a;
+}
+.header .star-link:active {
+  box-shadow:
+    inset 2px 3px 0 #3a2a15,
+    inset -2px -2px 0 #9c7a3e;
 }
 .header .star-link .github-icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
+}
+.header .star-link .star-count {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--hdr-gold, #e6c56e);
+  line-height: 1;
+  min-width: 16px;
+  padding: 1px 5px;
+  background: #1a130d;
 }
 
 .header .header-badges {
@@ -291,6 +318,9 @@
   }
   .header .star-link .btn-label {
     display: none;
+  }
+  .header .star-link .star-count {
+    display: inline;
   }
 }
 
