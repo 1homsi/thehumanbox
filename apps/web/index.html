@@ -95,6 +95,13 @@
     }
     #thb-splash .thb-hint button:hover { background: #54422f; color: #fff3d6; }
     #thb-splash .thb-hint button:active { box-shadow: inset 2px 3px 0 #2a1f15, inset -2px -2px 0 #6a5439; }
+    #thb-splash .thb-fame {
+      position: absolute; left: 0; right: 0; bottom: 16px;
+      display: flex; justify-content: center;
+    }
+    #thb-splash .thb-fame img {
+      display: block; max-width: min(224px, calc(100vw - 32px)); height: auto;
+    }
     @media (prefers-reduced-motion: reduce) {
       #thb-splash .thb-logo, #thb-splash .thb-progress.indeterminate .thb-progress-bar { animation: none; }
     }
@@ -115,6 +122,7 @@
         <button type="button" id="thb-splash-reload">reload</button>
       </div>
     </div>
+    <a class="thb-fame" href="https://startupfa.me/s/the-human-box?utm_source=thehumanbox.com" target="_blank" rel="noopener"><img src="https://startupfa.me/badges/featured-badge-small.webp" alt="The Human Box - Featured on Startup Fame" width="224" height="36" loading="lazy" /></a>
   </div>
   <script src="/splash-locale.js"></script>
   <div id="root"></div>
