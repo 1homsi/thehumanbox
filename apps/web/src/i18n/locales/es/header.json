@@ -1,6 +1,6 @@
 {
   "starTitle": "Dar estrella en GitHub",
-  "starBody": "The Human Box es libre y de código abierto. Una estrella ayuda a otras personas a encontrarlo.",
+  "starBody": "Gratis y de código abierto, hecho por un solo dev. Una estrella ayuda a que lo encuentren.",
   "starAria": "Dar estrella a The Human Box en GitHub",
   "star": "estrella",
   "live": "LIVE",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "sin efecto"
     }
-  }
+  },
+  "starCountAria": "Dar estrella a The Human Box en GitHub, {count} estrellas"
 }

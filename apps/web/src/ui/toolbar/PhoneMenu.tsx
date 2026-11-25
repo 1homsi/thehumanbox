@@ -7,7 +7,8 @@ import { Modal } from '../modals/Modal'
 import { MoreDropdown } from './MoreDropdown'
 import { ToolSprite } from './ToolSprite'
 import { saveBlocked, phoneSaveLabel, type WorldActions } from './world-actions'
-import { t } from '../../i18n'
+import { formatNumber, t } from '../../i18n'
+import { useGithubStars } from '../../shared/hooks/useGithubStars'
 
 interface Props {
   /** Chronicle entries so far, shown as a count like the desktop button. */
@@ -47,6 +48,7 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen, wo
     window.open(REPO_URL, '_blank', 'noopener,noreferrer')
   }
   const canFullscreen = canUseFullscreen()
+  const stars = useGithubStars()
 
   const row = (icon: string, label: string, onClick: () => void, extra?: ReactNode, pressed?: boolean) => (
     <button
@@ -127,7 +129,12 @@ export function PhoneMenu({ chronicleCount, isFullscreen, onToggleFullscreen, wo
             {row('◨', t('dock.phone.peoplePanel'), togglePanel, null, panelOpen)}
             {row('⚙️', t('dock.phone.settings'), openSettings)}
             {row('🌼', t('dock.phone.about'), openAbout)}
-            {row('⭐', t('dock.phone.starOnGithub'), openRepo)}
+            {row(
+              '⭐',
+              t('dock.phone.starOnGithub'),
+              openRepo,
+              stars != null ? <span className="btn-count">{formatNumber(stars)}</span> : null,
+            )}
             {canFullscreen &&
               row(
                 '⛶',

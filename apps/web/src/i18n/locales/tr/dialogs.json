@@ -369,9 +369,12 @@
     "checkpointFailed": "mevcut dünya kaydedilemedi; güncelleme yenilemesi güvenli şekilde iptal edildi",
     "starTitle": "Dünyandan memnun musun?",
     "starSettlementTitle": "İlk yerleşkeniz!",
-    "starSub": "The Human Box ücretsiz ve açık kaynaklıdır. Yıldız vererek başkalarının onu bulmasına yardımcı olun; ücretsiz bir GitHub hesabı yeterli.",
+    "starSub": "Ücretsiz ve açık kaynak, tek bir geliştiricinin işi. Bir yıldız bulunmasına yardım eder.",
     "starCta": "GitHub'da yıldız ver",
-    "starLater": "Belki sonra"
+    "starLater": "Belki sonra",
+    "starWordTitle": "Bir sözcük uydurdular!",
+    "starWarTitle": "Savaş çıktı!",
+    "starCoupTitle": "Bir darbe!"
   },
   "life": {
     "title": "{name}'in hayatı",

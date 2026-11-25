@@ -9,6 +9,10 @@ beforeAll(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
 afterAll(() => vi.unstubAllGlobals())
 beforeEach(() => {
   useUIStore.setState({ showStats: false, showCiv: false, showOrgSearch: false, showDesktopSettings: false })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => ({ stargazers_count: 145 }) }),
+  )
 })
 
 function mount(props: Partial<React.ComponentProps<typeof PhoneMenu>> = {}) {

@@ -219,13 +219,15 @@
     text-transform: uppercase;
   }
 
-  /* Minimal mobile: hide everything except the brand + a live dot. */
-  .star-link,
+  /* Minimal mobile: hide chrome except the brand, a live dot, and the star button. */
   .tick,
   .header-actions,
   .fullscreen-btn,
   .panel-toggle-btn {
     display: none !important;
+  }
+  .header .star-link .btn-label {
+    display: none;
   }
   /* Phones keep one readout, the time tag (year, season, time of day), so the brand
    * drops its word and keeps its sprite to leave room for the tag. */

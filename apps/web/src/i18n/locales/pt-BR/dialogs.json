@@ -372,9 +372,12 @@
     "checkpointFailed": "não foi possível salvar o mundo atual; a atualização foi cancelada com segurança",
     "starTitle": "Gostando do seu mundo?",
     "starSettlementTitle": "Seu primeiro assentamento!",
-    "starSub": "The Human Box é gratuito e de código aberto. Uma estrela ajuda outras pessoas a encontrá-lo — você só precisa de uma conta gratuita no GitHub.",
+    "starSub": "Grátis e de código aberto, feito por um único dev. Uma estrela ajuda a ser encontrado.",
     "starCta": "Dar estrela no GitHub",
-    "starLater": "Talvez depois"
+    "starLater": "Talvez depois",
+    "starWordTitle": "Inventaram uma palavra!",
+    "starWarTitle": "Uma guerra começou!",
+    "starCoupTitle": "Um golpe!"
   },
   "life": {
     "title": "A vida de {name}",

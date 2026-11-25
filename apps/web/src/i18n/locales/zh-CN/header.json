@@ -1,6 +1,6 @@
 {
   "starTitle": "在 GitHub 上点星",
-  "starBody": "The Human Box 免费且开源。点个星可以帮助更多人找到它。",
+  "starBody": "免费开源，由一位开发者制作。点一颗星能让更多人发现它。",
   "starAria": "在 GitHub 上为 The Human Box 点星",
   "star": "星标",
   "live": "在线",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "没有效果"
     }
-  }
+  },
+  "starCountAria": "在 GitHub 上为 The Human Box 点星，{count} 星"
 }

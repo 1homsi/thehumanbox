@@ -1,6 +1,6 @@
 {
   "starTitle": "Auf GitHub mit Stern markieren",
-  "starBody": "The Human Box ist kostenlos und Open Source. Ein Stern hilft anderen, es zu finden.",
+  "starBody": "Kostenlos und Open Source, von einem Entwickler gemacht. Ein Stern hilft, dass man es findet.",
   "starAria": "The Human Box auf GitHub mit Stern markieren",
   "star": "Stern",
   "live": "LIVE",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "keine Wirkung"
     }
-  }
+  },
+  "starCountAria": "The Human Box auf GitHub mit Stern markieren, {count} Sterne"
 }

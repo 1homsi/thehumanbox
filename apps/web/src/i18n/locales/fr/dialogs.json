@@ -372,9 +372,12 @@
     "checkpointFailed": "le monde actuel n'a pas pu être sauvegardé ; l'actualisation pour la mise à jour a été annulée par sécurité",
     "starTitle": "Vous appréciez votre monde ?",
     "starSettlementTitle": "Votre première colonie !",
-    "starSub": "The Human Box est gratuit et open source. Une étoile aide les autres à le découvrir — il vous faut seulement un compte GitHub gratuit.",
+    "starSub": "Gratuit et open source, fait par un seul dev. Une étoile aide à le faire découvrir.",
     "starCta": "Mettre une étoile sur GitHub",
-    "starLater": "Peut-être plus tard"
+    "starLater": "Peut-être plus tard",
+    "starWordTitle": "Ils ont inventé un mot !",
+    "starWarTitle": "La guerre a éclaté !",
+    "starCoupTitle": "Un coup d’État !"
   },
   "life": {
     "title": "Vie de {name}",

@@ -1,6 +1,6 @@
 {
   "starTitle": "Daj gwiazdkę na GitHubie",
-  "starBody": "The Human Box jest darmowy i open source. Gwiazdka pomaga innym go znaleźć.",
+  "starBody": "Darmowe i otwartoźródłowe, zrobione przez jednego deva. Gwiazdka pomaga je znaleźć.",
   "starAria": "Daj gwiazdkę The Human Box na GitHubie",
   "star": "gwiazdka",
   "live": "LIVE",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "bez efektu"
     }
-  }
+  },
+  "starCountAria": "Daj gwiazdkę The Human Box na GitHubie, {count} gwiazdek"
 }

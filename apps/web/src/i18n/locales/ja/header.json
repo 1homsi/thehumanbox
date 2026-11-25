@@ -1,6 +1,6 @@
 {
   "starTitle": "GitHub でスターを付ける",
-  "starBody": "The Human Box は無料のオープンソースです。スターを付けると、ほかの人が見つけやすくなります。",
+  "starBody": "一人の開発者による無料のオープンソースです。スターを付けると見つけてもらいやすくなります。",
   "starAria": "GitHub で The Human Box にスターを付ける",
   "star": "スター",
   "live": "LIVE",
@@ -211,5 +211,6 @@
     "float": {
       "noEffect": "効果なし"
     }
-  }
+  },
+  "starCountAria": "GitHub で The Human Box にスターを付ける、{count} スター"
 }
