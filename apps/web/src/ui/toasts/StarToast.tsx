@@ -13,10 +13,12 @@ export const STAR_PROMPT_KEY = 'thb-star-prompt-v2'
 export const LEGACY_STAR_PROMPT_KEY = 'thb-star-prompt-v1'
 /** Shown at most once per browser tab, even if storage is shared with another tab. */
 export const STAR_SESSION_KEY = 'thb-star-prompt-session'
-// Nothing asks until the player has been in a world for about three minutes.
-// Ten minutes hid the prompt from most sessions (median play was closer to five).
-export const STAR_MIN_PLAY_MS = 3 * 60_000
-export const STAR_DELAY_MIN_MS = 3 * 60_000
+// A one-minute floor keeps the prompt off the opening beat. After that, a first
+// settlement (or another delightful moment) may ask immediately. Otherwise the
+// timer asks at five minutes, around the median session length. Ten minutes
+// hid the prompt from most sessions (only about a third reached it).
+export const STAR_MIN_PLAY_MS = 60_000
+export const STAR_DELAY_MIN_MS = 5 * 60_000
 // One ask per player. A dismissal, a star, or a prompt that was already shown is not repeated.
 export const STAR_MAX_ASKS = 1
 
@@ -225,12 +227,12 @@ function titleKey(
 }
 
 /**
- * Asks once for a star on GitHub, after about three minutes in a world. A dismissal or a star
- * is permanent. A first invented word, a first war or coup, or the first settlement is the
- * preferred moment once that wait has passed; otherwise a timer asks. Nothing is shown before
- * the wait, before a world exists, or while another card is on screen. A head-start world opens
- * with settlements already standing, so there the settlement moment is the first one a new
- * tribe founds after the session began.
+ * Asks once for a star on GitHub. After a one-minute floor, a first invented word, a first
+ * war or coup, or the first settlement may ask; otherwise a timer asks at about five minutes.
+ * A dismissal or a star is permanent. Nothing is shown before the floor, before a world
+ * exists, or while another card is on screen. A head-start world opens with settlements
+ * already standing, so there the settlement moment is the first one a new tribe founds
+ * after the session began.
  */
 export function StarToast({
   world = null,

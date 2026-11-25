@@ -56,7 +56,7 @@ afterEach(() => {
   if (flags.photoMode) useUIStore.getState().setViewFlag('photoMode', false)
 })
 
-const THREE_MINUTES_MS = 3 * 60_000
+const FIVE_MINUTES_MS = 5 * 60_000
 
 function mount(world: WorldState | null = worldWith()) {
   const host = document.createElement('div')
@@ -107,24 +107,24 @@ const timerHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_
 const momentHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm_campaign=star_prompt_first_settlement`
 
 describe('StarToast', () => {
-  it('shows one soft nudge after three minutes in a world and never again once dismissed', () => {
-    expect(STAR_MIN_PLAY_MS).toBe(THREE_MINUTES_MS)
-    expect(STAR_DELAY_MIN_MS).toBe(THREE_MINUTES_MS)
+  it('shows one soft nudge after five minutes in a world and never again once dismissed', () => {
+    expect(STAR_MIN_PLAY_MS).toBe(60_000)
+    expect(STAR_DELAY_MIN_MS).toBe(FIVE_MINUTES_MS)
     expect(STAR_MAX_ASKS).toBe(1)
 
     const update = mount(null)
-    wait(THREE_MINUTES_MS)
+    wait(FIVE_MINUTES_MS)
     expect(toast()).toBeNull()
     expect(shownCalls()).toHaveLength(0)
 
     update(worldWith())
-    wait(THREE_MINUTES_MS - 1)
+    wait(FIVE_MINUTES_MS - 1)
     expect(toast()).toBeNull()
     wait(1)
     expect(toast()?.textContent).toContain('Enjoying your world?')
     expect(trackEvent).toHaveBeenCalledWith('star_prompt_shown', {
       trigger: 'timer',
-      play_ms: THREE_MINUTES_MS,
+      play_ms: FIVE_MINUTES_MS,
       ask_number: 1,
     })
 
@@ -135,21 +135,21 @@ describe('StarToast', () => {
     expect(trackEvent).toHaveBeenCalledWith('star_prompt_dismissed', { trigger: 'timer' })
 
     mount()
-    wait(THREE_MINUTES_MS)
+    wait(FIVE_MINUTES_MS)
     expect(toast()).toBeNull()
     expect(shownCalls()).toHaveLength(1)
   })
 
-  it('holds a first settlement until three minutes, then asks once', () => {
+  it('asks at a first settlement after one minute, before the five-minute timer', () => {
     const update = mount(worldWith())
     update(worldWith([settlement()], 600))
-    wait(THREE_MINUTES_MS - 1)
+    wait(STAR_MIN_PLAY_MS - 1)
     expect(toast()).toBeNull()
     expect(shownCalls()).toHaveLength(0)
     wait(1)
     expect(toast()?.textContent).toContain('Your first settlement!')
     expect(shownCalls()).toHaveLength(1)
-    expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_settlement', play_ms: THREE_MINUTES_MS })
+    expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_settlement', play_ms: STAR_MIN_PLAY_MS })
   })
 
   it('uses the timer as a fallback and links to the tagged repository URL', () => {
@@ -357,9 +357,9 @@ describe('StarToast', () => {
     expect(toast()).toBeNull()
   })
 
-  it('keeps the timer at three minutes', () => {
-    expect(STAR_DELAY_MIN_MS).toBe(THREE_MINUTES_MS)
-    expect(STAR_MIN_PLAY_MS).toBe(THREE_MINUTES_MS)
+  it('asks on the timer at five minutes, and lets a moment ask after one', () => {
+    expect(STAR_DELAY_MIN_MS).toBe(FIVE_MINUTES_MS)
+    expect(STAR_MIN_PLAY_MS).toBe(60_000)
   })
 
   describe('in a head-start world', () => {
@@ -391,7 +391,7 @@ describe('StarToast', () => {
       })
     }
 
-    it('does not count the settlements it starts with, and falls back to the three-minute timer', () => {
+    it('does not count the settlements it starts with, and falls back to the five-minute timer', () => {
       const update = mountAs('head_start', opening())
       update(worldWith([tribe('a', 3), tribe('b', 2), tribe('c', 1)], 2_000))
       wait(STAR_DELAY_MIN_MS - 1)
