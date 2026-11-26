@@ -13,7 +13,6 @@ import {
   STAR_MAX_ASKS,
   STAR_MIN_PLAY_MS,
   STAR_PROMPT_KEY,
-  STAR_SESSION_KEY,
   StarToast,
 } from './StarToast'
 import type { WorldStartMode } from '../../simulation/worldStart'
@@ -45,7 +44,6 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.mocked(trackEvent).mockClear()
   Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true })
-  window.sessionStorage.clear()
 })
 afterEach(() => {
   act(() => roots.splice(0).forEach((root) => root.unmount()))
@@ -57,6 +55,7 @@ afterEach(() => {
 })
 
 const FIVE_MINUTES_MS = 5 * 60_000
+const THREE_MINUTES_MS = 3 * 60_000
 
 function mount(world: WorldState | null = worldWith()) {
   const host = document.createElement('div')
@@ -108,7 +107,7 @@ const momentHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm
 
 describe('StarToast', () => {
   it('shows one soft nudge after five minutes in a world and never again once dismissed', () => {
-    expect(STAR_MIN_PLAY_MS).toBe(60_000)
+    expect(STAR_MIN_PLAY_MS).toBe(THREE_MINUTES_MS)
     expect(STAR_DELAY_MIN_MS).toBe(FIVE_MINUTES_MS)
     expect(STAR_MAX_ASKS).toBe(1)
 
@@ -140,7 +139,7 @@ describe('StarToast', () => {
     expect(shownCalls()).toHaveLength(1)
   })
 
-  it('asks at a first settlement after one minute, before the five-minute timer', () => {
+  it('asks at a first settlement after three minutes, before the five-minute timer', () => {
     const update = mount(worldWith())
     update(worldWith([settlement()], 600))
     wait(STAR_MIN_PLAY_MS - 1)
@@ -342,7 +341,6 @@ describe('StarToast', () => {
     expect(trackEvent).toHaveBeenCalledWith('star_prompt_dismissed', { trigger: 'timer' })
 
     window.localStorage.removeItem(STAR_PROMPT_KEY)
-    window.sessionStorage.removeItem(STAR_SESSION_KEY)
     mount()
     wait(STAR_DELAY_MIN_MS)
     const link = toast()?.querySelector('a') as HTMLAnchorElement
@@ -357,9 +355,86 @@ describe('StarToast', () => {
     expect(toast()).toBeNull()
   })
 
-  it('asks on the timer at five minutes, and lets a moment ask after one', () => {
+  it('asks on the timer at five minutes, and lets a moment ask after three', () => {
     expect(STAR_DELAY_MIN_MS).toBe(FIVE_MINUTES_MS)
-    expect(STAR_MIN_PLAY_MS).toBe(60_000)
+    expect(STAR_MIN_PLAY_MS).toBe(THREE_MINUTES_MS)
+  })
+
+  it('shows a moment that comes after the floor straight away', () => {
+    const update = mount(worldWith())
+    wait(THREE_MINUTES_MS + 30_000)
+    expect(toast()).toBeNull()
+    update(worldWith([settlement()], 600))
+    expect(shownCalls()).toHaveLength(1)
+    expect(shownCalls()[0]?.[1]).toMatchObject({
+      trigger: 'first_settlement',
+      play_ms: THREE_MINUTES_MS + 30_000,
+    })
+  })
+
+  describe('once per player across worlds', () => {
+    it('does not ask again after the player restarts the world (world goes away and comes back)', () => {
+      const update = mount(worldWith())
+      update(worldWith([settlement()], 600))
+      wait(STAR_MIN_PLAY_MS)
+      expect(shownCalls()).toHaveLength(1)
+      // The toast is still up, not dismissed, when the player restarts.
+      expect(toast()).not.toBeNull()
+      expect(state()).toMatchObject({ asks: 1 })
+
+      update(null)
+      update(worldWith([], 0))
+      update(worldWith([settlement()], 600, { battles: [], headlines: [] }))
+      wait(STAR_DELAY_MIN_MS * 3)
+      expect(shownCalls()).toHaveLength(1)
+    })
+
+    it('does not ask again in a new world after a reload remounts the app', () => {
+      mount(worldWith())
+      wait(STAR_DELAY_MIN_MS)
+      expect(shownCalls()).toHaveLength(1)
+      act(() => roots.splice(0).forEach((root) => root.unmount()))
+      // A reload starts a fresh tab session; only localStorage survives.
+      window.sessionStorage.clear()
+
+      const update = mount(worldWith())
+      update(worldWith([settlement()], 600))
+      wait(STAR_DELAY_MIN_MS * 3)
+      expect(toast()).toBeNull()
+      expect(shownCalls()).toHaveLength(1)
+    })
+
+    it('does not ask again when a new world restarts the tick in the same mount', () => {
+      const update = mount(worldWith([], 0, { battles: [] }))
+      wait(STAR_DELAY_MIN_MS)
+      expect(shownCalls()).toHaveLength(1)
+      update(worldWith([], 0, { battles: [] }))
+      update(worldWith([settlement()], 50, { headlines: [{ tick: 50, text: 'A coup in Firstfolk' }] }))
+      wait(STAR_DELAY_MIN_MS * 3)
+      expect(shownCalls()).toHaveLength(1)
+    })
+
+    it('stays hidden when storage accepts the write but does not keep it', () => {
+      const real = window.localStorage
+      const forgetful = { ...memoryStorage(), getItem: () => null, setItem: () => undefined } as Storage
+      Object.defineProperty(window, 'localStorage', { value: forgetful, configurable: true })
+      mount()
+      wait(STAR_DELAY_MIN_MS * 3)
+      expect(toast()).toBeNull()
+      expect(shownCalls()).toHaveLength(0)
+      Object.defineProperty(window, 'localStorage', { value: real, configurable: true })
+    })
+
+    it('gives way when another tab records the ask while a moment waits for the floor', () => {
+      const update = mount(worldWith())
+      update(worldWith([settlement()], 600))
+      wait(STAR_MIN_PLAY_MS - 1_000)
+      window.localStorage.setItem(STAR_PROMPT_KEY, JSON.stringify({ asks: 1 }))
+      act(() => void window.dispatchEvent(new StorageEvent('storage', { key: STAR_PROMPT_KEY })))
+      wait(STAR_DELAY_MIN_MS * 3)
+      expect(toast()).toBeNull()
+      expect(shownCalls()).toHaveLength(0)
+    })
   })
 
   describe('in a head-start world', () => {
@@ -435,65 +510,73 @@ describe('StarToast', () => {
   })
 
   describe('delightful moments', () => {
-    it('asks when a tribe invents its first word', () => {
-      const update = mount(worldWith([], 0, { lineage_words: {} }))
-      update(worldWith([], 200, { lineage_words: { a: { water: 'miku' } } }))
-      wait(STAR_MIN_PLAY_MS)
-      expect(shownCalls()).toEqual([
-        ['star_prompt_shown', { trigger: 'first_word', play_ms: STAR_MIN_PLAY_MS, ask_number: 1 }],
-      ])
-      expect(toast()?.textContent).toContain('They invented a word!')
-      expect(toast()?.textContent).toContain('made by one dev')
-    })
+    const battle = {
+      id: 'battle-1',
+      attackers: ['a'],
+      defenders: ['b'],
+      scale: 'raid' as const,
+      location: [1, 1] as [number, number],
+      started_tick: 400,
+      ended: false,
+      casualties_a: 0,
+      casualties_d: 0,
+      initial_a: 4,
+      initial_d: 4,
+    }
 
-    it('does not treat words already in the first census as a new moment', () => {
-      const update = mount(worldWith([], 0, { lineage_words: { a: { water: 'miku' } } }))
-      update(worldWith([], 200, { lineage_words: { a: { water: 'miku' } } }))
-      wait(STAR_DELAY_MIN_MS - 1)
-      expect(toast()).toBeNull()
-      wait(1)
-      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'timer' })
-    })
-
-    it('asks when a war breaks out after the session begins', () => {
+    it('holds a war that breaks out early until three minutes', () => {
       const update = mount(worldWith([], 0, { battles: [] }))
-      update(
-        worldWith([], 400, {
-          battles: [
-            {
-              id: 'battle-1',
-              attackers: ['a'],
-              defenders: ['b'],
-              scale: 'raid',
-              location: [1, 1],
-              started_tick: 400,
-              ended: false,
-              casualties_a: 0,
-              casualties_d: 0,
-              initial_a: 4,
-              initial_d: 4,
-            },
-          ],
-        }),
-      )
-      wait(STAR_MIN_PLAY_MS)
-      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_war' })
+      update(worldWith([], 400, { battles: [battle] }))
+      wait(STAR_MIN_PLAY_MS - 1)
+      expect(toast()).toBeNull()
+      expect(shownCalls()).toHaveLength(0)
+      wait(1)
+      expect(shownCalls()).toEqual([
+        ['star_prompt_shown', { trigger: 'first_war', play_ms: STAR_MIN_PLAY_MS, ask_number: 1 }],
+      ])
       expect(toast()?.textContent).toContain('War has broken out!')
     })
 
-    it('asks when someone seizes power in a coup', () => {
+    it('holds a coup that happens early until three minutes', () => {
       const update = mount(worldWith([], 0, { headlines: [] }))
       update(worldWith([], 800, { headlines: [{ tick: 800, text: 'Mira seized power in a coup' }] }))
-      wait(STAR_MIN_PLAY_MS)
-      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_coup' })
+      wait(STAR_MIN_PLAY_MS - 1)
+      expect(toast()).toBeNull()
+      wait(1)
+      expect(shownCalls()).toEqual([
+        ['star_prompt_shown', { trigger: 'first_coup', play_ms: STAR_MIN_PLAY_MS, ask_number: 1 }],
+      ])
       expect(toast()?.textContent).toContain('A coup!')
     })
 
-    it('prefers a first word over a settlement in the same update', () => {
+    it('holds an early settlement until three minutes', () => {
+      const update = mount(worldWith())
+      update(worldWith([settlement()], 200))
+      wait(STAR_MIN_PLAY_MS - 1)
+      expect(toast()).toBeNull()
+      wait(1)
+      expect(shownCalls()).toEqual([
+        ['star_prompt_shown', { trigger: 'first_settlement', play_ms: STAR_MIN_PLAY_MS, ask_number: 1 }],
+      ])
+    })
+
+    it('does not treat a newly invented word as a moment', () => {
+      const update = mount(worldWith([], 0, { lineage_words: {} }))
+      update(worldWith([], 200, { lineage_words: { a: { water: 'miku' } } }))
+      wait(STAR_DELAY_MIN_MS - 1)
+      expect(toast()).toBeNull()
+      expect(shownCalls()).toHaveLength(0)
+      wait(1)
+      expect(shownCalls()).toEqual([
+        ['star_prompt_shown', { trigger: 'timer', play_ms: STAR_DELAY_MIN_MS, ask_number: 1 }],
+      ])
+    })
+
+    it('still asks at a settlement that arrives in the same update as a new word', () => {
       const update = mount(worldWith([], 0, { lineage_words: {} }))
       update(worldWith([settlement()], 200, { lineage_words: { a: { water: 'miku' } } }))
       wait(STAR_MIN_PLAY_MS)
-      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_word' })
+      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_settlement' })
     })
   })
 })

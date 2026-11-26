@@ -11,18 +11,16 @@ import { t } from '../../i18n'
 export const STAR_PROMPT_KEY = 'thb-star-prompt-v2'
 /** v1 stored a bare 'shown' | 'dismissed' | 'starred'; a star or a dismissal is carried over. */
 export const LEGACY_STAR_PROMPT_KEY = 'thb-star-prompt-v1'
-/** Shown at most once per browser tab, even if storage is shared with another tab. */
-export const STAR_SESSION_KEY = 'thb-star-prompt-session'
-// A one-minute floor keeps the prompt off the opening beat. After that, a first
-// settlement (or another delightful moment) may ask immediately. Otherwise the
-// timer asks at five minutes, around the median session length. Ten minutes
-// hid the prompt from most sessions (only about a third reached it).
-export const STAR_MIN_PLAY_MS = 60_000
+// A three-minute floor keeps the prompt off the opening minutes. After that, a first
+// settlement, war or coup may ask at once; one that happens sooner waits for the floor.
+// Otherwise the timer asks at five minutes, around the median session length.
+export const STAR_MIN_PLAY_MS = 3 * 60_000
 export const STAR_DELAY_MIN_MS = 5 * 60_000
-// One ask per player. A dismissal, a star, or a prompt that was already shown is not repeated.
+// One ask per player, kept in localStorage. A dismissal, a star, or a prompt that was
+// already shown is not repeated, across world restarts, new worlds, reloads and tabs.
 export const STAR_MAX_ASKS = 1
 
-export type StarPromptTrigger = 'first_settlement' | 'first_word' | 'first_war' | 'first_coup' | 'timer'
+export type StarPromptTrigger = 'first_settlement' | 'first_war' | 'first_coup' | 'timer'
 
 type StarPromptState = {
   asks: number
@@ -39,7 +37,6 @@ type MomentWatch = {
   hasSettlementData: boolean
   seenSettlement: boolean
   startingLineages: Set<string>
-  words: { hasData: boolean; starting: SignatureSet }
   wars: { hasData: boolean; starting: SignatureSet }
   coups: { hasData: boolean; starting: SignatureSet }
 }
@@ -81,25 +78,8 @@ function readState(): ReadResult {
   }
 }
 
-function askedThisSession(): boolean {
-  try {
-    return window.sessionStorage.getItem(STAR_SESSION_KEY) === 'shown'
-  } catch {
-    return false
-  }
-}
-
-function markAskedThisSession(): void {
-  try {
-    window.sessionStorage.setItem(STAR_SESSION_KEY, 'shown')
-  } catch {
-    // The in-memory settled flag still stops a second ask in this visit.
-  }
-}
-
 /** True when the prompt must stay hidden: already handled, or storage is unusable. */
 function alreadyAsked(): boolean {
-  if (askedThisSession()) return true
   const read = readState()
   if (!read.ok) return true
   const state = read.state
@@ -124,15 +104,6 @@ function hasNewSettlement(world: WorldState, startingLineages: Set<string>): boo
       (settlement) => settlement.tier >= 1 && !startingLineages.has(settlement.lineage_id),
     ) ?? false
   )
-}
-
-function wordSignatures(world: WorldState): SignatureSet | null {
-  if (world.lineage_words === undefined) return null
-  const keys = new Set<string>()
-  for (const [lineage, vocab] of Object.entries(world.lineage_words)) {
-    for (const word of Object.keys(vocab)) keys.add(`${lineage}:${word}`)
-  }
-  return keys
 }
 
 function warSignatures(world: WorldState): SignatureSet | null {
@@ -173,7 +144,6 @@ function hasNewSignature(current: SignatureSet, starting: SignatureSet): boolean
 }
 
 function snapshotMoments(world: WorldState): MomentWatch {
-  const words = wordSignatures(world)
   const wars = warSignatures(world)
   const coups = coupSignatures(world)
   return {
@@ -181,20 +151,17 @@ function snapshotMoments(world: WorldState): MomentWatch {
     hasSettlementData: world.settlements !== undefined,
     seenSettlement: hasSettlement(world),
     startingLineages: settlementLineages(world),
-    words: { hasData: words !== null, starting: words ?? new Set() },
     wars: { hasData: wars !== null, starting: wars ?? new Set() },
     coups: { hasData: coups !== null, starting: coups ?? new Set() },
   }
 }
 
-/** Prefer the game's own hook (a first word) over a fight or a settlement. */
+/** The first new coup, war or settlement since the session began. */
 function momentTrigger(
   world: WorldState,
   previous: MomentWatch,
   startMode: WorldStartMode | null,
 ): StarPromptTrigger | null {
-  const words = wordSignatures(world)
-  if (previous.words.hasData && words && hasNewSignature(words, previous.words.starting)) return 'first_word'
   const coups = coupSignatures(world)
   if (previous.coups.hasData && coups && hasNewSignature(coups, previous.coups.starting)) return 'first_coup'
   const wars = warSignatures(world)
@@ -215,22 +182,21 @@ function titleKey(
   trigger: StarPromptTrigger,
 ):
   | 'dialogs.toast.starSettlementTitle'
-  | 'dialogs.toast.starWordTitle'
   | 'dialogs.toast.starWarTitle'
   | 'dialogs.toast.starCoupTitle'
   | 'dialogs.toast.starTitle' {
   if (trigger === 'first_settlement') return 'dialogs.toast.starSettlementTitle'
-  if (trigger === 'first_word') return 'dialogs.toast.starWordTitle'
   if (trigger === 'first_war') return 'dialogs.toast.starWarTitle'
   if (trigger === 'first_coup') return 'dialogs.toast.starCoupTitle'
   return 'dialogs.toast.starTitle'
 }
 
 /**
- * Asks once for a star on GitHub. After a one-minute floor, a first invented word, a first
- * war or coup, or the first settlement may ask; otherwise a timer asks at about five minutes.
- * A dismissal or a star is permanent. Nothing is shown before the floor, before a world
- * exists, or while another card is on screen. A head-start world opens with settlements
+ * Asks once per player for a star on GitHub. After a three-minute floor, a first war or coup,
+ * or the first settlement may ask; otherwise a timer asks at five minutes. The ask is written
+ * to localStorage before the toast appears and checked before every new world, so a restart,
+ * a new world, a reload or another tab never asks again. Nothing is shown before the floor,
+ * before a world exists, or while another card is on screen. A head-start world opens with settlements
  * already standing, so there the settlement moment is the first one a new tribe founds
  * after the session began.
  */
@@ -284,12 +250,10 @@ export function StarToast({
         return
       }
       const asks = (read.state?.asks ?? 0) + 1
-      if (!writeState({ ...read.state, asks })) {
-        settled = true
-        return
-      }
-      markAskedThisSession()
       settled = true
+      // Record the ask before showing it, and show it only if storage really kept it:
+      // storage that drops the write would otherwise ask again in the next world.
+      if (!writeState({ ...read.state, asks }) || !alreadyAsked()) return
       setShownTrigger(trigger)
       setVisible(true)
       trackEvent('star_prompt_shown', {
@@ -311,11 +275,24 @@ export function StarToast({
       show()
     }
 
+    // Another tab that records the ask (or a star or dismissal) settles this one at once.
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== null && event.key !== STAR_PROMPT_KEY) return
+      if (!alreadyAsked()) return
+      settled = true
+      if (timer !== null) {
+        window.clearTimeout(timer)
+        timer = null
+      }
+    }
+
     requestMoment.current = request
+    window.addEventListener('storage', onStorage)
     timer = window.setTimeout(() => request('timer'), STAR_DELAY_MIN_MS)
     return () => {
       disposed = true
       requestMoment.current = () => undefined
+      window.removeEventListener('storage', onStorage)
       if (timer !== null) window.clearTimeout(timer)
     }
   }, [inWorld])
@@ -341,8 +318,6 @@ export function StarToast({
       seenSettlement: previous.seenSettlement || found,
       startingLineages: previous.hasSettlementData ? previous.startingLineages : settlementLineages(world),
     }
-    const words = wordSignatures(world)
-    if (!previous.words.hasData && words !== null) next.words = { hasData: true, starting: words }
     const wars = warSignatures(world)
     if (!previous.wars.hasData && wars !== null) next.wars = { hasData: true, starting: wars }
     const coups = coupSignatures(world)
@@ -350,7 +325,6 @@ export function StarToast({
 
     const trigger = momentTrigger(world, previous, startModeRef.current)
     // Once a field has been seen, later arrivals still use the original baseline.
-    if (previous.words.hasData && words) next.words = previous.words
     if (previous.wars.hasData && wars) next.wars = previous.wars
     if (previous.coups.hasData && coups) next.coups = previous.coups
     momentWatch.current = next
