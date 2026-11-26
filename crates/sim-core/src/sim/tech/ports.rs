@@ -6,6 +6,7 @@
 //! a boat is launched only when one is free.
 //!
 //! Everything here walks buildings, people and boats in a fixed order and draws no random numbers.
+use crate::intern::Sym;
 use crate::sim::civ::land::village_stores::{fits, OccupiedMap};
 use crate::sim::era::Era;
 use crate::sim::simulation::Simulation;
@@ -64,20 +65,39 @@ const YARD_WOOD_CAP: u32 = 12;
 /// The piers at a harbour: one, and one more for each `PEOPLE_PER_PIER` people of `lineage` who
 /// live within `TOWN_REACH` of it, up to `MAX_PIERS`.
 pub fn piers_at(sim: &Simulation, harbour: (i32, i32), lineage: &str) -> u32 {
+    piers_at_each(sim, &[(harbour, lineage)])[0]
+}
+
+/// [`piers_at`] for several harbours, in the order given, from one walk over the people. The frame
+/// sends every boat's piers, and a walk over everyone for each boat was a quarter of a frame's cost
+/// at 3,000 people.
+pub fn piers_at_each(sim: &Simulation, harbours: &[((i32, i32), &str)]) -> Vec<u32> {
+    if harbours.is_empty() {
+        return Vec::new();
+    }
     let reach = TOWN_REACH as f32;
-    let town = sim
-        .organisms
+    // Every person's tribe is an interned name, so a tribe no one was ever named for has no townsfolk,
+    // and the rest compare by address instead of by text.
+    let tribes: Vec<Option<Sym>> = harbours
         .iter()
-        .filter(|o| {
-            o.alive
-                && o.lineage_id == lineage
+        .map(|&(_, lineage)| Sym::existing(lineage))
+        .collect();
+    let mut town = vec![0usize; harbours.len()];
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        for (k, (&(harbour, _), tribe)) in harbours.iter().zip(&tribes).enumerate() {
+            if *tribe == Some(o.lineage_id)
                 && (o.home_x - harbour.0 as f32)
                     .abs()
                     .max((o.home_y - harbour.1 as f32).abs())
                     <= reach
-        })
-        .count();
-    (1 + (town / PEOPLE_PER_PIER) as u32).min(MAX_PIERS)
+            {
+                town[k] += 1;
+            }
+        }
+    }
+    town.into_iter()
+        .map(|town| (1 + (town / PEOPLE_PER_PIER) as u32).min(MAX_PIERS))
+        .collect()
 }
 
 /// Whether a shipyard of any tribe already stands in the town of `harbour`.
@@ -579,6 +599,61 @@ mod tests {
             vec![Some(1), Some(2), Some(3), None],
             "the hull goes keel, ribs, planks, and the slip empties at the launch"
         );
+    }
+
+    #[test]
+    fn piers_for_many_harbours_match_a_walk_over_everyone_for_each() {
+        let (mut sim, lineage) = coastal_sim();
+        let other = sim.organisms[39].lineage_id;
+        let other = if other.as_str() == lineage {
+            crate::intern::Sym::new("ports-test-other-tribe")
+        } else {
+            other
+        };
+        // Townsfolk of two tribes spread along the coast, some dead, some out of reach.
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            o.home_x = 70.0 + (i * 7 % 30) as f32;
+            o.home_y = 85.0 + (i * 11 % 30) as f32;
+            o.alive = i % 9 != 0;
+            if i % 3 == 0 {
+                o.lineage_id = other;
+            }
+        }
+        let harbours: Vec<((i32, i32), &str)> = vec![
+            ((90, 100), lineage.as_str()),
+            ((90, 100), other.as_str()),
+            ((84, 96), lineage.as_str()),
+            ((100, 112), other.as_str()),
+            ((90, 100), "a tribe no one belongs to"),
+            ((90, 100), lineage.as_str()),
+        ];
+        let walked: Vec<u32> = harbours
+            .iter()
+            .map(|&(harbour, tribe)| {
+                let town = sim
+                    .organisms
+                    .iter()
+                    .filter(|o| {
+                        o.alive
+                            && o.lineage_id == tribe
+                            && (o.home_x - harbour.0 as f32)
+                                .abs()
+                                .max((o.home_y - harbour.1 as f32).abs())
+                                <= TOWN_REACH as f32
+                    })
+                    .count();
+                (1 + (town / PEOPLE_PER_PIER) as u32).min(MAX_PIERS)
+            })
+            .collect();
+        assert_eq!(piers_at_each(&sim, &harbours), walked);
+        assert!(
+            walked.iter().any(|&piers| piers > 1),
+            "the test has a harbour with more than one pier: {walked:?}"
+        );
+        for (&(harbour, tribe), &piers) in harbours.iter().zip(&walked) {
+            assert_eq!(piers_at(&sim, harbour, tribe), piers);
+        }
+        assert!(piers_at_each(&sim, &[]).is_empty());
     }
 
     #[test]

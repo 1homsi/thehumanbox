@@ -32,6 +32,11 @@ MAX_CROWD_TICK_MS=${MAX_CROWD_TICK_MS:-600}
 MAX_CROWD_P99_MS=${MAX_CROWD_P99_MS:-300}
 MAX_CROWD_MEAN_MS=${MAX_CROWD_MEAN_MS:-150}
 MAX_CROWD_RSS_MB=${MAX_CROWD_RSS_MB:-1024}
+# The crowd run also builds the delta frame the browser worker posts to the page after every tick at 1x
+# (`headless --frames`): at ~3,000 people that frame was a fifth of the worker's time, so its mean cost and
+# size are budgeted too.
+MAX_CROWD_FRAME_MS=${MAX_CROWD_FRAME_MS:-8}
+MAX_CROWD_FRAME_KB=${MAX_CROWD_FRAME_KB:-512}
 TMPDIR=${TMPDIR:-/tmp}/thehumanbox-perf-$$
 mkdir -p "$TMPDIR"
 trap 'rm -rf "$TMPDIR"' EXIT
@@ -63,12 +68,13 @@ if [[ "$LONG_TICKS" -gt 0 ]]; then
   run_one "$LONG_SEED" "$LONG_TICKS"
 fi
 if [[ "$CROWD" -gt 0 ]]; then
-  run_one "$CROWD_SEED" "$CROWD_TICKS" --crowd "$CROWD" --crowd-at "$CROWD_AT"
+  run_one "$CROWD_SEED" "$CROWD_TICKS" --crowd "$CROWD" --crowd-at "$CROWD_AT" --frames
 fi
 
-# check_run <seed> <ticks> <max_tick_ms> <max_p99_ms> <max_mean_ms>
+# check_run <seed> <ticks> <max_tick_ms> <max_p99_ms> <max_mean_ms> [max_rss_mb] [after_tick] [max_frame_ms max_frame_kb]
 check_run() {
   local seed=$1 ticks=$2 max_tick=$3 max_p99=$4 max_mean=$5 max_rss=${6:-$MAX_RSS_MB} after=${7:-0}
+  local max_frame_ms=${8:-} max_frame_kb=${9:-}
   local profile="$TMPDIR/$seed-$ticks.csv"
   if [[ "$after" -gt 0 ]]; then
     awk -F, -v after="$after" 'NR == 1 || $1 > after' "$profile" >"$profile.after"
@@ -94,11 +100,28 @@ check_run() {
   peak_rss_mb=$(awk -v kb="$peak_rss_kb" 'BEGIN { printf "%.1f", kb / 1024 }')
   # What the run simulated, so a slower tick can be told from a bigger world: the people alive at the end,
   # and a checksum of the world's printed history (timing lines left out) to compare with a local run of
-  # `headless --seed <seed> --ticks <ticks> --every <ticks>` on another machine.
+  # `headless --seed <seed> --ticks <ticks> --every <ticks>` on another machine. The payload estimate (KB
+  # lines) is left out too: the crowd run's `--frames` sends thoughts and structures ahead of it.
   local out="$TMPDIR/$seed-$ticks.out" alive world
   alive=$(awk -v t="$ticks" '$1 == t && NF > 3 { print $2; exit }' "$out")
-  world=$(grep -v -e 'µs' -e 'wall' "$out" | cksum | awk '{ print $1 }')
+  world=$(grep -v -e 'µs' -e 'wall' -e ' KB' "$out" | cksum | awk '{ print $1 }')
   echo "seed=$seed ticks=$ticks mean_tick_ms=$mean_ms p99_tick_ms=$p99_ms max_tick_ms=$max_ms peak_rss_mb=$peak_rss_mb alive=${alive:-?} world=$world budgets=${max_tick}ms/${max_p99}ms/${max_mean}ms/${max_rss}MB"
+  if [[ -n "$max_frame_ms" ]]; then
+    # Columns 5 and 6: the delta frame's build time (ms) and size (KB) after each tick.
+    local frame_ms frame_kb frame_max_kb
+    frame_ms=$(awk -F, 'NR > 1 { sum += $5; n += 1 } END { printf "%.3f", n ? sum / n : 0 }' "$profile")
+    frame_kb=$(awk -F, 'NR > 1 { sum += $6; n += 1 } END { printf "%.1f", n ? sum / n : 0 }' "$profile")
+    frame_max_kb=$(awk -F, 'NR > 1 && $6 > max { max = $6 } END { printf "%.1f", max + 0 }' "$profile")
+    echo "seed=$seed frames: mean_frame_ms=$frame_ms mean_frame_kb=$frame_kb max_frame_kb=$frame_max_kb budgets=${max_frame_ms}ms/${max_frame_kb}KB"
+    awk -v max="$max_frame_ms" -v actual="$frame_ms" 'BEGIN { exit actual > max }' || {
+      echo "frame build budget exceeded for seed $seed: ${frame_ms}ms > ${max_frame_ms}ms" >&2
+      return 1
+    }
+    awk -v max="$max_frame_kb" -v actual="$frame_kb" 'BEGIN { exit actual > max }' || {
+      echo "frame size budget exceeded for seed $seed: ${frame_kb}KB > ${max_frame_kb}KB" >&2
+      return 1
+    }
+  fi
   awk -v max="$max_tick" -v actual="$max_ms" 'BEGIN { exit actual > max }' || {
     echo "performance budget exceeded for seed $seed: ${max_ms}ms > ${max_tick}ms" >&2
     return 1
@@ -129,6 +152,6 @@ if [[ "$LONG_TICKS" -gt 0 ]]; then
 fi
 if [[ "$CROWD" -gt 0 ]]; then
   check_run "$CROWD_SEED" "$CROWD_TICKS" "$MAX_CROWD_TICK_MS" "$MAX_CROWD_P99_MS" "$MAX_CROWD_MEAN_MS" \
-    "$MAX_CROWD_RSS_MB" "$CROWD_AT" || failed=1
+    "$MAX_CROWD_RSS_MB" "$CROWD_AT" "$MAX_CROWD_FRAME_MS" "$MAX_CROWD_FRAME_KB" || failed=1
 fi
 exit "$failed"
