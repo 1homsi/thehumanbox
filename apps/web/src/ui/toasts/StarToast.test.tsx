@@ -55,7 +55,7 @@ afterEach(() => {
 })
 
 const FIVE_MINUTES_MS = 5 * 60_000
-const THREE_MINUTES_MS = 3 * 60_000
+const ONE_MINUTE_MS = 60_000
 
 function mount(world: WorldState | null = worldWith()) {
   const host = document.createElement('div')
@@ -107,7 +107,7 @@ const momentHref = `${REPO_URL}?utm_source=thehumanbox&utm_medium=star_toast&utm
 
 describe('StarToast', () => {
   it('shows one soft nudge after five minutes in a world and never again once dismissed', () => {
-    expect(STAR_MIN_PLAY_MS).toBe(THREE_MINUTES_MS)
+    expect(STAR_MIN_PLAY_MS).toBe(ONE_MINUTE_MS)
     expect(STAR_DELAY_MIN_MS).toBe(FIVE_MINUTES_MS)
     expect(STAR_MAX_ASKS).toBe(1)
 
@@ -139,7 +139,7 @@ describe('StarToast', () => {
     expect(shownCalls()).toHaveLength(1)
   })
 
-  it('asks at a first settlement after three minutes, before the five-minute timer', () => {
+  it('asks at a first settlement after one minute, before the five-minute timer', () => {
     const update = mount(worldWith())
     update(worldWith([settlement()], 600))
     wait(STAR_MIN_PLAY_MS - 1)
@@ -355,20 +355,20 @@ describe('StarToast', () => {
     expect(toast()).toBeNull()
   })
 
-  it('asks on the timer at five minutes, and lets a moment ask after three', () => {
+  it('asks on the timer at five minutes, and lets a moment ask after one', () => {
     expect(STAR_DELAY_MIN_MS).toBe(FIVE_MINUTES_MS)
-    expect(STAR_MIN_PLAY_MS).toBe(THREE_MINUTES_MS)
+    expect(STAR_MIN_PLAY_MS).toBe(ONE_MINUTE_MS)
   })
 
   it('shows a moment that comes after the floor straight away', () => {
     const update = mount(worldWith())
-    wait(THREE_MINUTES_MS + 30_000)
+    wait(ONE_MINUTE_MS + 30_000)
     expect(toast()).toBeNull()
     update(worldWith([settlement()], 600))
     expect(shownCalls()).toHaveLength(1)
     expect(shownCalls()[0]?.[1]).toMatchObject({
       trigger: 'first_settlement',
-      play_ms: THREE_MINUTES_MS + 30_000,
+      play_ms: ONE_MINUTE_MS + 30_000,
     })
   })
 
@@ -524,7 +524,7 @@ describe('StarToast', () => {
       initial_d: 4,
     }
 
-    it('holds a war that breaks out early until three minutes', () => {
+    it('holds a war that breaks out early until one minute', () => {
       const update = mount(worldWith([], 0, { battles: [] }))
       update(worldWith([], 400, { battles: [battle] }))
       wait(STAR_MIN_PLAY_MS - 1)
@@ -537,7 +537,7 @@ describe('StarToast', () => {
       expect(toast()?.textContent).toContain('War has broken out!')
     })
 
-    it('holds a coup that happens early until three minutes', () => {
+    it('holds a coup that happens early until one minute', () => {
       const update = mount(worldWith([], 0, { headlines: [] }))
       update(worldWith([], 800, { headlines: [{ tick: 800, text: 'Mira seized power in a coup' }] }))
       wait(STAR_MIN_PLAY_MS - 1)
@@ -549,7 +549,7 @@ describe('StarToast', () => {
       expect(toast()?.textContent).toContain('A coup!')
     })
 
-    it('holds an early settlement until three minutes', () => {
+    it('holds an early settlement until one minute', () => {
       const update = mount(worldWith())
       update(worldWith([settlement()], 200))
       wait(STAR_MIN_PLAY_MS - 1)
@@ -560,23 +560,57 @@ describe('StarToast', () => {
       ])
     })
 
-    it('does not treat a newly invented word as a moment', () => {
+    it('asks at a first invented word at the one-minute floor', () => {
       const update = mount(worldWith([], 0, { lineage_words: {} }))
       update(worldWith([], 200, { lineage_words: { a: { water: 'miku' } } }))
-      wait(STAR_DELAY_MIN_MS - 1)
+      wait(STAR_MIN_PLAY_MS - 1)
       expect(toast()).toBeNull()
       expect(shownCalls()).toHaveLength(0)
       wait(1)
       expect(shownCalls()).toEqual([
-        ['star_prompt_shown', { trigger: 'timer', play_ms: STAR_DELAY_MIN_MS, ask_number: 1 }],
+        ['star_prompt_shown', { trigger: 'first_word', play_ms: ONE_MINUTE_MS, ask_number: 1 }],
+      ])
+      expect(toast()?.textContent).toContain('They invented a word!')
+      const link = toast()?.querySelector('a') as HTMLAnchorElement
+      expect(link.href).toContain('utm_campaign=star_prompt_first_word')
+    })
+
+    it('does not treat words already in the first census as a new moment', () => {
+      const update = mount(worldWith([], 0, { lineage_words: { a: { water: 'miku' } } }))
+      update(worldWith([], 200, { lineage_words: { a: { water: 'miku' } } }))
+      wait(STAR_DELAY_MIN_MS - 1)
+      expect(toast()).toBeNull()
+      wait(1)
+      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'timer' })
+    })
+
+    it('prefers a first word over a coup, a war and a settlement in the same update', () => {
+      const update = mount(worldWith([], 0, { lineage_words: {}, battles: [], headlines: [] }))
+      update(
+        worldWith([settlement()], 200, {
+          lineage_words: { a: { water: 'miku' } },
+          battles: [battle],
+          headlines: [{ tick: 200, text: 'Mira seized power in a coup' }],
+        }),
+      )
+      wait(STAR_MIN_PLAY_MS)
+      expect(shownCalls()).toEqual([
+        ['star_prompt_shown', { trigger: 'first_word', play_ms: STAR_MIN_PLAY_MS, ask_number: 1 }],
       ])
     })
 
-    it('still asks at a settlement that arrives in the same update as a new word', () => {
+    it('records the first word and does not ask again after a restart', () => {
       const update = mount(worldWith([], 0, { lineage_words: {} }))
-      update(worldWith([settlement()], 200, { lineage_words: { a: { water: 'miku' } } }))
+      update(worldWith([], 200, { lineage_words: { a: { water: 'miku' } } }))
       wait(STAR_MIN_PLAY_MS)
-      expect(shownCalls()[0]?.[1]).toMatchObject({ trigger: 'first_settlement' })
+      expect(shownCalls()).toHaveLength(1)
+      expect(state()).toMatchObject({ asks: 1 })
+
+      update(null)
+      update(worldWith([], 0, { lineage_words: {} }))
+      update(worldWith([settlement()], 200, { lineage_words: { b: { fire: 'tok' } } }))
+      wait(STAR_DELAY_MIN_MS * 3)
+      expect(shownCalls()).toHaveLength(1)
     })
   })
 })
