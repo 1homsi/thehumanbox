@@ -235,6 +235,12 @@ impl Simulation {
             }
         }
         if let Some(obj) = payload.as_object_mut() {
+            let moored: Vec<((i32, i32), &str)> = self
+                .vehicles
+                .iter()
+                .filter_map(|v| v.harbour.map(|h| (h, v.owner_lineage.as_str())))
+                .collect();
+            let mut piers = crate::sim::tech::ports::piers_at_each(self, &moored).into_iter();
             obj.insert("vehicles".into(), serde_json::Value::Array(self.vehicles.iter().map(|v| json!({
                 "id": v.id, "kind": v.kind.name(), "x": v.x, "y": v.y,
                 "rider_id": v.occupants.first(), "building": self.tick_count < v.ready_tick && !v.occupants.is_empty() && v.rail_line.is_none(),
@@ -243,7 +249,7 @@ impl Simulation {
                 // A boat with a voyage to make is under way (its wake shows); a fishing boat is moored at its harbour.
                 "sailing": !v.route.is_empty(), "harbour": v.harbour.map(|(x, y)| json!([x, y])),
                 // The piers of the owner's harbour: one for each berth a boat can moor at (see `tech/ports.rs`).
-                "piers": v.harbour.map(|h| crate::sim::tech::ports::piers_at(self, h, &v.owner_lineage)),
+                "piers": v.harbour.and_then(|_| piers.next()),
                 // The way to the dry land beside the harbour: a pier runs that way.
                 "shore": v.harbour.and_then(|h| crate::sim::tech::fleet::harbour_shore(&self.grid, h)).map(|(dx, dy)| json!([dx, dy])),
                 // Everyone aboard after the first (who is `rider_id`), and a ferry's two landings with the way to each shore.
@@ -502,20 +508,26 @@ impl Simulation {
             obj.insert("migrations".to_string(), serde_json::Value::Array(migrations));
             // The land goods each tribe holds, summed over its living people, so
             // the tribe card can name what its ground has given it.
-            let mut land_goods: std::collections::BTreeMap<&str, std::collections::BTreeMap<&str, u32>> =
-                std::collections::BTreeMap::new();
+            // Tribes are gathered by their interned name's address, then sorted by name as before.
+            let mut by_tribe: crate::hashing::FxHashMap<
+                usize,
+                (&str, std::collections::BTreeMap<&str, u32>),
+            > = crate::hashing::FxHashMap::default();
             for org in self.organisms.iter().filter(|org| org.alive) {
                 for (good, &held) in &org.goods {
                     if held > 0 {
-                        let total = land_goods
-                            .entry(org.lineage_id.as_str())
-                            .or_default()
+                        let total = by_tribe
+                            .entry(org.lineage_id.addr())
+                            .or_insert_with(|| (org.lineage_id.as_str(), Default::default()))
+                            .1
                             .entry(good.as_str())
                             .or_insert(0);
                         *total += u32::from(held);
                     }
                 }
             }
+            let land_goods: std::collections::BTreeMap<&str, std::collections::BTreeMap<&str, u32>> =
+                by_tribe.into_values().collect();
             obj.insert(
                 "land_goods".to_string(),
                 serde_json::to_value(&land_goods).unwrap_or_default(),

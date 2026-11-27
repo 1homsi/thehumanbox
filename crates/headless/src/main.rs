@@ -60,6 +60,7 @@ fn main() {
         crowd,
         crowd_at,
         full,
+        frames,
     } = args::parse();
 
     if world_report {
@@ -128,7 +129,7 @@ fn main() {
             panic!("failed to create profile file {}: {}", path, err);
         }));
         use std::io::Write as _;
-        writeln!(w, "tick,alive,ms_tick,rss_kb").ok();
+        writeln!(w, "tick,alive,ms_tick,rss_kb,frame_ms,frame_kb").ok();
         w
     });
 
@@ -187,6 +188,15 @@ fn main() {
         }
         let tick_us = t0.elapsed().as_micros() as u64;
         tick_times_us.push(tick_us);
+        // The page is sent a delta frame after every tick at 1x; timed apart from the tick.
+        let (frame_us, frame_bytes) = if frames {
+            let t1 = std::time::Instant::now();
+            let frame = sim::serialize::frame_codec::encode(&sim.state_frame_incremental())
+                .expect("a frame always encodes");
+            (t1.elapsed().as_micros() as u64, frame.len())
+        } else {
+            (0, 0)
+        };
         let t = sim.tick_count;
         motion.observe(&sim);
 
@@ -201,7 +211,16 @@ fn main() {
             if profile_every > 0 && t.is_multiple_of(profile_every) {
                 use std::io::Write as _;
                 let rss_kb = read_self_rss_kb();
-                let _ = writeln!(w, "{},{},{},{}", t, alive, tick_us as f64 / 1000.0, rss_kb,);
+                let _ = writeln!(
+                    w,
+                    "{},{},{},{},{},{:.1}",
+                    t,
+                    alive,
+                    tick_us as f64 / 1000.0,
+                    rss_kb,
+                    frame_us as f64 / 1000.0,
+                    frame_bytes as f64 / 1024.0
+                );
             }
         }
 

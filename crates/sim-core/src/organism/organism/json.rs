@@ -792,7 +792,8 @@ pub struct OrgsHotSoa {
     pub fear_levels: Vec<u8>,
     pub healths: Vec<u8>,
     pub hydrations: Vec<u8>,
-    pub ids: Vec<String>,
+    /// Interned, so the frame borrows each id instead of copying it.
+    pub ids: Vec<&'static str>,
     pub infections: Vec<u8>,
     /// Sparse: (index into ids, partner_id). Absent → unpartnered.
     pub partner_ids: Vec<(u32, String)>,
@@ -866,7 +867,7 @@ impl OrgsHotSoa {
             None => (i16::MIN, i16::MIN),
         };
         let idx = self.ids.len() as u32;
-        self.ids.push(o.id.to_string());
+        self.ids.push(o.id.as_str());
         self.xs.push(q_pos(pred_x));
         self.ys.push(q_pos(pred_y));
         self.vxs.push(enc_vx);

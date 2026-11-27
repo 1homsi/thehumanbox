@@ -25,6 +25,9 @@ pub(super) struct Args {
     pub(super) crowd: u32,
     pub(super) crowd_at: u64,
     pub(super) full: bool,
+    /// `--frames`: after every tick, build and encode the delta frame the browser worker posts, and put its
+    /// cost and size in the `--profile` CSV (the perf gate's crowd run checks them).
+    pub(super) frames: bool,
 }
 
 pub(super) fn parse() -> Args {
@@ -132,6 +135,7 @@ pub(super) fn parse() -> Args {
     let load = path_after("--load");
     let save = path_after("--save");
     let full = args.iter().any(|a| a == "--full");
+    let frames = args.iter().any(|a| a == "--frames");
     Args {
         seed,
         max_ticks,
@@ -154,5 +158,6 @@ pub(super) fn parse() -> Args {
         crowd,
         crowd_at,
         full,
+        frames,
     }
 }
