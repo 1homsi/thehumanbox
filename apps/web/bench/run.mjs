@@ -28,6 +28,10 @@
 //   --profile           also write a CPU profile of each metrics scenario next to the results
 //   --shots             save a screenshot of every scenario
 //   --alloc-profile     sample every allocation in the window (what makes garbage), written as .heapprofile
+//   --speed <label>     game speed to pick from the toolbar's speed menu before the warm-up, as the menu
+//                       writes it without the ×, for example --speed 5000. The scenario fails, listing the
+//                       menu's speeds, if there is no such entry. Stores speed, speedReadout (the toolbar
+//                       readout, e.g. 5000×≈65×) and tickAfter (the world tick after the window).
 //   --eval <js>         evaluate an expression in the page after the window, stored as result.eval
 //   --startup-profile   CPU profile of the page from navigation to the first frame (<fixture>-startup-run<n>.cpuprofile)
 //   --gl-log           record live WebGL textures by size and texture upload sizes (metrics pass)
@@ -71,7 +75,8 @@ const fixtures = list('fixtures', ['standard', 'crowd'])
 const zooms = list('zooms', ['overview', 'mid', 'close'])
 const modes = list('modes', ['paused', 'playing'])
 for (const m of modes)
-  if (!['paused', 'playing', 'panning'].includes(m)) throw new Error(`--modes takes paused, playing or panning, not ${m}`)
+  if (!['paused', 'playing', 'panning'].includes(m))
+    throw new Error(`--modes takes paused, playing or panning, not ${m}`)
 const passes = list('passes', ['metrics', 'trace', 'memory'])
 const windowMs = Number(opt('window', 8000))
 const warmupMs = Number(opt('warmup', 3000))
@@ -91,6 +96,9 @@ const wantGl = opt('gl-log', false) === true
 const wantAlloc = opt('alloc-profile', false) === true
 const wantStartup = opt('startup-profile', false) === true
 const evalExpr = opt('eval', null)
+const speedLabel = opt('speed', null)
+if (speedLabel === true)
+  throw new Error('--speed takes a label from the speed menu, for example --speed 5000')
 
 /** Zoom of each named view. `fit` is the opening view that shows the whole world. */
 const ZOOMS = { overview: 'fit', mid: 1, close: 3 }
@@ -295,6 +303,30 @@ async function panUntil(page) {
   return travelled
 }
 
+async function pickSpeed(page, label) {
+  let ready = false
+  for (let i = 0; i < 100 && !ready; i++) {
+    ready = await page.evaluate(`!!document.querySelector('.time-speed-value')`).catch(() => false)
+    if (!ready) await sleep(200)
+  }
+  if (!ready) throw new Error('the speed control never appeared')
+  await page.evaluate(`document.querySelector('.time-speed-value').click()`)
+  let offered = []
+  for (let i = 0; i < 25 && !offered.length; i++) {
+    await sleep(100)
+    offered = await page.evaluate(
+      `[...document.querySelectorAll('.time-speed-list button > span')].map((s) => s.textContent)`,
+    )
+  }
+  const want = `${label}×`
+  if (!offered.includes(want))
+    throw new Error(`no ${want} in the speed menu; it offers ${offered.join(', ') || 'nothing'}`)
+  await page.evaluate(
+    `[...document.querySelectorAll('.time-speed-list button')].find((b) => b.querySelector(':scope > span')?.textContent === ${JSON.stringify(want)}).click()`,
+  )
+  await sleep(200)
+}
+
 async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mode, pass, port, runIndex }) {
   const chrome = await launchChrome({
     port,
@@ -387,6 +419,7 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
       }
       if (!paused) throw new Error('could not pause the simulation')
     }
+    if (speedLabel) await pickSpeed(page, speedLabel)
     await sleep(warmupMs)
     result.camera = await page.evaluate('window.__thbBench.camera()')
 
@@ -462,13 +495,22 @@ async function runScenario({ origin, label, outDir, fixture, meta, zoomName, mod
     const p1 = await processCpu(browser)
     const m1 = metricsOf(await page.send('Performance.getMetrics'))
     await page.evaluate(`performance.mark('bench-end')`)
+    if (speedLabel) {
+      result.speed = speedLabel
+      result.speedReadout = await page.evaluate(
+        `document.querySelector('.time-speed-value')?.textContent ?? null`,
+      )
+      result.tickAfter = await page.evaluate('window.__thbBench.info().tick')
+    }
     if (panning) {
       const travelled = await panning
       if (travelled?.error) throw travelled.error
       if (zoomName !== 'overview') {
         const expected = (480 / ZOOMS[zoomName]) * (windowMs / 1000)
         if (travelled < expected / 2)
-          throw new Error(`camera moved ${Math.round(travelled)}px; expected at least ${Math.round(expected / 2)}px`)
+          throw new Error(
+            `camera moved ${Math.round(travelled)}px; expected at least ${Math.round(expected / 2)}px`,
+          )
       }
       result.panPx = Math.round(travelled)
     }
