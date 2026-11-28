@@ -9,6 +9,7 @@ import {
   isMapControl,
   MAX_MAP_ZOOM,
   minMapZoom,
+  openingMapCamera,
   zoomMapAt,
   zoomTweenAt,
   type MapCamera,
@@ -66,18 +67,24 @@ export function CanvasCameraController({
   applyRef.current = apply
 
   useEffect(() => {
-    const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
-    // Wait for the viewport to be measured; this effect runs again when it is.
-    if (!opening) return
+    const world = { w: worldW, h: worldH }
     if (!initialized.current) {
-      initialized.current = true
-      // Where the player left the camera on this world; the whole world on a first visit.
-      const saved = readSavedCamera({ w: worldW, h: worldH })
-      applyRef.current(
-        saved ? { ...saved, zoom: Math.max(minZoom, Math.min(MAX_MAP_ZOOM, saved.zoom)) } : opening,
+      // Where the player left the camera on this world; on a new world, the first look if one is waiting;
+      // else the whole world.
+      const opening = openingMapCamera(
+        world,
+        { w: containerW, h: containerH },
+        readSavedCamera(world),
+        commandRef.current,
       )
-    } else applyRef.current(cameraStateRef.current)
-  }, [worldW, worldH, containerW, containerH, cameraStateRef, minZoom])
+      // Wait for the viewport to be measured; this effect runs again when it is.
+      if (!opening) return
+      initialized.current = true
+      if (opening.usedRequest) commandRef.current = null
+      applyRef.current(opening.camera)
+    } else if (initialMapCamera(world, { w: containerW, h: containerH }))
+      applyRef.current(cameraStateRef.current)
+  }, [worldW, worldH, containerW, containerH, cameraStateRef, commandRef])
 
   useEffect(() => {
     window.addEventListener('pagehide', flushSavedCamera)
@@ -222,7 +229,8 @@ export function CanvasCameraController({
         )
         if (elapsed >= DOUBLE_CLICK_ZOOM_MS) tween.current = null
       }
-      const command = commandRef.current
+      // Requests wait for the opening view: one spent before it would be overwritten by it.
+      const command = initialized.current ? commandRef.current : null
       if (command) {
         commandRef.current = null
         stopFollow()

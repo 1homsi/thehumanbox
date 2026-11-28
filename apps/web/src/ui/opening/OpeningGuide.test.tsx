@@ -6,6 +6,7 @@ import { OpeningGuide } from './OpeningGuide'
 import { largestTribe } from './opening-lines'
 import { openingHides, useOpeningGuide } from '../../state/opening-guide'
 import { useCameraFocus } from '../../state/camera-focus'
+import { useFirstLook } from '../../state/first-look'
 import { t } from '../../i18n'
 import type { WorldState } from '../../shared/types'
 
@@ -31,6 +32,7 @@ beforeEach(() => {
   Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true })
   useOpeningGuide.setState({ beat: null, tribe: null, beatSeconds: 0, acted: false })
   useCameraFocus.setState({ request: null })
+  useFirstLook.setState({ tribe: null })
 })
 afterEach(() => {
   act(() => roots.splice(0).forEach((root) => root.unmount()))
@@ -89,6 +91,21 @@ describe('opening guide', () => {
     expect(useCameraFocus.getState().request).toMatchObject({ x: 21, y: 30, zoom: 3 })
     expect(host.textContent).toContain(t('dialogs.opening.meet', { tribe: 'Bren' }))
     expect(document.body.dataset.opening).toBe('powers header')
+  })
+
+  it('stays with the tribe the first look opened on while it lives', () => {
+    useFirstLook.setState({ tribe: 'a' })
+    useOpeningGuide.getState().start()
+    render(world)
+    expect(useOpeningGuide.getState().tribe).toBe('a')
+    expect(useCameraFocus.getState().request).toMatchObject({ x: 1, y: 1, zoom: 3 })
+  })
+
+  it('follows the largest tribe when the one first framed has died out', () => {
+    useFirstLook.setState({ tribe: 'gone' })
+    useOpeningGuide.getState().start()
+    render(world)
+    expect(useOpeningGuide.getState().tribe).toBe('b')
   })
 
   it('reaches the powers beat, where the dock lights up, about 15 seconds in', () => {

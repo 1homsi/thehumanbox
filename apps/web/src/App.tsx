@@ -1093,7 +1093,7 @@ function LiveApp() {
         {hotkeysOpen && <HotkeyHelp onClose={() => setHotkeysOpen(false)} />}
 
         {world && <WelcomeModal />}
-        <FirstLook world={world ?? null} />
+        <FirstLook world={world ?? null} resumed={startMode === 'resume'} />
         <OpeningGuide world={world ?? null} />
         {sandboxControlsEnabled && (
           <TutorialGuide world={world ?? null} armedToolId={armedTool?.id ?? null} onPickTool={onPickTool} />
