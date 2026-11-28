@@ -241,6 +241,21 @@ frame; `--eval '<js>'` stores the value of an expression evaluated in the page a
 `JSON.stringify(window.__thbCf.registry.stats())`, the world drivers' own timings and counts);
 `profile-summary.mjs <profile> --callers <name>` shows who calls a function and how long it ran under each caller.
 
+## Game speed
+
+`--speed <label>` picks a speed from the toolbar's speed menu after the view and mode are set and before the
+warm-up, so the window measures the map with time running that fast. The label is the menu entry without the `×`:
+
+```sh
+node bench/run.mjs --builds main=dist --fixtures standard --zooms overview --modes playing --passes metrics \
+  --runs 1 --speed 5000
+```
+
+If the menu has no such entry the scenario fails with an error listing the speeds it offers. Each row then
+records `speed`, `speedReadout` (the toolbar readout after the window, e.g. `5000×≈65×` when the world reaches
+only 65×) and `tickAfter` (the world tick after the window). Without `--speed` the world runs at its default speed
+and those fields are absent.
+
 Numbers measured with this harness on the previous canvas map and on the xipjs map are in [RESULTS.md](RESULTS.md).
 
 ## Reading the numbers
