@@ -28,10 +28,23 @@ export interface FirstLookAt {
   y: number
 }
 
+/** Where to look, and the tribe there that is about to act. */
+export interface FirstLookTarget extends FirstLookAt {
+  tribe: string
+}
+
 export interface FirstLookWorld {
   organisms: readonly { alive?: boolean; x: number; y: number; lineage_id: string }[]
-  settlements?: readonly { lineage_id: string; tier?: number }[] | null
-  battles?: readonly { location?: [number, number] | null; ended?: boolean; started_tick?: number }[] | null
+  settlements?: readonly { lineage_id: string; tier?: number; center?: [number, number] | null }[] | null
+  battles?:
+    | readonly {
+        location?: [number, number] | null
+        ended?: boolean
+        started_tick?: number
+        attackers?: readonly string[] | null
+        defenders?: readonly string[] | null
+      }[]
+    | null
   buildings?:
     | readonly {
         x: number
@@ -48,9 +61,69 @@ export interface FirstLookWorld {
 }
 
 export function firstLookFocus(world: FirstLookWorld): FirstLookAt | null {
+  const target = firstLookTarget(world)
+  return target && { x: target.x, y: target.y }
+}
+
+/** The group about to do something visible, with the tribe it belongs to. Null when none qualifies. */
+export function firstLookTarget(world: FirstLookWorld): FirstLookTarget | null {
   const people = living(world)
   if (people.length === 0) return null
-  return fight(world) ?? meeting(people, world) ?? raising(world) ?? split(people) ?? cluster(people, world)
+  return (
+    fight(world, people) ??
+    meeting(people, world) ??
+    raising(world) ??
+    split(people) ??
+    cluster(people, world)
+  )
+}
+
+/**
+ * Where a new world's camera opens: the group about to act (see firstLookTarget), or else the most
+ * populous tribe at its home. Ties go to the lower lineage id, so the same world always opens on the
+ * same tribe. Null when nobody is alive.
+ */
+export function openingTarget(world: FirstLookWorld): FirstLookTarget | null {
+  const acting = firstLookTarget(world)
+  if (acting) return acting
+  const people = living(world)
+  const tribe = largestOf(tribeSizes(people))
+  if (tribe === null) return null
+  const camp = world.settlements?.find((s) => s.lineage_id === tribe && s.center)
+  if (camp?.center && Number.isFinite(camp.center[0]) && Number.isFinite(camp.center[1])) {
+    return { ...point(camp.center[0], camp.center[1]), tribe }
+  }
+  let sx = 0
+  let sy = 0
+  let n = 0
+  for (const p of people) {
+    if (p.lineage !== tribe) continue
+    sx += p.x
+    sy += p.y
+    n += 1
+  }
+  return { ...point(sx / n, sy / n), tribe }
+}
+
+function tribeSizes(people: readonly Person[]): Map<string, number> {
+  const sizes = new Map<string, number>()
+  for (const p of people) sizes.set(p.lineage, (sizes.get(p.lineage) ?? 0) + 1)
+  return sizes
+}
+
+/** The tribe with the most people; the lower id on a tie. */
+function largestOf(sizes: ReadonlyMap<string, number>, among?: readonly string[]): string | null {
+  let best: string | null = null
+  let most = 0
+  for (const id of among ?? sizes.keys()) {
+    const n = sizes.get(id) ?? 0
+    if (n === 0) continue
+    if (n > most || (n === most && best !== null && id < best)) {
+      best = id
+      most = n
+    }
+  }
+  return best
 }
 
 function living(world: FirstLookWorld): Person[] {
@@ -99,24 +172,28 @@ function settled(world: FirstLookWorld): Set<string> {
   return out
 }
 
-/** A fight on the map. The latest one, when several are still going. */
-function fight(world: FirstLookWorld): FirstLookAt | null {
-  let best: { tick: number; x: number; y: number } | null = null
+/** A fight on the map. The latest one, when several are still going; the larger side's tribe is the one framed. */
+function fight(world: FirstLookWorld, people: readonly Person[]): FirstLookTarget | null {
+  const sizes = tribeSizes(people)
+  let best: { tick: number; x: number; y: number; tribe: string } | null = null
   for (const battle of world.battles ?? []) {
     if (battle.ended) continue
     const loc = battle.location
     if (!loc || !Number.isFinite(loc[0]) || !Number.isFinite(loc[1])) continue
     const at = point(loc[0], loc[1])
     const tick = battle.started_tick ?? 0
+    const sides = [...(battle.attackers ?? []), ...(battle.defenders ?? [])]
+    const tribe = largestOf(sizes, sides) ?? sides[0] ?? largestOf(sizes)
+    if (tribe === null) continue
     if (
       !best ||
       tick > best.tick ||
       (tick === best.tick && (at.x < best.x || (at.x === best.x && at.y < best.y)))
     ) {
-      best = { tick, ...at }
+      best = { tick, tribe, ...at }
     }
   }
-  return best && { x: best.x, y: best.y }
+  return best && { x: best.x, y: best.y, tribe: best.tribe }
 }
 
 function rivalKey(a: string, b: string): string {
@@ -135,10 +212,11 @@ function rivalsOf(world: FirstLookWorld): Set<string> {
  * The closest two people of different tribes within meeting reach. At the same
  * distance a rivalry is the fight about to start, so it wins over a meeting.
  */
-function meeting(people: readonly Person[], world: FirstLookWorld): FirstLookAt | null {
+function meeting(people: readonly Person[], world: FirstLookWorld): FirstLookTarget | null {
   const rivals = rivalsOf(world)
+  const sizes = tribeSizes(people)
   const index = buckets(people, MEET_REACH)
-  let best: { d: number; fight: boolean; x: number; y: number } | null = null
+  let best: { d: number; fight: boolean; x: number; y: number; a: string; b: string } | null = null
   for (let i = 0; i < people.length; i++) {
     const p = people[i]
     for (const j of nearby(index, MEET_REACH, p.x, p.y)) {
@@ -153,16 +231,16 @@ function meeting(people: readonly Person[], world: FirstLookWorld): FirstLookAt 
       if (best !== null && d === best.d) {
         replace = fight !== best.fight ? fight : at.x < best.x || (at.x === best.x && at.y < best.y)
       }
-      if (replace) best = { d, fight, ...at }
+      if (replace) best = { d, fight, a: p.lineage, b: q.lineage, ...at }
     }
   }
-  return best && { x: best.x, y: best.y }
+  return best && { x: best.x, y: best.y, tribe: largestOf(sizes, [best.a, best.b]) ?? best.a }
 }
 
 /** The first hut nearest to standing: a tribe with no camp yet, and a site not finished. */
-function raising(world: FirstLookWorld): FirstLookAt | null {
+function raising(world: FirstLookWorld): FirstLookTarget | null {
   const founded = settled(world)
-  let best: { progress: number; x: number; y: number } | null = null
+  let best: { progress: number; x: number; y: number; tribe: string } | null = null
   for (const building of world.buildings ?? []) {
     if (building.decorative || building.ruined) continue
     const lineage = building.owner_lineage || building.lineage_id
@@ -175,10 +253,10 @@ function raising(world: FirstLookWorld): FirstLookAt | null {
       progress > best.progress ||
       (progress === best.progress && (at.x < best.x || (at.x === best.x && at.y < best.y)))
     ) {
-      best = { progress, ...at }
+      best = { progress, tribe: lineage, ...at }
     }
   }
-  return best && { x: best.x, y: best.y }
+  return best && { x: best.x, y: best.y, tribe: best.tribe }
 }
 
 /**
@@ -186,7 +264,7 @@ function raising(world: FirstLookWorld): FirstLookAt | null {
  * enough of the tribe left behind. The smallest such band is the one nearest
  * the threshold.
  */
-function split(people: readonly Person[]): FirstLookAt | null {
+function split(people: readonly Person[]): FirstLookTarget | null {
   const tribe = new Map<string, number>()
   for (const p of people) tribe.set(p.lineage, (tribe.get(p.lineage) ?? 0) + 1)
 
@@ -225,7 +303,7 @@ function split(people: readonly Person[]): FirstLookAt | null {
     } else bands.set(root, { n: 1, sx: p.x, sy: p.y, lineage: p.lineage })
   }
 
-  let best: { n: number; x: number; y: number } | null = null
+  let best: { n: number; x: number; y: number; tribe: string } | null = null
   for (const band of bands.values()) {
     const left = (tribe.get(band.lineage) ?? band.n) - band.n
     if (band.n < SPLIT_BAND || left < SPLIT_LEFT) continue
@@ -235,17 +313,17 @@ function split(people: readonly Person[]): FirstLookAt | null {
       band.n < best.n ||
       (band.n === best.n && (at.x < best.x || (at.x === best.x && at.y < best.y)))
     ) {
-      best = { n: band.n, ...at }
+      best = { n: band.n, tribe: band.lineage, ...at }
     }
   }
-  return best && { x: best.x, y: best.y }
+  return best && { x: best.x, y: best.y, tribe: best.tribe }
 }
 
 /**
  * The largest cluster of people. A tribe that has not founded a camp wins over
  * a larger one that already has: that cluster is the first settlement forming.
  */
-function cluster(people: readonly Person[], world: FirstLookWorld): FirstLookAt | null {
+function cluster(people: readonly Person[], world: FirstLookWorld): FirstLookTarget | null {
   const founded = settled(world)
   const cells = new Map<
     string,
@@ -264,7 +342,7 @@ function cluster(people: readonly Person[], world: FirstLookWorld): FirstLookAt 
   }
 
   const seen = new Set<string>()
-  let best: { fresh: boolean; n: number; x: number; y: number } | null = null
+  let best: { fresh: boolean; n: number; x: number; y: number; tribe: string } | null = null
   for (const start of cells.values()) {
     const startKey = `${start.lineage}/${start.cx}/${start.cy}`
     if (seen.has(startKey)) continue
@@ -297,7 +375,7 @@ function cluster(people: readonly Person[], world: FirstLookWorld): FirstLookAt 
     if (best !== null && fresh === best.fresh) {
       replace = n > best.n || (n === best.n && (at.x < best.x || (at.x === best.x && at.y < best.y)))
     }
-    if (replace) best = { fresh, n, ...at }
+    if (replace) best = { fresh, n, tribe: start.lineage, ...at }
   }
-  return best && { x: best.x, y: best.y }
+  return best && { x: best.x, y: best.y, tribe: best.tribe }
 }

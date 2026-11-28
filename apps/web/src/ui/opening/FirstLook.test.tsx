@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FIRST_LOOK_ZOOM, FirstLook } from './FirstLook'
 import { useCameraFocus } from '../../state/camera-focus'
+import { useFirstLook } from '../../state/first-look'
 import { readSavedCamera } from '../../game/model/saved-camera'
 import type { WorldState } from '../../shared/types'
 
@@ -14,6 +15,7 @@ afterAll(() => vi.unstubAllGlobals())
 const roots: Root[] = []
 beforeEach(() => {
   useCameraFocus.setState({ request: null })
+  useFirstLook.setState({ tribe: null })
   vi.mocked(readSavedCamera).mockReturnValue(null)
 })
 afterEach(() => {
@@ -31,12 +33,12 @@ const world = {
   settlements: [],
 } as unknown as WorldState
 
-function render(w: WorldState | null) {
+function render(w: WorldState | null, resumed = false) {
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
   roots.push(root)
-  act(() => root.render(<FirstLook world={w} />))
+  act(() => root.render(<FirstLook world={w} resumed={resumed} />))
   return (next: WorldState | null) => act(() => root.render(<FirstLook world={next} />))
 }
 
@@ -81,5 +83,16 @@ describe('first look', () => {
       settlements: [],
     } as unknown as WorldState)
     expect(useCameraFocus.getState().request).toBeNull()
+  })
+
+  it('remembers the tribe it opened on, for the opening that follows', () => {
+    render(world)
+    expect(useFirstLook.getState().tribe).toBe('b')
+  })
+
+  it('leaves a world loaded from a save alone, even when no camera was saved for it', () => {
+    render(world, true)
+    expect(useCameraFocus.getState().request).toBeNull()
+    expect(useFirstLook.getState().tribe).toBeNull()
   })
 })

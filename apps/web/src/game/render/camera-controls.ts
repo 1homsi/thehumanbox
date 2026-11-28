@@ -32,6 +32,34 @@ export function initialMapCamera(world: MapSize, viewport: MapSize): MapCamera |
   return { x: world.w / 2, y: world.h / 2, zoom: Math.min(viewport.w / world.w, viewport.h / world.h) * 0.95 }
 }
 
+/**
+ * Where the map first opens. The player's saved view of this world wins; otherwise a look already asked
+ * for (a new world's first look at the tribe about to act), so the map starts there rather than showing
+ * the whole world for a frame and then jumping; otherwise the whole world. `usedRequest` says the
+ * request was spent here. Null until the viewport has been measured.
+ */
+export function openingMapCamera(
+  world: MapSize,
+  viewport: MapSize,
+  saved: MapCamera | null,
+  request: MapCommand | null,
+): { camera: MapCamera; usedRequest: boolean } | null {
+  const whole = initialMapCamera(world, viewport)
+  if (!whole) return null
+  if (saved) {
+    const zoom = Math.max(minMapZoom(world, viewport), Math.min(MAX_MAP_ZOOM, saved.zoom))
+    return { camera: clampMapCamera({ ...saved, zoom }, world, viewport), usedRequest: false }
+  }
+  if (request?.kind === 'focus') {
+    const zoom = Math.min(MAX_MAP_ZOOM, Math.max(whole.zoom, request.zoom ?? 2))
+    return {
+      camera: clampMapCamera({ x: request.x, y: request.y, zoom }, world, viewport),
+      usedRequest: true,
+    }
+  }
+  return { camera: whole, usedRequest: false }
+}
+
 export function clampMapCamera(camera: MapCamera, world: MapSize, viewport: MapSize): MapCamera {
   // A zoom of 0 (or NaN) would shrink the world to nothing: fall back to
   // the opening view rather than keep a camera that can never show land.

@@ -3,6 +3,7 @@ import { t } from '../../i18n'
 import type { WorldState } from '../../shared/types'
 import { tribeHome } from '../../game/model/tribe-peril'
 import { useCameraFocus } from '../../state/camera-focus'
+import { useFirstLook } from '../../state/first-look'
 import { largestTribe, openingLine } from './opening-lines'
 import { openingHides, useOpeningGuide, type OpeningBeat } from '../../state/opening-guide'
 import { trackEvent } from '../../shared/observability'
@@ -45,7 +46,12 @@ export function OpeningGuide({ world }: { world: WorldState | null }) {
   )
   useEffect(() => {
     if (!beat || !world || alive) return
-    const next = largestTribe(world)
+    // The tribe the first look opened on, while it lives, so the camera does not jump to another one.
+    const framed = useFirstLook.getState().tribe
+    const next =
+      framed && world.organisms.some((o) => o.alive !== false && o.lineage_id === framed)
+        ? framed
+        : largestTribe(world)
     if (!next) return
     useOpeningGuide.getState().setTribe(next)
     const home = tribeHome(world, next)

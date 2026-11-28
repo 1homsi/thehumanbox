@@ -6,6 +6,7 @@ import {
   initialMapCamera,
   MAX_MAP_ZOOM,
   minMapZoom,
+  openingMapCamera,
   screenToMap,
   zoomMapAt,
   zoomTweenAt,
@@ -98,5 +99,42 @@ describe('2D map navigation', () => {
       expect(under.x).toBeCloseTo(spot.x)
       expect(under.y).toBeCloseTo(spot.y)
     }
+  })
+})
+
+describe('opening map camera', () => {
+  it('waits for the viewport to be measured', () => {
+    expect(openingMapCamera(world, { w: 0, h: 0 }, null, null)).toBeNull()
+  })
+
+  it('opens on the whole world with nothing saved and nothing asked for', () => {
+    expect(openingMapCamera(world, viewport, null, null)).toEqual({
+      camera: initialMapCamera(world, viewport),
+      usedRequest: false,
+    })
+  })
+
+  it('opens straight on a first look waiting for it, without a whole-world frame first', () => {
+    expect(openingMapCamera(world, viewport, null, { kind: 'focus', x: 2000, y: 1000, zoom: 3 })).toEqual({
+      camera: { x: 2000, y: 1000, zoom: 3 },
+      usedRequest: true,
+    })
+    // Near an edge it stays inside the world.
+    const edge = openingMapCamera(world, viewport, null, { kind: 'focus', x: 0, y: 0, zoom: 3 })!
+    expect(edge.camera).toEqual({ x: 800 / 6, y: 100, zoom: 3 })
+  })
+
+  it('keeps the saved view of a world the player has been in, and leaves the request for later', () => {
+    expect(
+      openingMapCamera(world, viewport, { x: 1500, y: 900, zoom: 2 }, { kind: 'focus', x: 2000, y: 1000 }),
+    ).toEqual({ camera: { x: 1500, y: 900, zoom: 2 }, usedRequest: false })
+    // A saved zoom past the limits comes back inside them.
+    const far = openingMapCamera(world, viewport, { x: 2400, y: 1200, zoom: 99 }, null)!
+    expect(far.camera.zoom).toBe(MAX_MAP_ZOOM)
+  })
+
+  it('does not spend a fit or zoom request on the opening', () => {
+    expect(openingMapCamera(world, viewport, null, { kind: 'fit' })?.usedRequest).toBe(false)
+    expect(openingMapCamera(world, viewport, null, { kind: 'zoom', factor: 2 })?.usedRequest).toBe(false)
   })
 })

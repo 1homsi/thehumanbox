@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { firstLookFocus } from './first-look'
+import { firstLookFocus, firstLookTarget, openingTarget } from './first-look'
 
 function person(lineage: string, x: number, y: number, alive = true) {
   return { lineage_id: lineage, x, y, alive }
@@ -100,5 +100,68 @@ describe('firstLookFocus', () => {
     ).toBeNull()
     expect(firstLookFocus({ organisms: [] })).toBeNull()
     expect(firstLookFocus({ organisms: [person('a', 5, 5, false), person('b', 6, 5, false)] })).toBeNull()
+  })
+})
+
+describe('openingTarget', () => {
+  it('names the tribe about to act along with where it is', () => {
+    // A fight: the side with more people alive.
+    expect(
+      firstLookTarget({
+        organisms: [person('a', 0, 0), person('b', 1, 0), person('b', 2, 0)],
+        battles: [{ location: [5, 5], started_tick: 3, attackers: ['a'], defenders: ['b'] }],
+      }),
+    ).toEqual({ x: 5, y: 5, tribe: 'b' })
+    // A meeting: the larger of the two tribes meeting.
+    expect(
+      firstLookTarget({
+        organisms: [person('a', 0, 0), person('b', 6, 0), person('b', 60, 60), person('c', 200, 200)],
+      }),
+    ).toEqual({ x: 3, y: 0, tribe: 'b' })
+    // A first hut going up.
+    expect(
+      firstLookTarget({
+        organisms: [person('a', 0, 0), person('b', 100, 100)],
+        buildings: [{ x: 40, y: 40, condition: 0.5, lineage_id: 'b' }],
+      }),
+    ).toEqual({ x: 40, y: 40, tribe: 'b' })
+    // The largest unsettled cluster.
+    expect(
+      firstLookTarget({
+        organisms: [person('a', 0, 0), person('a', 1, 0), person('a', 2, 0), person('b', 100, 100)],
+      }),
+    ).toEqual({ x: 1, y: 0, tribe: 'a' })
+  })
+
+  it('falls back to the most populous tribe at its camp when nobody is about to act', () => {
+    expect(
+      openingTarget({
+        organisms: [person('a', 0, 0), person('b', 100, 100), person('b', 160, 100)],
+        settlements: [{ lineage_id: 'b', tier: 1, center: [130, 104] }],
+      }),
+    ).toEqual({ x: 130, y: 104, tribe: 'b' })
+    // No camp yet: the middle of its people.
+    expect(
+      openingTarget({ organisms: [person('a', 0, 0), person('b', 100, 100), person('b', 160, 100)] }),
+    ).toEqual({ x: 130, y: 100, tribe: 'b' })
+  })
+
+  it('breaks a tie between equally large tribes the same way whatever order they arrive in', () => {
+    const one = [person('m', 300, 0), person('m', 330, 0), person('k', 0, 300), person('k', 0, 330)]
+    expect(openingTarget({ organisms: one })).toEqual({ x: 0, y: 315, tribe: 'k' })
+    expect(openingTarget({ organisms: [...one].reverse() })).toEqual({ x: 0, y: 315, tribe: 'k' })
+  })
+
+  it('prefers the group about to act over a larger idle tribe, and is null with nobody alive', () => {
+    expect(
+      openingTarget({
+        organisms: [
+          ...Array.from({ length: 8 }, (_, i) => person('big', 300 + i * 20, 300)),
+          person('x', 0, 0),
+          person('y', 4, 0),
+        ],
+      }),
+    ).toEqual({ x: 2, y: 0, tribe: 'x' })
+    expect(openingTarget({ organisms: [person('a', 1, 1, false)] })).toBeNull()
   })
 })

@@ -10,6 +10,7 @@ import {
   isMapControl,
   MAX_MAP_ZOOM,
   minMapZoom,
+  openingMapCamera,
   zoomMapAt,
   zoomTweenAt,
   type MapCamera,
@@ -308,18 +309,18 @@ export function CfMapCameraController({
 
   // Runs every engine frame, before the renderer draws.
   const frame = () => {
-    const opening = initialMapCamera(world, viewport)
-    if (!opening) return
     if (!initialized.current) {
+      // Where the player left the camera on this world; on a new world, the first look if one is waiting;
+      // else the whole world.
+      const opening = openingMapCamera(world, viewport, readSavedCamera(world), commandRef.current)
+      if (!opening) return
       initialized.current = true
-      // Where the player left the camera on this world; the whole world on a first visit.
-      const saved = readSavedCamera(world)
-      commitRef.current(
-        saved ? { ...saved, zoom: Math.max(minZoom, Math.min(MAX_MAP_ZOOM, saved.zoom)) } : opening,
-      )
+      if (opening.usedRequest) commandRef.current = null
+      commitRef.current(opening.camera)
       if (commandRef.current) engine.loop.markDirty()
       return
     }
+    if (!initialMapCamera(world, viewport)) return
     const live = camera.getPosition()
     const liveZoom = camera.getZoom()
     const seen = last.current
