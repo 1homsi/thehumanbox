@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { HOLD_TICKS, holdUrgency, lossTrend, recordLoss, tribeUrgency, urgencyColor } from './tribe-urgency'
+import { FAMINE_RISK_FOOD } from './famine-warning'
+import {
+  HARM_MIN,
+  HARM_SHARE,
+  HOLD_TICKS,
+  holdUrgency,
+  lossTrend,
+  recordLoss,
+  tribeUrgency,
+  urgencyColor,
+  type HeldUrgency,
+  type LossSample,
+} from './tribe-urgency'
 
 const calm = { peril: null, losses: undefined, alive: 30, food: 0.8 }
 
@@ -132,5 +144,114 @@ describe('lossTrend', () => {
         [100, 1],
       ]),
     ).toEqual([{ tick: 100, lost: 1 }])
+  })
+})
+
+describe('famine and violent losses together', () => {
+  it('names famine first and counts every death of the season', () => {
+    const u = tribeUrgency({ ...calm, alive: 20, losses: { starvation: 3, war: 4 } })
+    expect(u).toMatchObject({ kind: 'famine', lost: 7, alive: 20, total: 27 })
+    expect(u!.level).toBeCloseTo(7 / 27 / 0.4)
+  })
+
+  it('names famine when food runs low even if war has killed more', () => {
+    expect(tribeUrgency({ ...calm, alive: 20, food: 0.1, losses: { war: 6, combat: 2 } })).toMatchObject({
+      kind: 'famine',
+      lost: 8,
+    })
+  })
+
+  it('lets the peril cause outrank both', () => {
+    expect(
+      tribeUrgency({
+        ...calm,
+        alive: 6,
+        food: 0.1,
+        peril: { cause: 'war' },
+        losses: { starvation: 2, war: 3 },
+      })?.kind,
+    ).toBe('war')
+  })
+})
+
+describe('threshold edges', () => {
+  it('warns of famine only below the risk line', () => {
+    expect(FAMINE_RISK_FOOD).toBe(0.3)
+    expect(tribeUrgency({ ...calm, food: 0.299 })?.kind).toBe('famine')
+    expect(tribeUrgency({ ...calm, food: 0.3 })).toBeNull()
+    expect(tribeUrgency({ ...calm, food: 0.301 })).toBeNull()
+  })
+
+  it('treats a single starvation death as famine whatever the food', () => {
+    expect(tribeUrgency({ ...calm, food: 0.9, losses: { starvation: 1 } })?.kind).toBe('famine')
+  })
+
+  it('needs two violent deaths, however small the tribe', () => {
+    expect(HARM_MIN).toBe(2)
+    expect(tribeUrgency({ ...calm, alive: 3, losses: { war: 1 } })).toBeNull()
+    expect(tribeUrgency({ ...calm, alive: 3, losses: { war: 2 } })?.kind).toBe('war')
+  })
+
+  it('needs a tenth of everyone the tribe had: below, at and above', () => {
+    expect(HARM_SHARE).toBe(0.1)
+    // 3 of 31 is just under a tenth, 3 of 30 is exactly a tenth, 3 of 29 is over it.
+    expect(tribeUrgency({ ...calm, alive: 28, losses: { war: 3 } })).toBeNull()
+    expect(tribeUrgency({ ...calm, alive: 27, losses: { war: 3 } })?.kind).toBe('war')
+    expect(tribeUrgency({ ...calm, alive: 26, losses: { war: 3 } })?.kind).toBe('war')
+  })
+
+  it('counts old age in the total but not in the harm', () => {
+    // 2 violent deaths of 20 people is exactly a tenth; 2 more who died of old age make it 2 of 22.
+    expect(tribeUrgency({ ...calm, alive: 18, losses: { war: 2 } })?.kind).toBe('war')
+    expect(tribeUrgency({ ...calm, alive: 18, losses: { war: 2, old_age: 2 } })).toBeNull()
+  })
+})
+
+describe('a danger that clears inside the hold', () => {
+  const war = tribeUrgency({ ...calm, alive: 18, losses: { war: 6 } })!
+
+  it('stays up for a day after it was last seen, then goes', () => {
+    const seen = holdUrgency(null, war, 1000)
+    const lapsed = holdUrgency(seen, null, 1100)
+    expect(lapsed?.urgency).toBe(war)
+    expect(holdUrgency(lapsed, null, 1000 + HOLD_TICKS)?.urgency).toBe(war)
+    expect(holdUrgency(lapsed, null, 1001 + HOLD_TICKS)).toBeNull()
+  })
+
+  it('restarts the clock if the danger comes back before the hold runs out', () => {
+    const lapsed = holdUrgency(holdUrgency(null, war, 1000), null, 1100)
+    const back = holdUrgency(lapsed, war, 1400)
+    expect(back).toEqual({ urgency: war, seen: 1400 })
+    expect(holdUrgency(back, null, 1400 + HOLD_TICKS)?.urgency).toBe(war)
+    expect(holdUrgency(back, null, 1401 + HOLD_TICKS)).toBeNull()
+  })
+})
+
+// #1189: the strip keeps its hold and its trend in component refs, and the sim
+// does not save a tribe's recent dead (`recent_deaths` loads empty, see
+// `a_tribes_recent_dead_do_not_survive_a_reload` in sim-core). A reload therefore
+// starts all three from nothing. These pin today's behaviour; fixing it needs a
+// save-format change, so they should flip when that lands.
+describe('after a save and reload (today)', () => {
+  const war = tribeUrgency({ ...calm, alive: 18, losses: { war: 6 } })!
+
+  it('drops a danger that lapsed inside the hold', () => {
+    const held = holdUrgency(null, war, 1000)
+    expect(holdUrgency(held, null, 1200)?.urgency).toBe(war)
+    const reloaded: HeldUrgency | null = null
+    expect(holdUrgency(reloaded, null, 1200)).toBeNull()
+  })
+
+  it('forgets which way the losses were going', () => {
+    const before = recordLoss(recordLoss([], 1000, 2), 1100, 5)
+    expect(lossTrend(recordLoss(before, 1200, 6))).toBe('rising')
+    const reloaded: LossSample[] = []
+    expect(lossTrend(recordLoss(reloaded, 1200, 6))).toBe('flat')
+  })
+
+  it('loses a war the sim stops reporting, but keeps a famine read from food', () => {
+    expect(tribeUrgency({ ...calm, alive: 18, losses: { war: 6 } })?.kind).toBe('war')
+    expect(tribeUrgency({ ...calm, alive: 18, losses: undefined })).toBeNull()
+    expect(tribeUrgency({ ...calm, alive: 18, food: 0.1, losses: undefined })?.kind).toBe('famine')
   })
 })

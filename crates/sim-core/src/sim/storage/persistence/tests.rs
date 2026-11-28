@@ -770,3 +770,28 @@ fn the_dead_are_saved_without_what_only_the_living_use() {
     assert_eq!(back.name, sim.organisms[dead].name);
     assert_eq!(back.lineage_id, sim.organisms[dead].lineage_id);
 }
+
+/// #1189: a tribe's recent dead (`recent_deaths`, the source of the
+/// `tribe_losses` the tribe card's danger strip reads) are not part of the
+/// save, so a reload mid-crisis clears the strip's war, plague and
+/// starvation-death triggers until new deaths come in. This pins today's
+/// behaviour; persisting them is a save-format change, and this test should
+/// flip to assert the losses survive when that lands.
+#[test]
+fn a_tribes_recent_dead_do_not_survive_a_reload() {
+    let seed = 34;
+    let mut sim = Simulation::new(seed);
+    sim.tick_count = 5_000;
+    sim.note_death("clan", "war");
+    sim.note_death("clan", "war");
+    sim.note_death("clan", "starvation");
+    let before = sim.state_json();
+    assert_eq!(before["tribe_losses"]["clan"]["war"], 2);
+    assert_eq!(before["tribe_losses"]["clan"]["starvation"], 1);
+
+    let mut loaded = Simulation::from_save(seed, sim.to_save_state());
+    assert_eq!(loaded.tick_count, 5_000);
+    assert!(loaded.recent_deaths.is_empty());
+    let after = loaded.state_json();
+    assert!(after["tribe_losses"].get("clan").is_none());
+}
